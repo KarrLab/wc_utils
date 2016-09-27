@@ -14,6 +14,10 @@ import os
 import sys
 
 class ConfigFromFilesAndEnv(object):
+    """Obtain configuration information from ini files and/or environment variables.
+    
+    Also validate the configuration against a configuration schema.
+    """
 
     @staticmethod
     def setup( config_constants ):

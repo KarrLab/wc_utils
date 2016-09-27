@@ -6,7 +6,7 @@
 :License: MIT
 """
 
-from WC_utilities.util.dict import DictUtil
+from wc_utilities.util.dict import DictUtil
 from copy import deepcopy
 import unittest
 

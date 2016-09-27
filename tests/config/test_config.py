@@ -8,8 +8,8 @@
 
 from copy import deepcopy
 from validate import Validator
-from wc.config import core as config_core
-from wc.util.types import TypesUtil
+from wc_utilities.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
+from wc_utilities.util.types import TypesUtil
 import configobj
 import os
 import sys
@@ -25,7 +25,7 @@ else:
 class TestConfig(unittest.TestCase):
 
     def test_get_from_user(self):
-        expected = deepcopy(config_core.setup())
+        expected = deepcopy(ConfigFromFilesAndEnv.setup())
         expected['log']['debug']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
 
         _, temp_config_filename = tempfile.mkstemp()
@@ -37,77 +37,77 @@ class TestConfig(unittest.TestCase):
             file.write(u'                template = xxxx\n')
             file.write(u'                append_new_line = False\n')
 
-        config_settings = config_core.setup(user_config_filenames=[temp_config_filename])
+        config_settings = ConfigFromFilesAndEnv.setup(user_config_filenames=[temp_config_filename])
         self.assertEqual(config_settings['log']['debug']['formatters'], expected['log']['debug']['formatters'])
         TypesUtil.assert_value_equal(config_settings, expected)
 
         os.remove(temp_config_filename)
 
     def test_get_from_env(self):
-        expected = deepcopy(config_core.setup())
+        expected = deepcopy(ConfigFromFilesAndEnv.setup())
         expected['log']['debug']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
 
         env = EnvironmentVarGuard()
         env.set('CONFIG.log.debug.formatters.__test__.template', 'xxxx')
         env.set('CONFIG.log.debug.formatters.__test__.append_new_line', 'False')
         with env:
-            config_settings = config_core.setup()
+            config_settings = ConfigFromFilesAndEnv.setup()
 
         self.assertEqual(config_settings['log']['debug']['formatters'], expected['log']['debug']['formatters'])
         TypesUtil.assert_value_equal(config_settings, expected)
 
     def test_get_from_args(self):
-        expected = deepcopy(config_core.setup())
+        expected = deepcopy(ConfigFromFilesAndEnv.setup())
         expected['log']['debug']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
 
         extra = {'log': {'debug': {'formatters': {'__test__': {'template': 'xxxx', 'append_new_line': False}}}}}
-        config_settings = config_core.setup(extra)
+        config_settings = ConfigFromFilesAndEnv.setup(extra)
 
         self.assertEqual(config_settings['log']['debug']['formatters'], expected['log']['debug']['formatters'])
         TypesUtil.assert_value_equal(config_settings, expected)
 
     def test_extra_config(self):
         # test to __str__
-        config_specification = configobj.ConfigObj(config_core.CONFIG_SCHEMA_FILENAME, list_values=False, _inspec=True)
+        config_specification = configobj.ConfigObj(ConfigFromFilesAndEnv.CONFIG_SCHEMA_FILENAME, list_values=False, _inspec=True)
         config = configobj.ConfigObj(configspec=config_specification)
         config.merge({'__extra__': True})
         validator = Validator()
         result = config.validate(validator, preserve_errors=True)
         if configobj.get_extra_values(config):
-            str(config_core.ExtraValuesError(config))
+            str(ConfigFromFilesAndEnv.ExtraValuesError(config))
         else:
             raise Exception('Error not raised')
 
         # extra section
-        self.assertRaises(config_core.ExtraValuesError, lambda: config_core.setup({'__extra__': True}))
+        self.assertRaises(ConfigFromFilesAndEnv.ExtraValuesError, lambda: ConfigFromFilesAndEnv.setup({'__extra__': True}))
 
         # extra subsection, extra key
-        self.assertRaises(config_core.ExtraValuesError, lambda: config_core.setup(
+        self.assertRaises(ConfigFromFilesAndEnv.ExtraValuesError, lambda: ConfigFromFilesAndEnv.setup(
             {'log': {'__extra__': True, '__extra__2': {'val': 'is_dict'}}}))
 
     def test_invalid_config(self):
         # missing section
-        config_specification = configobj.ConfigObj(config_core.CONFIG_SCHEMA_FILENAME, list_values=False, _inspec=True)
+        config_specification = configobj.ConfigObj(ConfigFromFilesAndEnv.CONFIG_SCHEMA_FILENAME, list_values=False, _inspec=True)
         config_specification.merge({'__test__': {'enabled': 'boolean()'}})
         config = configobj.ConfigObj(configspec=config_specification)
         validator = Validator()
         result = config.validate(validator, preserve_errors=True)
         if result is not True:
-            str(config_core.InvalidConfigError(config, result))
+            str(ConfigFromFilesAndEnv.InvalidConfigError(config, result))
         else:
             raise Exception('Error not raised')
 
         # incorrect type
-        self.assertRaises(config_core.InvalidConfigError,
-                          lambda: config_core.setup({'log': {'debug': {'formatters': {'__test__': {'template': '', 'append_new_line': 10}}}}}))
+        self.assertRaises(ConfigFromFilesAndEnv.InvalidConfigError,
+                          lambda: ConfigFromFilesAndEnv.setup({'log': {'debug': {'formatters': {'__test__': {'template': '', 'append_new_line': 10}}}}}))
 
         # missing value
-        self.assertRaises(config_core.InvalidConfigError,
-                          lambda: config_core.setup({'log': {'debug': {'loggers': {'__test__': {'formatters': ['default']}}}}}))
+        self.assertRaises(ConfigFromFilesAndEnv.InvalidConfigError,
+                          lambda: ConfigFromFilesAndEnv.setup({'log': {'debug': {'loggers': {'__test__': {'formatters': ['default']}}}}}))
 
     def test_any_checker(self):
         validator = Validator()
-        validator.functions['any'] = config_core.any_checker
+        validator.functions['any'] = ConfigFromFilesAndEnv.any_checker
 
         # Boolean: True
         self.assertIsInstance(validator.check('any', 'True'), bool)

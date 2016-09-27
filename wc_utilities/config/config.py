@@ -25,7 +25,7 @@ class ConfigAll(object):
         the same config_data.
         """
         key = str(config_data)
-        # TODO: address the issue that arises when different config files point to the same log files
+        # TODO: address the issue that arises when multiple config files point to the same log files
         if key in ConfigAll.loggers_registry:
             return( ConfigAll.loggers_registry[key] )
 

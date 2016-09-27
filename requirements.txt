@@ -1,2 +1,5 @@
 configobj
 log
+PyYAML
+numpy
+six

@@ -1,14 +1,14 @@
-from .errors import ConfigurationError
-from .formatters import Formatter
-from .handlers import FileHandler, StreamHandler
-from .levels import LogLevel
-from .loggers import Logger
+from log.errors import ConfigurationError
+from log.formatters import Formatter
+from log.handlers import FileHandler, StreamHandler
+from log.levels import LogLevel
+from log.loggers import Logger
 from os import makedirs, path
 import sys
 import yaml
 
 
-class Config(object):
+class ConfigLog(object):
 
     @staticmethod
     def from_yaml(config_path):
@@ -92,7 +92,15 @@ class Config(object):
                 else:
                     logger_handlers = None
 
+                print("\ncreating logger {} with config:".format( name ))
+                print( kws( name=name, level=level, template=logger_formatters[0].template,
+                    formatters=logger_formatters, handlers=logger_handlers, **config_logger ))
                 loggers[name] = Logger(name=name, level=level, template=logger_formatters[0].template,
                     formatters=logger_formatters, handlers=logger_handlers, **config_logger)
 
         return formatters, handlers, loggers
+
+def kws(**kwargs):
+    if kwargs is not None:
+        for key, value in kwargs.items():
+            print( "%s == %s" %(key,value) )

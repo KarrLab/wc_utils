@@ -7,20 +7,28 @@
 """
 
 from copy import deepcopy
-from wc.config.core import config
-import log.config
 import sys
 
+import log
+from . import config_log
+from wc_utilities.debug_logs.config_log import ConfigLog
+from wc_utilities.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
 
-def setup(options=None):
-    """ Create and configure logs
+class MakeLoggers(object):
 
-    Args:
-        options (:obj:`dict`): dictionary of configurations
-    """
+    def __init__(self):
+        self.loggers = None
+        
+    def setup_logger(self, options):
+        """ Create and configure logs
 
-    if not options:
-        options = deepcopy(config['log']['debug'])
+        Args:
+            options (:obj:`dict`): a configuration
+        """
+
+        if 'log' not in options or 'debug' not in options['log']:
+            raise ValueError( """['log']['debug'] not found in options.""" )
+        options = deepcopy(options['log']['debug'])
         for name, handler in options['handlers'].items():
             if handler['class'] == 'FileHandler':
                 for key in handler:
@@ -32,26 +40,29 @@ def setup(options=None):
                     if key not in ['class', 'stream']:
                         handler.pop(key)
 
-    _, _, loggers = log.config.Config.from_dict(options)
-    return loggers
+        _, _, loggers = ConfigLog.from_dict(options)
+        self.loggers = loggers
+        return self
 
 
-def get_logger(name, loggers=None):
-    """ Returns logger with name `name`. Optionally, search for logger in 
-    passed in dictionary.
+    def get_logger(self, name, loggers=None):
+        """ Returns logger with name `name`. Optionally, search for logger in 
+        passed in dictionary.
 
-    Args:
-        name (:obj:`str`): log name
-        loggers (:obj:`dict`, optional): dictionary of loggers to search over
-    """
+        Args:
+            name (:obj:`str`): log name
+            loggers (:obj:`dict`, optional): dictionary of loggers to search over
+        """
 
-    if loggers is None:
-        module = sys.modules[__name__]
-        loggers = getattr(module, 'loggers')
+        if loggers is None:
+            loggers = self.loggers
+            if loggers is None:
+                raise ValueError( "No logger initialized." )
 
-    return loggers[name]
+        if not isinstance(loggers, dict):
+            raise ValueError( "loggers must be a dict." )
 
-
-# setup logs from configuration files
-loggers = setup()
-# :obj:`dict`: list of available loggers
+        if name not in loggers:
+            raise ValueError( "logger named '{}' not found.".format(name) )
+            
+        return loggers[name]

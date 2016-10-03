@@ -30,8 +30,10 @@ def default_mutable_params(mutable_args):
     all calls to the function which do not provide the parameter refer to this data
     structure. This differs from the semantics naive Python programmers expect, which is that
     calls that don't provide the parameter initialize it as an empty data structure. 
-    
-    The Python Language Reference recommends that this behavior be fixed by defining the
+
+    Somewhat surprisingly, the Python Language Reference 
+    recommends (https://docs.python.org/3.5/reference/compound_stmts.html#function-definitions) 
+    that this behavior be fixed by defining the
     default value for such optional parameters as None, and setting the parameter as empty
     data structure if it is not provided (or is provided as None). However, this is cumbersome,
     especially if the function contains a large number of such parameters.
@@ -44,7 +46,7 @@ def default_mutable_params(mutable_args):
     parameters whose value is None with the appropriate empty data structure. For example, 
     consider:
         @default_mutable_params( ['d_dict', 'list_l', 's_set'] )
-            def test3( a, d_dict=None, list_l=None, s_set=None, l2=[4] )
+        def test3( a, d_dict=None, list_l=None, s_set=None, l2=[4] )
     The call:
         test3( 1, d_dict={3}, list_l=None, s_set=None, l2=None )
     will be transformed into:

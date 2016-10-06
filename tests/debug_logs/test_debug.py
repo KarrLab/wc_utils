@@ -2,41 +2,44 @@
 
 :Author: Jonathan Karr <karr@mssm.edu>
 :Date: 2017-08-20
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
+:Date: 2016-09-28
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
 
-from wc_utilities.debug_logs.debug import MakeLoggers
 import io
 import os
 import sys
 import tempfile
 import unittest
+from capturer import CaptureOutput
 
+from log.levels import LogLevel
 from tests.config_files import config_constants
 from wc_utilities.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
 from wc_utilities.debug_logs.debug import MakeLoggers
 log_config = ConfigFromFilesAndEnv.setup( config_constants )
 loggers = MakeLoggers().setup_logger( log_config )
 
-def atts(obj):
-    for a in dir(obj):
-        if 'format' in a:
-            print( a, getattr(obj, a) )
-         
+
+class CheckForEnum34Test(unittest.TestCase):
+
+    # todo: move to log's unittests
+    def test_enum34(self):
+        self.assertFalse( isinstance(LogLevel.DEBUG, int), msg="Install enum34 for enum compatibility "
+            "in Python < 3.4")
+ 
+
 class DefaultDebugLogsTest(unittest.TestCase):
 
     def test_file(self):
         logger = loggers.get_logger('wc.debug.file')
-        
-        print('\nattributes of', 'wc.debug.file', 'logger' )
-        atts(logger)
 
         handler = next(iter(logger.handlers))
         filename = handler.fh.name
 
         prev_size = os.path.getsize(filename)
-
 
         msg = 'debug message'
         logger.debug(msg)
@@ -45,19 +48,22 @@ class DefaultDebugLogsTest(unittest.TestCase):
             file.seek(prev_size)
             new_log = file.read()
 
-        print('MSG:', new_log)
-        self.assertRegexpMatches(new_log, '^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(
-            float('nan'), msg))
+        self.assertRegexpMatches(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
-    # @unittest.skip("skip, as not a test")
     def test_console(self):
-        # TODO: make this a test
         logger = loggers.get_logger('wc.debug.console')
 
-        msg = 'debug message'
-        logger.debug(msg)
+        msg = 'wc.debug.console message'
 
-'''
+        # using redirect_stdout does not work with either nosetests or pytest; unclear why
+        # for this to work nosetests must use --nocapture; 
+        # you can '> /dev/null' if stdout is bothersome
+        with CaptureOutput() as capturer:
+            logger.debug(msg)
+            logged_line = capturer.get_text()
+        self.assertRegexpMatches(logged_line, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}$'.format(msg))
+
+
 class DebugFileLogTest(unittest.TestCase):
 
     def setUp(self):
@@ -72,7 +78,7 @@ class DebugFileLogTest(unittest.TestCase):
         debug_config = {
             'formatters': {
                 'default': {
-                    'template': '{timestamp}; {name:s}; {level:s}; {src:s}:{func:s}:{line:d}; {sim_time:f}; {message:s}',
+                    'template': '{timestamp}; {name:s}; {level:s}; {src:s}:{func:s}:{line:d}; {sim_time:2.1f}; {message:s}',
                 },
             },
             'handlers': {
@@ -92,12 +98,12 @@ class DebugFileLogTest(unittest.TestCase):
         }
 
         # setup test logger
-        loggers = debug_log.setup(debug_config)
+        loggers = MakeLoggers().setup_logger(debug_config)
 
         # get logger
-        logger = debug_log.get_logger('__test__.file', loggers)
+        logger = loggers.get_logger('__test__.file')
 
-        # send message
+        # write message
         msg = 'debug message'
         logger.debug(msg)
 
@@ -107,7 +113,7 @@ class DebugFileLogTest(unittest.TestCase):
         # assert message saved to file
         with open(self._temp_log_file, 'r') as file:
             log = file.read()
-        self.assertRegexpMatches(log, '^.+?; .+?; .+?:.+?:\d+; \d.\d+; {:s}\n$'.format(msg))
+        self.assertRegexpMatches(log, '^.+?; .+?; .+?:.+?:\d+; 1.5; {:s}\n$'.format(msg))
 
 
 class DebugConsoleLogTest(unittest.TestCase):
@@ -150,20 +156,18 @@ class DebugConsoleLogTest(unittest.TestCase):
         }
 
         # setup test logger
-        loggers = debug_log.setup(debug_config)
+        loggers = MakeLoggers().setup_logger(debug_config)
 
         # get console logger
-        logger = debug_log.get_logger('__test__.stream', loggers)
+        logger = loggers.get_logger('__test__.stream')
 
         # override stream
         next(iter(logger.handlers)).stream = self.stream
 
         # output message
         msg = 'debug message'
-        sim_time = 2.5
+        sim_time=2.5
         logger.debug(msg, sim_time=sim_time)
 
         # check message is correct
         self.assertRegexpMatches(self.stream.getvalue(), '^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(sim_time, msg))
-
-'''

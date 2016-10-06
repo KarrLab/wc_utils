@@ -117,7 +117,7 @@ class ConfigFromFilesAndEnv(object):
 
         # parse to list
         try:
-            return [any_checker(val) for val in is_list(value)]
+            return [ConfigFromFilesAndEnv.any_checker(val) for val in is_list(value)]
         except VdtTypeError:
             pass
 

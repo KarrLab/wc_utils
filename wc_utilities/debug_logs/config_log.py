@@ -6,7 +6,7 @@ from log.loggers import Logger
 from os import makedirs, path
 import sys
 import yaml
-
+import copy
 
 class ConfigLog(object):
 
@@ -47,6 +47,8 @@ class ConfigLog(object):
                 formatters[name] = Formatter(name=name, **config_formatter)
 
         # create handlers
+        # risky: handlers are shared between loggers. thus, 
+        # any modifications of handlers by one logger may affect another.
         handlers = {}
         if 'handlers' in config:
             for name, config_handler in config['handlers'].items():
@@ -82,8 +84,11 @@ class ConfigLog(object):
                     level = None
 
                 if 'formatters' in config_logger:
-                    logger_formatters = [formatters[formatter_name]
-                                         for formatter_name in config_logger.pop('formatters')]
+                    try:
+                        logger_formatters = [formatters[formatter_name]
+                                             for formatter_name in config_logger.pop('formatters')]
+                    except KeyError as e:
+                        raise ValueError("Formatter {} not found.".format(e))
                 else:
                     logger_formatters = None
 
@@ -92,15 +97,9 @@ class ConfigLog(object):
                 else:
                     logger_handlers = None
 
-                print("\ncreating logger {} with config:".format( name ))
-                print( kws( name=name, level=level, template=logger_formatters[0].template,
-                    formatters=logger_formatters, handlers=logger_handlers, **config_logger ))
-                loggers[name] = Logger(name=name, level=level, template=logger_formatters[0].template,
-                    formatters=logger_formatters, handlers=logger_handlers, **config_logger)
+                # copying the formatter avoids unexpected formats caused by changes to shared formatters
+                loggers[name] = Logger(name=name, level=level, 
+                    formatters=copy.deepcopy(logger_formatters), 
+                    handlers=logger_handlers, **config_logger)
 
         return formatters, handlers, loggers
-
-def kws(**kwargs):
-    if kwargs is not None:
-        for key, value in kwargs.items():
-            print( "%s == %s" %(key,value) )

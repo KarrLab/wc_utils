@@ -21,14 +21,15 @@ class MakeLoggers(object):
         
     def setup_logger(self, options):
         """ Create and configure logs
+        
+        TODO: document required structure of options
 
         Args:
             options (:obj:`dict`): a configuration
         """
 
-        if 'log' not in options or 'debug' not in options['log']:
-            raise ValueError( """['log']['debug'] not found in options.""" )
-        options = deepcopy(options['log']['debug'])
+        if 'log' in options and 'debug' in options['log']:
+            options = deepcopy(options['log']['debug'])
         for name, handler in options['handlers'].items():
             if handler['class'] == 'FileHandler':
                 for key in handler:
@@ -51,16 +52,13 @@ class MakeLoggers(object):
 
         Args:
             name (:obj:`str`): log name
-            loggers (:obj:`dict`, optional): dictionary of loggers to search over
+            loggers (:obj:`dict`, optional): dictionary of loggers to search
         """
 
         if loggers is None:
             loggers = self.loggers
             if loggers is None:
                 raise ValueError( "No logger initialized." )
-
-        if not isinstance(loggers, dict):
-            raise ValueError( "loggers must be a dict." )
 
         if name not in loggers:
             raise ValueError( "logger named '{}' not found.".format(name) )

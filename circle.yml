@@ -15,7 +15,7 @@ dependencies:
     - pip3 install -U git+git://github.com/KarrLab/log.git
     - sudo apt-get install libglpk-dev
     - pip2 install git+git://github.com/KarrLab/Karr-Lab-build-utils.git
-    - pip3 install Karr-Lab-build-utils
+    - pip3 install git+git://github.com/KarrLab/Karr-Lab-build-utils.git
     - karr-lab-build-utils-2 install-requirements
     - karr-lab-build-utils-3 install-requirements
 test:

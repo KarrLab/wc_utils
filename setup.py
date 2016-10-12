@@ -52,7 +52,8 @@ setup(
     
     keywords='whole-cell modeling',
 
-    packages=find_packages(exclude=['docs', 'tests']),
+    # packages not prepared yet
+    # packages=find_packages(exclude=['docs', 'tests']),
 
     install_requires='configobj PyYAML numpy six enum34'.split() ,
 

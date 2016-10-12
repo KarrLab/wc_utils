@@ -4,5 +4,5 @@ numpy
 six
 enum34
 # install wheel of our public log repo
--e git+https://github.com/KarrLab/log#egg=log
+--editable=git+https://github.com/KarrLab/log#egg=log
 # 

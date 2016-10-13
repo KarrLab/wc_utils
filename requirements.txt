@@ -3,6 +3,6 @@ PyYAML
 numpy
 six
 enum34
-# install wheel of our public log repo
---editable=git+https://github.com/KarrLab/log#egg=log
-# 
+--editable=git+https://github.com/KarrLab/log#egg=log  # install wheel of our public log repo
+capturer
+validate

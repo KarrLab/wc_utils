@@ -6,4 +6,3 @@ enum34
 # install wheel of our public log repo
 # not needed; already in circle.yml: --editable=git+https://github.com/KarrLab/log#egg=log  
 capturer
-validate

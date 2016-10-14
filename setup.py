@@ -17,7 +17,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='wc_utilities',
 
-    version='0.0.1a2',
+    version='0.0.1a3',
 
     description='Utilities for whole-cell modeling components',
     long_description=long_description,

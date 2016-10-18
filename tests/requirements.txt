@@ -1,0 +1,15 @@
+test
+capturer
+coverage
+coveralls
+junit2html
+nose
+nose2unitth
+random
+validate
+configobj
+numpy
+# install our public wc_utilities repo
+git+https://github.com/KarrLab/wc_utilities.git#egg=wc_utilities
+# install wheel of our public log repo
+# not needed; already in circle.yml: --editable=git+https://github.com/KarrLab/log#egg=log  

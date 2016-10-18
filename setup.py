@@ -8,6 +8,8 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
+import wc_utilities
+
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
@@ -16,8 +18,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='wc_utilities',
-
-    version='0.0.1a3',
+    version=wc_utilities.__version__,
 
     description='Utilities for whole-cell modeling components',
     long_description=long_description,
@@ -28,7 +29,6 @@ setup(
     author='Arthur Goldberg',
     author_email='Arthur.Goldberg@mssm.edu',
 
-    # Choose your license
     license='MIT',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -53,8 +53,7 @@ setup(
     keywords='whole-cell modeling',
 
     # packages not prepared yet
-    # packages=find_packages(exclude=['docs', 'tests']),
+    packages=find_packages(exclude=['tests', 'tests.*']),
 
     install_requires='configobj PyYAML numpy six enum34'.split() ,
-
 )

@@ -1,7 +1,7 @@
 import unittest
 import re
 
-from wc_utilities.util.RandomUtilities import ReproducibleRandom as RepRand
+from wc_utils.util.RandomUtilities import ReproducibleRandom as RepRand
 
 class TestRepRand(unittest.TestCase):
 

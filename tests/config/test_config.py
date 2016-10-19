@@ -15,9 +15,9 @@ import tempfile
 import unittest
 
 from tests.config_files import config_constants
-from wc_utilities.debug_logs import config_from_files_and_env
-from wc_utilities.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
-from wc_utilities.util.types import TypesUtil
+from wc_utils.debug_logs import config_from_files_and_env
+from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
+from wc_utils.util.types import TypesUtil
 
 if sys.version_info >= (3, 0, 0):
     from test.support import EnvironmentVarGuard

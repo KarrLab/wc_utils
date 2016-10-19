@@ -11,8 +11,8 @@ import sys
 
 import log
 from . import config_log
-from wc_utilities.debug_logs.config_log import ConfigLog
-from wc_utilities.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
+from wc_utils.debug_logs.config_log import ConfigLog
+from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
 
 class MakeLoggers(object):
 

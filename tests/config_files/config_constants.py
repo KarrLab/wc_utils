@@ -1,5 +1,5 @@
 """ Configuration; config constants point to config files; they're stored in a separate file, 
-    so software using wc_utilities store config constants and config files locally.
+    so software using wc_utils store config constants and config files locally.
 
 :Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-09-26

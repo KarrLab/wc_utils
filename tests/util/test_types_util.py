@@ -6,7 +6,7 @@
 :License: MIT
 """
 
-from wc_utilities.util.types import TypesUtil, TypesUtilAssertionError
+from wc_utils.util.types import TypesUtil, TypesUtilAssertionError
 import numpy as np
 import unittest
 

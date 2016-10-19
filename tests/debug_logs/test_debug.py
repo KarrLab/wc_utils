@@ -17,8 +17,8 @@ from capturer import CaptureOutput
 
 from log.levels import LogLevel
 from tests.config_files import config_constants
-from wc_utilities.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
-from wc_utilities.debug_logs.debug import MakeLoggers
+from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
+from wc_utils.debug_logs.debug import MakeLoggers
 log_config = ConfigFromFilesAndEnv.setup( config_constants )
 loggers = MakeLoggers().setup_logger( log_config )
 

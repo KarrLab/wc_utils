@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-import wc_utilities
+import wc_utils
 
 here = path.abspath(path.dirname(__file__))
 
@@ -17,8 +17,8 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='wc_utilities',
-    version=wc_utilities.__version__,
+    name='wc_utils',
+    version=wc_utils.__version__,
 
     description='Utilities for whole-cell modeling components',
     long_description=long_description,

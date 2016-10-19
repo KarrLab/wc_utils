@@ -9,18 +9,38 @@
 from configobj import ConfigObj
 from configobj import flatten_errors, get_extra_values
 from validate import Validator, is_boolean, is_float, is_integer, is_list, is_string, VdtTypeError
-from wc_utilities.util.dict import DictUtil
+from wc_utils.util.dict import DictUtil
 import os
 import sys
 
 class ConfigFromFilesAndEnv(object):
     """Obtain configuration information from ini files and/or environment variables.
     
-    Also validate the configuration against a configuration schema.
+    Load configuration information from an ini format file and/or environment varialbes.
+    Validate the configuration against a configuration schema. Return the configuration
+    as a nested dictionary. 
     """
 
     @staticmethod
     def setup( config_constants ):
+        """Setup configuration.
+        
+        Setup configuration from the config files identified in config_constants.
+
+        Args:
+            config_constants (:obj:`module`): a module with the attributes
+                DEFAULT_CONFIG_FILENAME: the default config filename
+                CONFIG_SCHEMA_FILENAME: the config schema filename
+                USER_CONFIG_FILENAMES: a tuple of other config files
+
+        Returns:
+            :obj:`dict`: return the configuration in a nested dictionary that mirrors the
+            configuration source(s).
+
+        Raises:
+            :obj:`InvalidConfigError`: if configuration doesn't validate against schema
+        
+        """
         return ConfigFromFilesAndEnv._setup( config_constants.DEFAULT_CONFIG_FILENAME, 
             config_constants.CONFIG_SCHEMA_FILENAME, 
             user_config_filenames=config_constants.USER_CONFIG_FILENAMES)
@@ -28,21 +48,27 @@ class ConfigFromFilesAndEnv(object):
     @staticmethod
     def _setup(DEFAULT_CONFIG_FILENAME, CONFIG_SCHEMA_FILENAME, extra_config=None, 
         user_config_filenames=None):
-        """ Setup configuration
+        """ Setup configuration from config file(s) and/or environment variables.
 
         1. Setup configuration from default values specified in `DEFAULT_CONFIG_FILENAME`.
-        2. If user_config_filenames is set, find the first file in it that exists, and override the default 
-           configuration with the values specified in the file.
+        2. If user_config_filenames is set, find the first file in it that exists, and override
+           the default configuration with the values specified in the file.
         3. Override configuration with values from environment variables. Environment variables
            can be set with the following syntax:
                CONFIG.level1.level2...=val 
         4. Override configuration with additional configuration in `extra_config`.
         5. Validate configuration against the schema specified in `CONFIG_SCHEMA_FILENAME`.
         
-        Sets GlobalConfig.config with these configuration settings
-
         Args:
-            extra_config (:obj:`dict`, optional): additional configuration to override
+            DEFAULT_CONFIG_FILENAME (:obj:`string`): path to default config values
+            CONFIG_SCHEMA_FILENAME (:obj:`dict`): path to default config schema
+            extra_config (:obj:`dict`, optional): additional configuration to override; 
+                currently not used
+            user_config_filenames (:obj:`dict`, optional): optionally override DEFAULT_CONFIG_FILENAME
+
+        Returns:
+            :obj:`dict`: return the configuration in a nested dictionary that mirrors the
+            configuration source(s).
 
         Raises:
             :obj:`InvalidConfigError`: if configuration doesn't validate against schema

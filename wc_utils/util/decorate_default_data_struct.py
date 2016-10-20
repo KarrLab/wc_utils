@@ -20,10 +20,10 @@ def none_to_empty( param, value ):
             if param.endswith( '_'+key ) or param.startswith( key+'_' ):
                 return eval( prefix_suffix_types[key] + '()' )
     return value
-        
+
 def default_mutable_params(mutable_args):
     """A function or method decorator that handles mutable optional parameters.
-    
+
     Optional parameters with mutable default values like d and l in "def f( d={}, l=[])" have 
     the awkward behavior that a global mutable data strcture is created when the function (or
     method) is defined, that references to the parameter access this data structure, and that

@@ -13,7 +13,6 @@ from wc_utils.util.decorate_default_data_struct import default_mutable_params
 
 class TestDefaultMutableParams(unittest.TestCase):
 
-    @unittest.skip("skip, until capturer is working under pytest")
     def test_combinations(self):
         '''
         for perm in permutations:

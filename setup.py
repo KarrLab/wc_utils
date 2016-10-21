@@ -7,7 +7,8 @@ https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
-
+import pip
+import re
 import wc_utils
 
 here = path.abspath(path.dirname(__file__))
@@ -16,11 +17,23 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+# parse requirements.txt
+install_requires = []
+for line in open('requirements.txt'):
+    pkg_src = line.rstrip()
+    match = re.match('^.+#egg=(.*?)$', pkg_src)
+    if match:
+        pkg_id = match.group(1)
+        pip.main(['install', pkg_src])
+    else:
+        pkg_id = pkg_src
+    install_requires.append(pkg_id)
+
 setup(
     name='wc_utils',
     version=wc_utils.__version__,
 
-    description='Utilities for whole-cell modeling components',
+    description='Utilities for whole-cell modeling',
     long_description=long_description,
 
     # The project's main homepage.
@@ -55,5 +68,5 @@ setup(
     # packages not prepared yet
     packages=find_packages(exclude=['tests', 'tests.*']),
 
-    install_requires='configobj PyYAML numpy six enum34'.split() ,
+    install_requires=install_requires,
 )

@@ -4,5 +4,4 @@ numpy
 six
 enum34
 capturer
-# install wheel of our public log repo
---editable=git+https://github.com/KarrLab/log#egg=log  
+git+git://github.com/KarrLab/log#egg=log>=2016.10.12

@@ -11,19 +11,38 @@ from functools import wraps
 # a map from parameter name prefix or suffix to data type
 prefix_suffix_types = { 'list':'list', 'dict':'dict', 'set':'set'}
 def typed( param ):
+    ''' Indicate whether the `param` indicates a data type
+
+    Args:
+        param (:obj:`str`): a variable name whose prefix or suffix might indicate its data type,
+        which would be one of 'list', 'dict', or 'set'
+
+    Returns:
+        :obj:`boolean`: True if `param` indicates a data type
+    '''
     return (param.endswith( tuple( map( lambda x: '_'+x, prefix_suffix_types.keys()) ) )or 
         param.startswith( tuple( map( lambda x: x+'_', prefix_suffix_types.keys()) ) ) )
 
 def none_to_empty( param, value ):
+    ''' If value is None, return an empty data structure whose type is indicated by param
+
+    Args:
+        param (:obj:`str`): a variable name whose prefix or suffix indicates its data type
+        value (:obj:`obj`): a value, which might be None
+
+    Returns:
+        :obj:`obj`: value unmodified, or if value is None, an empty data structure whose
+        type is indicated by param
+    '''
     if value is None:
         for key in prefix_suffix_types.keys():
             if param.endswith( '_'+key ) or param.startswith( key+'_' ):
                 return eval( prefix_suffix_types[key] + '()' )
     return value
-        
+
 def default_mutable_params(mutable_args):
     """A function or method decorator that handles mutable optional parameters.
-    
+
     Optional parameters with mutable default values like d and l in "def f( d={}, l=[])" have 
     the awkward behavior that a global mutable data strcture is created when the function (or
     method) is defined, that references to the parameter access this data structure, and that
@@ -54,7 +73,15 @@ def default_mutable_params(mutable_args):
     where the values of list_l and s_set are local variables.
     
     Args:
-        mutable_args: list of optional parameters whose default values are mutable data structure.
+        mutable_args (:obj:`list`): list of optional parameters whose default values are mutable 
+        data structure.
+
+    Returns:
+        :obj:`type`: description
+
+    Raises:
+        :obj:`ValueError`: if an argument to @default_mutable_params does not indicate 
+        the type of its aggregate data structure
     
     TODO(Arthur): An alternative way to define default_params_decorator and avoid the need to
     add the type to the name of each parameter and select parameters for the decorator, 

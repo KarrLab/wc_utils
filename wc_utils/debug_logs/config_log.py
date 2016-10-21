@@ -1,3 +1,11 @@
+""" Configure debug log files.
+
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
+:Date: 2016-09-22
+:Copyright: 2016, Karr Lab
+:License: MIT
+"""
+
 from log.errors import ConfigurationError
 from log.formatters import Formatter
 from log.handlers import FileHandler, StreamHandler
@@ -9,22 +17,26 @@ import yaml
 import copy
 
 class ConfigLog(object):
+    ''' A class with static methods that configures log files.
+    '''
 
     @staticmethod
     def from_yaml(config_path):
         """ Create and configure logs from a YAML file which describes their configuration
+        
+        Deprecated in favor of ConfigObj
 
         Returns:
-            :obj:`tuple`: tuple created formatters, handlers, loggers
+            :obj:`tuple`: tuple of created formatters, handlers, loggers
 
         Args:
-            config_path (:obj:`str`): path to configuration file in YAML format
+            config_path (:obj:`str`): path to configuration file written in YAML
         """
 
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
 
-        return Config.from_dict(config)
+        return ConfigLog.from_dict(config)
 
     @staticmethod
     def from_dict(config):

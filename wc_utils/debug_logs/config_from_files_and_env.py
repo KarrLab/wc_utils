@@ -1,4 +1,4 @@
-""" Configuration
+""" Configure from files and environment
 
 :Author: Jonathan Karr <karr@mssm.edu>
 :Date: 2017-08-22
@@ -121,6 +121,21 @@ class ConfigFromFilesAndEnv(object):
 
     @staticmethod
     def any_checker(value):
+        ''' Convert value to its built-in data type if possible 
+
+        Convert a string value to its built-in data type (integer, float, boolean, str
+        or list of these) if possible
+
+        Args:
+            value (:obj:`object`): a value to be converted
+
+        Returns:
+            :obj:`type`: the converted value
+
+        Raises:
+            :obj:`VdtTypeError`: if the value cannot be converted
+            …
+        '''
         value, _ = ConfigObj()._handle_value(value)
 
         # parse to integer

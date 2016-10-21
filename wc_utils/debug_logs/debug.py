@@ -15,17 +15,28 @@ from wc_utils.debug_logs.config_log import ConfigLog
 from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
 
 class MakeLoggers(object):
+        ''' Manage debug loggers
+
+        Create and store debug loggers.
+
+        Attributes:
+            loggers (:obj:`list`): list of loggers stored by a MakeLoggers instance
+        '''
 
     def __init__(self):
         self.loggers = None
         
     def setup_logger(self, options):
-        """ Create and configure logs
+        """ Configure and create a log from a log description in a nested dict.
         
+        Typically the log description is obtained by reading a .cfg file with ConfigObj.
         TODO: document required structure of options
 
         Args:
             options (:obj:`dict`): a configuration
+
+        Returns:
+            :obj:`type`: a list of loggers created
         """
 
         if 'log' in options and 'debug' in options['log']:
@@ -47,8 +58,7 @@ class MakeLoggers(object):
 
 
     def get_logger(self, name, loggers=None):
-        """ Returns logger with name `name`. Optionally, search for logger in 
-        passed in dictionary.
+        """ Returns logger with name `name`. Optionally, search for logger in dict `loggers`.
 
         Args:
             name (:obj:`str`): log name

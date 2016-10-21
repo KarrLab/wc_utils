@@ -15,13 +15,13 @@ from wc_utils.debug_logs.config_log import ConfigLog
 from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
 
 class MakeLoggers(object):
-        ''' Manage debug loggers
+    ''' Manage debug loggers
 
-        Create and store debug loggers.
+    Create and store debug loggers.
 
-        Attributes:
-            loggers (:obj:`list`): list of loggers stored by a MakeLoggers instance
-        '''
+    Attributes:
+        loggers (:obj:`list`): list of loggers stored by a MakeLoggers instance
+    '''
 
     def __init__(self):
         self.loggers = None

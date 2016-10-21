@@ -134,7 +134,6 @@ class ConfigFromFilesAndEnv(object):
 
         Raises:
             :obj:`VdtTypeError`: if the value cannot be converted
-            …
         '''
         value, _ = ConfigObj()._handle_value(value)
 

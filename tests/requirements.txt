@@ -5,7 +5,6 @@ coveralls
 junit2html
 nose
 nose2unitth
-random
 validate
 configobj
 numpy

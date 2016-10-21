@@ -9,7 +9,6 @@ dependencies:
     - /opt/circleci/python/3.5.1
     - /opt/circleci/.pyenv/shims
   pre:
-    - sudo apt-get install libglpk-dev
     - pip2 install -e .
     - pip3 install -e .
     - pip2 install git+git://github.com/KarrLab/Karr-Lab-build-utils.git

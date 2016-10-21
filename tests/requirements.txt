@@ -5,7 +5,6 @@ coveralls
 junit2html
 nose
 nose2unitth
-validate
 configobj
 numpy
 # install our public wc_utils repo

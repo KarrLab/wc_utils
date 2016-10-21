@@ -50,7 +50,6 @@ class DefaultDebugLogsTest(unittest.TestCase):
 
         self.assertRegexpMatches(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
-    @unittest.skip("skip, until capturer is working under pytest")
     def test_console(self):
         logger = loggers.get_logger('wc.debug.console')
 

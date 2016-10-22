@@ -9,21 +9,21 @@
 
 import pip, re
 
-def install_packages( req_file ):
+def install_packages( req_file_lines ):
     ''' Install packages specified in requirements.txt.
     
-    Use pip to install a package's requirements listed in `req_file`. Also return
+    Use pip to install a package's requirements. Also return
     a list of package dependencies, to be used as install_requires
     by setup() in setup.py.
 
     Args:
-        :req_file:`str`: name of requirements file
+        :req_file_lines:`str`: lines in the requirements.txt file
 
     Returns:
-        :obj:`list`: list of dependencies parsed from `req_file`
+        :obj:`list`: list of dependencies parsed from `req_file_lines`
     '''
     install_requires=[]
-    for line in open():
+    for line in req_file_lines:
         pkg_src = line.rstrip()
         # todo: support the rest of the requirements.txt format
         # see: https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format

@@ -30,7 +30,7 @@ for line in open('requirements.txt'):
         pkg_id = pkg_src
     install_requires.append(pkg_id)
 
-x = install_packages( 'requirements.txt' )
+x = install_packages( open('requirements.txt').readline() )
 assert x == install_requires
 
 setup(

@@ -10,6 +10,7 @@ from os import path
 import pip
 import re
 import wc_utils
+from wc_utils.util.installation import install_packages
 
 here = path.abspath(path.dirname(__file__))
 
@@ -18,16 +19,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # parse requirements.txt
-install_requires = []
-for line in open('requirements.txt'):
-    pkg_src = line.rstrip()
-    match = re.match('^.+#egg=(.*?)$', pkg_src)
-    if match:
-        pkg_id = match.group(1)
-        pip.main(['install', pkg_src])
-    else:
-        pkg_id = pkg_src
-    install_requires.append(pkg_id)
+install_requires = install_packages( open('requirements.txt').readlines() )
 
 setup(
     name='wc_utils',
@@ -37,7 +29,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/KarrLab',
+    url='https://github.com/KarrLab/wc_utils',
 
     author='Arthur Goldberg',
     author_email='Arthur.Goldberg@mssm.edu',

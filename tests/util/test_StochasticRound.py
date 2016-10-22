@@ -1,3 +1,11 @@
+""" Installation utilities.
+
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
+:Date: 2016-10-22
+:Copyright: 2016, Karr Lab
+:License: MIT
+"""
+
 import unittest
 from random import Random
 

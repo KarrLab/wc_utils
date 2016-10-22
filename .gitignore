@@ -8,6 +8,8 @@
 *.o
 *.so
 __pycache__/
+build/
+dist/
 
 # Packages #
 ############

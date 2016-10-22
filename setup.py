@@ -19,21 +19,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # parse requirements.txt
-install_requires = []
-with open('requirements.txt', 'r') as f:
-    for line in f.readlines():
-        pkg_src = line.rstrip()
-        match = re.match('^.+#egg=(.*?)$', pkg_src)
-        if match:
-            pkg_id = match.group(1)
-            pip.main(['install', pkg_src])
-        else:
-            pkg_id = pkg_src
-        install_requires.append(pkg_id)
-
-x = install_packages( open('requirements.txt').readlines() )
-print( x, install_requires )
-assert x == install_requires
+install_requires = install_packages( open('requirements.txt').readlines() )
 
 setup(
     name='wc_utils',

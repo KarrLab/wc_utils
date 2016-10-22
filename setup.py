@@ -29,8 +29,10 @@ for line in open('requirements.txt'):
     else:
         pkg_id = pkg_src
     install_requires.append(pkg_id)
+close('requirements.txt')
 
 x = install_packages( open('requirements.txt').readline() )
+print( x, install_requires )
 assert x == install_requires
 
 setup(

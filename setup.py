@@ -31,7 +31,7 @@ with open('requirements.txt', 'r') as f:
             pkg_id = pkg_src
         install_requires.append(pkg_id)
 
-x = install_packages( open('requirements.txt').readline() )
+x = install_packages( open('requirements.txt').readlines() )
 print( x, install_requires )
 assert x == install_requires
 
@@ -43,7 +43,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/KarrLab',
+    url='https://github.com/KarrLab/wc_utils',
 
     author='Arthur Goldberg',
     author_email='Arthur.Goldberg@mssm.edu',

@@ -31,7 +31,7 @@ for line in open('requirements.txt'):
     install_requires.append(pkg_id)
 
 x = install_packages( 'requirements.txt' )
-assert x = install_requires
+assert x == install_requires
 
 setup(
     name='wc_utils',

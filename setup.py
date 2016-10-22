@@ -10,6 +10,7 @@ from os import path
 import pip
 import re
 import wc_utils
+from wc_utils.util.installation import install_packages
 
 here = path.abspath(path.dirname(__file__))
 
@@ -28,6 +29,9 @@ for line in open('requirements.txt'):
     else:
         pkg_id = pkg_src
     install_requires.append(pkg_id)
+
+x = install_packages( 'requirements.txt' )
+assert x = install_requires
 
 setup(
     name='wc_utils',

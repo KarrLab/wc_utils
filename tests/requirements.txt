@@ -7,4 +7,3 @@ nose
 nose2unitth
 configobj
 numpy
-git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils

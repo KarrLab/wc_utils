@@ -18,8 +18,11 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-# parse requirements.txt
-install_requires = install_packages( open('requirements.txt').readlines() )
+# parse requirements.txt files
+with open('requirements.txt', 'r') as file:
+    install_requires = install_packages(file.readlines())
+with open('tests/requirements.txt', 'r') as file:
+    test_require = install_packages(file.readlines())
 
 setup(
     name='wc_utils',
@@ -61,4 +64,5 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*']),
 
     install_requires=install_requires,
+    test_require=test_require,
 )

@@ -17,12 +17,8 @@ import unittest
 from tests.config_files import config_constants
 from wc_utils.debug_logs import config_from_files_and_env
 from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
+from wc_utils.environ import EnvironUtils
 from wc_utils.util.types import TypesUtil
-
-if sys.version_info >= (3, 0, 0):
-    from test.support import EnvironmentVarGuard
-else:
-    from test.test_support import EnvironmentVarGuard
 
 
 class TestConfig(unittest.TestCase):
@@ -41,8 +37,8 @@ class TestConfig(unittest.TestCase):
             file.write(u'                append_new_line = False\n')
 
         config_settings = ConfigFromFilesAndEnv._setup(config_constants.DEFAULT_CONFIG_FILENAME,
-            config_constants.CONFIG_SCHEMA_FILENAME,
-            user_config_filenames=[temp_config_filename])
+                                                       config_constants.CONFIG_SCHEMA_FILENAME,
+                                                       user_config_filenames=[temp_config_filename])
         self.assertEqual(config_settings['log']['debug']['formatters'], expected['log']['debug']['formatters'])
         TypesUtil.assert_value_equal(config_settings, expected)
 
@@ -52,10 +48,11 @@ class TestConfig(unittest.TestCase):
         expected = deepcopy(ConfigFromFilesAndEnv.setup(config_constants))
         expected['log']['debug']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
 
-        env = EnvironmentVarGuard()
-        env.set('CONFIG.log.debug.formatters.__test__.template', 'xxxx')
-        env.set('CONFIG.log.debug.formatters.__test__.append_new_line', 'False')
-        with env:
+        env = {
+            'CONFIG.log.debug.formatters.__test__.template': 'xxxx',
+            'CONFIG.log.debug.formatters.__test__.append_new_line': 'False',
+        }
+        with EnvironUtils.make_temp_environ(**env):
             config_settings = ConfigFromFilesAndEnv.setup(config_constants)
 
         self.assertEqual(config_settings['log']['debug']['formatters'], expected['log']['debug']['formatters'])
@@ -67,7 +64,7 @@ class TestConfig(unittest.TestCase):
 
         extra = {'log': {'debug': {'formatters': {'__test__': {'template': 'xxxx', 'append_new_line': False}}}}}
         config_settings = ConfigFromFilesAndEnv._setup(config_constants.DEFAULT_CONFIG_FILENAME,
-            config_constants.CONFIG_SCHEMA_FILENAME, extra_config=extra)
+                                                       config_constants.CONFIG_SCHEMA_FILENAME, extra_config=extra)
 
         self.assertEqual(config_settings['log']['debug']['formatters'], expected['log']['debug']['formatters'])
         TypesUtil.assert_value_equal(config_settings, expected)
@@ -75,7 +72,7 @@ class TestConfig(unittest.TestCase):
     def test_extra_config(self):
         # test to __str__
         config_specification = configobj.ConfigObj(config_constants.CONFIG_SCHEMA_FILENAME,
-                                                    list_values=False, _inspec=True)
+                                                   list_values=False, _inspec=True)
         config = configobj.ConfigObj(configspec=config_specification)
         config.merge({'__extra__': True})
         validator = Validator()
@@ -87,9 +84,9 @@ class TestConfig(unittest.TestCase):
 
         # extra section
         self.assertRaises(config_from_files_and_env.ExtraValuesError,
-            lambda: ConfigFromFilesAndEnv._setup(config_constants.DEFAULT_CONFIG_FILENAME,
-                config_constants.CONFIG_SCHEMA_FILENAME,
-                {'__extra__': True}))
+                          lambda: ConfigFromFilesAndEnv._setup(config_constants.DEFAULT_CONFIG_FILENAME,
+                                                               config_constants.CONFIG_SCHEMA_FILENAME,
+                                                               {'__extra__': True}))
 
         # extra subsection, extra key
         self.assertRaises(config_from_files_and_env.ExtraValuesError, lambda: ConfigFromFilesAndEnv._setup(
@@ -100,7 +97,7 @@ class TestConfig(unittest.TestCase):
     def test_invalid_config(self):
         # missing section
         config_specification = configobj.ConfigObj(config_constants.CONFIG_SCHEMA_FILENAME,
-                                                    list_values=False, _inspec=True)
+                                                   list_values=False, _inspec=True)
         config_specification.merge({'__test__': {'enabled': 'boolean()'}})
         config = configobj.ConfigObj(configspec=config_specification)
         validator = Validator()
@@ -112,19 +109,19 @@ class TestConfig(unittest.TestCase):
 
         # incorrect type
         self.assertRaises(config_from_files_and_env.InvalidConfigError,
-                            lambda: ConfigFromFilesAndEnv._setup(
-                                config_constants.DEFAULT_CONFIG_FILENAME,
-                                config_constants.CONFIG_SCHEMA_FILENAME,
-                                {'log': {'debug': {'formatters':
-                                {'__test__': {'template': '', 'append_new_line': 10}}}}}))
+                          lambda: ConfigFromFilesAndEnv._setup(
+                              config_constants.DEFAULT_CONFIG_FILENAME,
+                              config_constants.CONFIG_SCHEMA_FILENAME,
+                              {'log': {'debug': {'formatters':
+                                                 {'__test__': {'template': '', 'append_new_line': 10}}}}}))
 
         # missing value
         self.assertRaises(config_from_files_and_env.InvalidConfigError,
-                            lambda: ConfigFromFilesAndEnv._setup(
-                                config_constants.DEFAULT_CONFIG_FILENAME,
-                                config_constants.CONFIG_SCHEMA_FILENAME,
-                                {'log': {'debug': {'loggers':
-                                {'__test__': {'formatters': ['default']}}}}}))
+                          lambda: ConfigFromFilesAndEnv._setup(
+                              config_constants.DEFAULT_CONFIG_FILENAME,
+                              config_constants.CONFIG_SCHEMA_FILENAME,
+                              {'log': {'debug': {'loggers':
+                                                 {'__test__': {'formatters': ['default']}}}}}))
 
     def test_any_checker(self):
         validator = Validator()

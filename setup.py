@@ -8,8 +8,6 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 from wc_utils.util.installation import parse_requirements, install_dependencies_from_links
-import pip
-import re
 import wc_utils
 
 here = path.abspath(path.dirname(__file__))

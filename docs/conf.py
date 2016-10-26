@@ -19,7 +19,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-import misc_temp_code
+import wc_utils
 
 # -- General configuration ------------------------------------------------
 
@@ -77,7 +77,7 @@ author = 'Arthur Goldberg, Jonathan Karr'
 # built documents.
 #
 # The short X.Y version.
-version = misc_temp_code.__VERSION__
+version = wc_utils.__VERSION__
 # The full version, including alpha/beta/rc tags.
 release = version
 

@@ -14,13 +14,13 @@ import sys
 import tempfile
 import unittest
 from capturer import CaptureOutput
-
 from log.levels import LogLevel
-from tests.config_files import config_constants
-from wc_utils.debug_logs.config_from_files_and_env import ConfigFromFilesAndEnv
-from wc_utils.debug_logs.debug import MakeLoggers
-log_config = ConfigFromFilesAndEnv.setup( config_constants )
-loggers = MakeLoggers().setup_logger( log_config )
+from tests.config_fixtures.paths import debug_logs as debug_logs_default_paths
+from wc_utils.config.core import ConfigManager
+from wc_utils.debug_logs.core import DebugLogsManager
+log_config = ConfigManager(debug_logs_default_paths).get_config()
+debug_log_manager = DebugLogsManager()
+debug_log_manager.setup_logs( log_config )
 
 
 class CheckForEnum34Test(unittest.TestCase):
@@ -34,7 +34,7 @@ class CheckForEnum34Test(unittest.TestCase):
 class DefaultDebugLogsTest(unittest.TestCase):
 
     def test_file(self):
-        logger = loggers.get_logger('wc.debug.file')
+        logger = debug_log_manager.get_log('wc.debug.file')
 
         handler = next(iter(logger.handlers))
         filename = handler.fh.name
@@ -51,7 +51,7 @@ class DefaultDebugLogsTest(unittest.TestCase):
         self.assertRegexpMatches(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
     def test_console(self):
-        logger = loggers.get_logger('wc.debug.console')
+        logger = debug_log_manager.get_log('wc.debug.console')
 
         msg = 'wc.debug.console message'
 
@@ -98,10 +98,11 @@ class DebugFileLogTest(unittest.TestCase):
         }
 
         # setup test logger
-        loggers = MakeLoggers().setup_logger(debug_config)
+        debug_log_manager = DebugLogsManager()
+        debug_log_manager.setup_logs(debug_config)
 
         # get logger
-        logger = loggers.get_logger('__test__.file')
+        logger = debug_log_manager.get_log('__test__.file')
 
         # write message
         msg = 'debug message'
@@ -156,10 +157,11 @@ class DebugConsoleLogTest(unittest.TestCase):
         }
 
         # setup test logger
-        loggers = MakeLoggers().setup_logger(debug_config)
+        debug_log_manager = DebugLogsManager()
+        debug_log_manager.setup_logs(debug_config)
 
         # get console logger
-        logger = loggers.get_logger('__test__.stream')
+        logger = debug_log_manager.get_log('__test__.stream')
 
         # override stream
         next(iter(logger.handlers)).stream = self.stream

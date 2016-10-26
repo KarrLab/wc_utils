@@ -17,7 +17,7 @@ def install_packages( req_file_lines ):
     by setup() in setup.py.
 
     Args:
-        :req_file_lines:`str`: lines in the requirements.txt file
+        req_file_lines (:obj:`str`): lines in the requirements.txt file
 
     Returns:
         :obj:`list`: list of dependencies parsed from `req_file_lines`

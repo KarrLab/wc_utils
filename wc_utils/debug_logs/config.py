@@ -6,24 +6,35 @@
 :License: MIT
 """
 
+from copy import deepcopy
 from log.errors import ConfigurationError
 from log.formatters import Formatter
 from log.handlers import FileHandler, StreamHandler
 from log.levels import LogLevel
 from log.loggers import Logger
 from os import makedirs, path
+from wc_utils.config.core import ConfigPaths
 import sys
 import yaml
 import copy
 
-class ConfigLog(object):
-    ''' A class with static methods that configures log files.
-    '''
+paths = ConfigPaths(
+    default=path.join(path.dirname(__file__), 'config.default.cfg'),
+    schema=path.join(path.dirname(__file__), 'config.schema.cfg'),
+    user=(
+        'debug.cfg',
+        path.expanduser('~/.wc/debug.cfg'),
+    ),
+)
+
+
+class LoggerConfigurator(object):
+    ''' A class with static methods that configures log files. '''
 
     @staticmethod
     def from_yaml(config_path):
         """ Create and configure logs from a YAML file which describes their configuration
-        
+
         Deprecated in favor of ConfigObj
 
         Returns:
@@ -36,7 +47,7 @@ class ConfigLog(object):
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
 
-        return ConfigLog.from_dict(config)
+        return LoggerConfigurator.from_dict(config)
 
     @staticmethod
     def from_dict(config):
@@ -52,6 +63,8 @@ class ConfigLog(object):
             :obj:`log.ConfigurationError`: For unsupported handler types
         """
 
+        config = deepcopy(config)
+
         # create formatters
         formatters = {}
         if 'formatters' in config:
@@ -59,7 +72,7 @@ class ConfigLog(object):
                 formatters[name] = Formatter(name=name, **config_formatter)
 
         # create handlers
-        # risky: handlers are shared between loggers. thus, 
+        # risky: handlers are shared between loggers. thus,
         # any modifications of handlers by one logger may affect another.
         handlers = {}
         if 'handlers' in config:
@@ -110,8 +123,8 @@ class ConfigLog(object):
                     logger_handlers = None
 
                 # copying the formatter avoids unexpected formats caused by changes to shared formatters
-                loggers[name] = Logger(name=name, level=level, 
-                    formatters=copy.deepcopy(logger_formatters), 
-                    handlers=logger_handlers, **config_logger)
+                loggers[name] = Logger(name=name, level=level,
+                                       formatters=copy.deepcopy(logger_formatters),
+                                       handlers=logger_handlers, **config_logger)
 
         return formatters, handlers, loggers

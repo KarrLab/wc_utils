@@ -7,22 +7,25 @@
 :License: MIT
 """
 
-import pip, re
+import pip
+import re
 
-def install_packages( req_file_lines ):
-    ''' Install packages specified in requirements.txt.
-    
-    Use pip to install a package's requirements. Also return
-    a list of package dependencies, to be used as install_requires
-    by setup() in setup.py.
+
+def parse_requirements(req_file_lines):
+    ''' Parse requirements.txt file.
+
+    Return lists of package dependencies and dependency links, to be used 
+    as `install_requires`/`tests_require` and `dependency_links`
+    by `setuptools.setup`.
 
     Args:
         req_file_lines (:obj:`str`): lines in the requirements.txt file
 
     Returns:
-        :obj:`list`: list of dependencies parsed from `req_file_lines`
+        :obj:`tuple`: list of dependencies, list of dependency links
     '''
-    install_requires=[]
+    install_requires = []
+    dependency_links = []
     for line in req_file_lines:
         pkg_src = line.rstrip()
         # todo: support the rest of the requirements.txt format
@@ -30,8 +33,13 @@ def install_packages( req_file_lines ):
         match = re.match('^.+#egg=(.*?)$', pkg_src)
         if match:
             pkg_id = match.group(1)
-            pip.main(['install', '-U', pkg_src])
+            dependency_links.append(pkg_src)
         else:
             pkg_id = pkg_src
         install_requires.append(pkg_id)
-    return install_requires
+    return (install_requires, dependency_links)
+
+
+def install_dependencies_from_links(dependency_links):
+    for dependency_link in dependency_links:
+        pip.main(['install', dependency_link])

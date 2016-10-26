@@ -8,11 +8,16 @@
 
 import unittest
 
-from wc_utils.util.installation import install_packages
+from wc_utils.util.installation import parse_requirements
+
 
 class TestInstallation(unittest.TestCase):
 
     def testInstallation(self):
-        requirements_lines = ['numpy\n',
-        'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils\n']
-        self.assertEqual( install_packages( requirements_lines ), ['numpy', 'wc_utils'] )
+        requirements_lines = [
+            'numpy\n',
+            'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils\n',
+        ]
+        install_requires, dependency_links = parse_requirements(requirements_lines)
+        self.assertEqual(install_requires, ['numpy', 'wc_utils'])
+        self.assertEqual(dependency_links, ['git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils'])

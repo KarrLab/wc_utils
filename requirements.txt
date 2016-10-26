@@ -4,4 +4,4 @@ numpy
 six
 enum34
 capturer
-git+git://github.com/KarrLab/log#egg=log>=2016.10.12
+git+https://github.com/KarrLab/log#egg=log >=2016.10.12

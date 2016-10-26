@@ -7,10 +7,10 @@ https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
+from wc_utils.util.installation import parse_requirements, install_dependencies_from_links
 import pip
 import re
 import wc_utils
-from wc_utils.util.installation import install_packages
 
 here = path.abspath(path.dirname(__file__))
 
@@ -18,12 +18,17 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-# parse requirements.txt files
+# parse dependencies and links from requirements.txt files
 with open('requirements.txt', 'r') as file:
-    install_requires = install_packages(file.readlines())
+    install_requires, dependency_links_install = parse_requirements(file.readlines())
 with open('tests/requirements.txt', 'r') as file:
-    tests_require = install_packages(file.readlines())
+    tests_require, dependency_links_tests = parse_requirements(file.readlines())
+dependency_links = list(set(dependency_links_install + dependency_links_tests))
 
+# install non-PyPI dependencies
+install_dependencies_from_links(dependency_links)
+
+# install package
 setup(
     name='wc_utils',
     version=wc_utils.__version__,
@@ -57,7 +62,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    
+
     keywords='whole-cell modeling',
 
     # packages not prepared yet
@@ -65,4 +70,5 @@ setup(
 
     install_requires=install_requires,
     tests_require=tests_require,
+    dependency_links=dependency_links,
 )

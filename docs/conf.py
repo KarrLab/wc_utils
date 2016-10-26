@@ -77,7 +77,7 @@ author = 'Arthur Goldberg, Jonathan Karr'
 # built documents.
 #
 # The short X.Y version.
-version = wc_utils.__VERSION__
+version = wc_utils.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 

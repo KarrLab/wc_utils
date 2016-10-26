@@ -13,14 +13,15 @@ from log.handlers import FileHandler, StreamHandler
 from log.levels import LogLevel
 from log.loggers import Logger
 from os import makedirs, path
+from pkg_resources import resource_filename
 from wc_utils.config.core import ConfigPaths
 import sys
 import yaml
 import copy
 
 paths = ConfigPaths(
-    default=path.join(path.dirname(__file__), 'config.default.cfg'),
-    schema=path.join(path.dirname(__file__), 'config.schema.cfg'),
+    default=resource_filename('wc_utils', 'debug_logs/config.default.cfg'),
+    schema=resource_filename('wc_utils', 'debug_logs/config.schema.cfg'),
     user=(
         'debug.cfg',
         path.expanduser('~/.wc/debug.cfg'),

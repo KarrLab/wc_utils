@@ -65,6 +65,12 @@ setup(
 
     # packages not prepared yet
     packages=find_packages(exclude=['tests', 'tests.*']),
+    package_data={
+        'wc_utils': [
+            'debug_logs/config.default.cfg',
+            'debug_logs/config.schema.cfg',
+        ],
+    },
 
     install_requires=install_requires,
     tests_require=tests_require,

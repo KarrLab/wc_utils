@@ -3,3 +3,7 @@ include LICENSE
 
 # requirements
 include requirements.txt
+
+# configuration files
+wc_utils/debug_logs/config.schema.cfg
+wc_utils/debug_logs/config.default.cfg

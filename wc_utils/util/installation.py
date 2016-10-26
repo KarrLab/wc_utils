@@ -30,7 +30,7 @@ def install_packages( req_file_lines ):
         match = re.match('^.+#egg=(.*?)$', pkg_src)
         if match:
             pkg_id = match.group(1)
-            pip.main(['install', pkg_src])
+            pip.main(['install', '-U', pkg_src])
         else:
             pkg_id = pkg_src
         install_requires.append(pkg_id)

@@ -9,7 +9,7 @@
 import unittest
 from random import Random
 
-from wc_utils.util.RandomUtilities import StochasticRound, ReproducibleRandom
+from wc_utils.util.rand_utils import StochasticRound, ReproducibleRandom
 
 
 class TestStochasticRound(unittest.TestCase):

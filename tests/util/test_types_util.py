@@ -95,6 +95,15 @@ class TestAssertValueEqual(unittest.TestCase):
         }
         TypesUtil.assert_value_equal(obj, expected)
 
+    def test_is_iterable(self):
+        self.assertTrue(TypesUtil.is_iterable( [] ))
+        self.assertTrue(TypesUtil.is_iterable( () ))
+        self.assertFalse(TypesUtil.is_iterable( {} ))
+        self.assertFalse(TypesUtil.is_iterable( '' ))
+        self.assertFalse(TypesUtil.is_iterable( None ))
+        self.assertFalse(TypesUtil.is_iterable( int() ))
+        self.assertFalse(TypesUtil.is_iterable( float() ))
+
 
 class TestAssertValueNotEqual(unittest.TestCase):
 

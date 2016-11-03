@@ -51,3 +51,11 @@ class TestStochasticRound(unittest.TestCase):
         # TODO(Arthur): determine an analytic relationship between samples and places
         self.assertAlmostEqual( mean_values, mean_stochastic_rounds_values, places=3 )        
 
+    def test_random_round(self):
+        ReproducibleRandom.init( seed=123 )
+        aStochasticRound = StochasticRound( rng=ReproducibleRandom.get_numpy_random() )
+        self.assertEquals(aStochasticRound.random_round(3.4), 3)
+        self.assertEquals(aStochasticRound.random_round(3.6), 4)
+        rounds=[aStochasticRound.random_round(x) for x in [3.5]*5]
+        self.assertEquals(rounds, [3, 4, 4, 4, 4])
+        

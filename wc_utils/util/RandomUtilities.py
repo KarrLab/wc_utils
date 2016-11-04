@@ -160,6 +160,7 @@ class StochasticRound( object ):
 
         Round a float to the closest integer. If the fractional part of `x` is 0.5, randomly
         round `x` up or down. This avoids rounding bias.
+        See http://www.clivemaxfield.com/diycalculator/sp-round.shtml#A15
 
         Args:
             x (float): a value to be randomly rounded

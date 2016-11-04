@@ -6,8 +6,10 @@
 :License: MIT
 """
 
+import numpy as np
 import unittest
 from random import Random
+from scipy.stats import binom
 
 from wc_utils.util.rand_utils import StochasticRound, ReproducibleRandom
 
@@ -52,10 +54,15 @@ class TestStochasticRound(unittest.TestCase):
         self.assertAlmostEqual( mean_values, mean_stochastic_rounds_values, places=3 )        
 
     def test_random_round(self):
-        ReproducibleRandom.init( seed=123 )
+        ReproducibleRandom.init( seed=0 )
         aStochasticRound = StochasticRound( rng=ReproducibleRandom.get_numpy_random() )
+        
         self.assertEquals(aStochasticRound.random_round(3.4), 3)
         self.assertEquals(aStochasticRound.random_round(3.6), 4)
-        rounds=[aStochasticRound.random_round(x) for x in [3.5]*5]
-        self.assertEquals(rounds, [3, 4, 4, 4, 4])
+
+        avg = 3.5
+        samples = 1000
+        obs_avg = np.mean([aStochasticRound.random_round(avg) for i in range(samples)])
+        self.assertGreater(obs_avg, np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples)
+        self.assertLess(   obs_avg, np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples)    
         

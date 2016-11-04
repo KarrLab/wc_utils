@@ -23,18 +23,17 @@ class TestStochasticRound(unittest.TestCase):
         return [ aStochasticRound.Round( value ) for j in range(samples) ]
 
     def test_seed( self ):
-        seed = 123
+        seed = 0
         samples = 100
         value = 3.5
         initial_results = TestStochasticRound.get_sequence_of_rounds( samples, value, seed=seed )
-        for i in range(samples):
-            test_results = TestStochasticRound.get_sequence_of_rounds( samples, value, seed=seed )
-            self.assertEquals( initial_results, test_results )
+        test_results = TestStochasticRound.get_sequence_of_rounds( samples, value, seed=seed )
+        self.assertEquals( initial_results, test_results )
 
-        for i in range(samples):
-            test_results = TestStochasticRound.get_sequence_of_rounds( samples, value )
-            # P[ this test failing | Random is truly random ] = 2**-100 = (2**-10)**10 ~= (10**-3)**10 = 10**-30
-            self.assertNotEquals( initial_results, test_results )
+        initial_results = TestStochasticRound.get_sequence_of_rounds( samples, value, seed=seed )
+        test_results = TestStochasticRound.get_sequence_of_rounds( samples, value )
+        # P[ this test failing | Random is truly random ] = 2**-100 = (2**-10)**10 ~= (10**-3)**10 = 10**-30
+        self.assertNotEquals( initial_results, test_results )
         
     def test_mean( self ):
         # the mean of a set of values should converge towards the mean of stochastic rounds of the same set

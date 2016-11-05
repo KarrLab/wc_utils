@@ -11,7 +11,7 @@ import unittest
 from random import Random
 from scipy.stats import binom
 
-from wc_utils.util.rand_utils import StochasticRound, ReproducibleRandom
+from wc_utils.util.rand import StochasticRound, ReproducibleRandom
 
 
 class TestStochasticRound(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestStochasticRound(unittest.TestCase):
     def get_sequence_of_rounds( samples, value, seed=None ):
         ReproducibleRandom.init( seed=seed )
         aStochasticRound = StochasticRound( ReproducibleRandom.get_numpy_random() )
-        return [ aStochasticRound.Round( value ) for j in range(samples) ]
+        return [ aStochasticRound.round( value ) for j in range(samples) ]
 
     def test_seed( self ):
         seed = 0
@@ -44,7 +44,7 @@ class TestStochasticRound(unittest.TestCase):
         mean_values = sum(values)/float(samples)
         aStochasticRound = StochasticRound( )
         mean_stochastic_rounds_values = \
-            sum( map( lambda x: aStochasticRound.Round( x ), values) )/float(samples)
+            sum( map( lambda x: aStochasticRound.round( x ), values) )/float(samples)
         '''
         print( "samples: {:7d} mean_values: {:8.5f} mean_stochastic_rounds: {:8.5f}".format( 
             samples, mean_values, mean_stochastic_rounds_values ) )

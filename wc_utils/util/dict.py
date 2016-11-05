@@ -84,3 +84,18 @@ class DictUtil(object):
         nested_dict[last_key] = value
 
         return dict
+
+    @staticmethod
+    def to_string_sorted_by_key(d):
+        '''Provide a string representation of a dictionary sorted by key.
+
+        Args:
+            d (:obj:`dict`): dictionary
+
+        Returns:
+            :obj:`str`: string representation of a dictionary sorted by key
+        '''
+        if d is None:
+            return '{}'
+        else:
+            return '{' + ', '.join('{!r}: {!r}'.format(key, d[key]) for key in sorted(d)) + '}'

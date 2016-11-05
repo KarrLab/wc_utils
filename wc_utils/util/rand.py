@@ -122,7 +122,7 @@ class StochasticRound( object ):
         """Initialize a StochasticRound.
         Args:
             rng (numpy random number generator, optional): to use a deterministic sequence of
-            random numbers in Round() provide an RNG initialized with a deterministically selected
+            random numbers in round() provide an RNG initialized with a deterministically selected
             seed. Otherwise some system-dependent randomness source will be used to initialize a
             numpy random number generator. See the documentation of `numpy.random`.
         Raises:
@@ -135,7 +135,7 @@ class StochasticRound( object ):
         else:
             self.RNG = numpy_random.RandomState( )
 
-    def Round( self, x ):
+    def round( self, x ):
         """Stochastically round a floating point value.
         A float is rounded to one of the two nearest integers. The mean of the rounded values for a
         set of floats converges to the mean of the floats. This is achieved by making
@@ -152,12 +152,15 @@ class StochasticRound( object ):
 
     def random_round( self, x ):
         '''Randomly round a fractional part of 0.5
+
         Round a float to the closest integer. If the fractional part of `x` is 0.5, randomly
         round `x` up or down. This avoids rounding bias.
+
         Args:
-            x (float): a value to be randomly rounded
+            x (:obj:`float`): a value to be randomly rounded
+
         Returns:
-            int: a random round of x
+            :obj:`int`: a random round of `x`
         '''
         fraction = x - math.floor( x )
         if fraction < 0.5:

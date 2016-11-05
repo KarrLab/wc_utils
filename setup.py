@@ -7,7 +7,7 @@ https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
-from wc_utils.util.installation import parse_requirements, install_dependencies_from_links
+from wc_utils.util.install import parse_requirements, install_dependencies
 import wc_utils
 
 here = path.abspath(path.dirname(__file__))
@@ -24,7 +24,7 @@ with open('tests/requirements.txt', 'r') as file:
 dependency_links = list(set(dependency_links_install + dependency_links_tests))
 
 # install non-PyPI dependencies
-install_dependencies_from_links(dependency_links)
+install_dependencies(dependency_links)
 
 # install package
 setup(

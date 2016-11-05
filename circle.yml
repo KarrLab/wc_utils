@@ -27,7 +27,7 @@ dependencies:
     - ~/miniconda3/bin/karr-lab-build-utils install-requirements
 test:
   override:
-    - karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
-    - karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
+    - ~/miniconda2/bin/karr-lab-build-utils run-tests tests --with-xunit --with-coverage
+    - ~/miniconda3/bin/karr-lab-build-utils run-tests tests --with-xunit --with-coverage
   post:
-    - karr-lab-build-utils make-and-archive-reports
+    - ~/miniconda2/bin/karr-lab-build-utils make-and-archive-reports

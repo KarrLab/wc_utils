@@ -96,6 +96,7 @@ class RandomState(np.random.RandomState):
 
         Round a float to the closest integer. If the fractional part of `x` is 0.5, randomly
         round `x` up or down. This avoids rounding bias.
+        See http://www.clivemaxfield.com/diycalculator/sp-round.shtml#A15
 
         Args:
             x (:obj:`float`): a value to be rounded
@@ -124,6 +125,18 @@ class RandomState(np.random.RandomState):
         """
 
         return self.poisson(x)
+
+    def poisson_round( self, x ):
+        '''Poisson round a float
+
+        Round a float to the closest integer. 
+
+        Args:
+            x (float): a value to be poission rounded
+        Returns:
+            int: a random round of x
+        '''
+        pass
 
 
 def validate_random_state(random_state):

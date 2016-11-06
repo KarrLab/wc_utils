@@ -1,4 +1,4 @@
-""" Installation utilities.
+"""Test stochastic rounding utility.
 
 :Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-10-22
@@ -9,7 +9,7 @@
 import unittest
 from random import Random
 
-from wc_utils.util.RandomUtilities import StochasticRound, ReproducibleRandom
+from wc_utils.util.rand_utils import StochasticRound, ReproducibleRandom
 
 
 class TestStochasticRound(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestStochasticRound(unittest.TestCase):
     def get_sequence_of_rounds( samples, value, seed=None ):
         ReproducibleRandom.init( seed=seed )
         aStochasticRound = StochasticRound( ReproducibleRandom.get_numpy_random() )
-        return [ aStochasticRound.Round( value ) for j in range(samples) ]
+        return [ aStochasticRound.stochastic_uniform_rounder( value ) for j in range(samples) ]
 
     def test_seed( self ):
         seed = 123
@@ -37,25 +37,33 @@ class TestStochasticRound(unittest.TestCase):
     def test_mean( self ):
         # the mean of a set of values should converge towards the mean of stochastic rounds of the same set
         myRandom = Random()
-        samples = 10000000
+        samples = 1000000
         lower, upper = (0,10)
         values = [myRandom.uniform( lower, upper ) for i in range(samples)]
         mean_values = sum(values)/float(samples)
         aStochasticRound = StochasticRound( )
         mean_stochastic_rounds_values = \
-            sum( map( lambda x: aStochasticRound.Round( x ), values) )/float(samples)
+            sum( map( lambda x: aStochasticRound.stochastic_uniform_rounder( x ), values) )/float(samples)
         '''
         print( "samples: {:7d} mean_values: {:8.5f} mean_stochastic_rounds: {:8.5f}".format( 
             samples, mean_values, mean_stochastic_rounds_values ) )
         '''
         # TODO(Arthur): determine an analytic relationship between samples and places
-        self.assertAlmostEqual( mean_values, mean_stochastic_rounds_values, places=3 )        
+        for i in range(10):
+            self.assertAlmostEqual( mean_values, mean_stochastic_rounds_values, places=3 )        
 
+    @unittest.skip("")
     def test_random_round(self):
-        ReproducibleRandom.init( seed=123 )
+        ReproducibleRandom.init()
         aStochasticRound = StochasticRound( rng=ReproducibleRandom.get_numpy_random() )
         self.assertEquals(aStochasticRound.random_round(3.4), 3)
         self.assertEquals(aStochasticRound.random_round(3.6), 4)
-        rounds=[aStochasticRound.random_round(x) for x in [3.5]*5]
-        self.assertEquals(rounds, [3, 4, 4, 4, 4])
+        
+        # test mean
+        v=3.5
+        samples=30000
+        # TODO(Arthur): determine an analytic relationship between samples and delta
+        rounds=[aStochasticRound.random_round(x) for x in [v]*samples]
+        mean_value = sum(rounds)/float(samples)
+        self.assertAlmostEqual( mean_value, v, delta=0.01)
         

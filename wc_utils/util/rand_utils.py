@@ -8,24 +8,28 @@
 
 from random import Random
 from numpy import random as numpy_random
+from six import integer_types
+from wc_utils.util.types import TypesUtil
 import math
 import numpy as np
+
 
 class ReproducibleRandom(object):
     """A source of reproducible random numbers.
 
-    A static, singleton class that can provide random numbers that are reproducible
+    A static, singleton class that can provide random numbers that are reproducible 
     or non-reproducible. 'Reproducible' will produce identical sequences of random
     values for independent executions of a deterministic application that uses this class,
     thereby making the application reproducible. This enables comparison of multiple independent
     simulator executions that use different algorithms and/or inputs.
 
-    Naturally, non-reproducible random numbers are randomly independent.
+    Naturally, non-reproducible random numbers are randomly independent. 
 
-    ReproducibleRandom provides both reproducible sequences of random numbers and independent,
-    reproducible random number streams. These can be seeded by a built-in seed
-    (used by the 'reproducible' argument to init()) or a single random seed provided
+    ReproducibleRandom provides both reproducible sequences of random numbers and independent, 
+    reproducible random number streams. These can be seeded by a built-in seed 
+    (used by the 'reproducible' argument to init()) or a single random seed provided 
     to the 'seed' argument to init().
+
     If ReproducibleRandom is initialized without either of these seeds, then it
     will generate random numbers and streams seeded by the randomness source used by numpy's
     RandomState().
@@ -38,12 +42,12 @@ class ReproducibleRandom(object):
             random number streams
     """
 
-    _built_in_seed=17
-    _private_PRNG=None
-    _RNG_generator=None
+    _built_in_seed = 17
+    _private_PRNG = None
+    _RNG_generator = None
 
     @staticmethod
-    def init( reproducible=False, seed=None ):
+    def init(reproducible=False, seed=None):
         """Initialize ReproducibleRandom.
 
         Args:
@@ -53,14 +57,13 @@ class ReproducibleRandom(object):
         """
         if reproducible:
             ReproducibleRandom._private_PRNG = numpy_random.RandomState(
-                ReproducibleRandom._built_in_seed )
+                ReproducibleRandom._built_in_seed)
         elif seed != None:
-            ReproducibleRandom._private_PRNG = numpy_random.RandomState( seed )
+            ReproducibleRandom._private_PRNG = numpy_random.RandomState(seed)
         else:
-            ReproducibleRandom._private_PRNG = numpy_random.RandomState( )
+            ReproducibleRandom._private_PRNG = numpy_random.RandomState()
         ReproducibleRandom._RNG_generator = numpy_random.RandomState(
-            ReproducibleRandom._private_PRNG.randint( np.iinfo(np.uint32).max ) )
-
+            ReproducibleRandom._private_PRNG.randint(np.iinfo(np.uint32).max))
 
     @staticmethod
     def _check_that_init_was_called():
@@ -69,12 +72,12 @@ class ReproducibleRandom(object):
         Raises:
             ValueError: if init() was not called
         """
-        if ReproducibleRandom._private_PRNG==None:
-            raise ValueError( "Error: ReproducibleRandom: ReproducibleRandom.init() must "
-            "be called before calling other ReproducibleRandom methods." )
+        if ReproducibleRandom._private_PRNG == None:
+            raise ValueError("Error: ReproducibleRandom: ReproducibleRandom.init() must "
+                             "be called before calling other ReproducibleRandom methods.")
 
     @staticmethod
-    def get_numpy_random_state( ):
+    def get_numpy_random_state():
         """Provide a new numpy RandomState() instance.
 
         The RandomState() instance can be used by threads or to initialize
@@ -89,10 +92,10 @@ class ReproducibleRandom(object):
             ValueError: if init() was not called
         """
         ReproducibleRandom._check_that_init_was_called()
-        return numpy_random.RandomState( ReproducibleRandom._RNG_generator.randint( np.iinfo(np.uint32).max ) )
+        return numpy_random.RandomState(ReproducibleRandom._RNG_generator.randint(np.iinfo(np.uint32).max))
 
     @staticmethod
-    def get_numpy_random( ):
+    def get_numpy_random():
         """Provide a reference to a singleton numpy RandomState() instance.
 
         The output of this RandomState() instance is not reproducible across threads or
@@ -111,20 +114,17 @@ class ReproducibleRandom(object):
 
 class StochasticRound( object ):
     """Stochastically round floating point values.
-
     Attributes:
         RNG: A Random instance, initialized on creation of a StochasticRound.
     """
 
     def __init__( self, rng=None ):
         """Initialize a StochasticRound.
-
         Args:
             rng (numpy random number generator, optional): to use a deterministic sequence of
             random numbers in Round() provide an RNG initialized with a deterministically selected
             seed. Otherwise some system-dependent randomness source will be used to initialize a
             numpy random number generator. See the documentation of `numpy.random`.
-
         Raises:
             ValueError if rng is not a numpy_random.RandomState
         """
@@ -135,21 +135,16 @@ class StochasticRound( object ):
         else:
             self.RNG = numpy_random.RandomState( )
 
-    def Round( self, x ):
+    def stochastic_uniform_rounder( self, x ):
         """Stochastically round a floating point value.
-
         A float is rounded to one of the two nearest integers. The mean of the rounded values for a
         set of floats converges to the mean of the floats. This is achieved by making
-
             P[round x down] = 1 - (x - floor(x) ), and
             P[round x up] = 1 - P[round x down].
-
         This avoids the bias that would arise from always using floor() or ceiling(),
         especially with small populations.
-
         Args:
             x (float): a value to be stochastically rounded.
-
         Returns:
             int: a stochastic round of x.
         """
@@ -164,7 +159,6 @@ class StochasticRound( object ):
 
         Args:
             x (float): a value to be randomly rounded
-
         Returns:
             int: a random round of x
         '''
@@ -177,3 +171,60 @@ class StochasticRound( object ):
             return math.floor( x )
         else:
             return math.ceil( x )
+
+    def poisson_round( self, x ):
+        '''Poisson round a float
+
+        Round a float to the closest integer. 
+
+        Args:
+            x (float): a value to be poission rounded
+        Returns:
+            int: a random round of x
+        '''
+        pass
+
+
+def validate_random_state(random_state):
+    """ Validates a random state
+
+    Args:
+        random_state (:obj:`obj`): random state
+
+    Raises:
+        :obj:`InvalidRandomStateException`: if `random_state` is not valid
+    """
+
+    if not TypesUtil.is_iterable(random_state):
+        raise InvalidRandomStateException('Random state must be a tuple')
+
+    if len(random_state) != 5:
+        raise InvalidRandomStateException('Random state must have length 5')
+
+    if random_state[0] != 'MT19937':
+        raise InvalidRandomStateException('Random random_state[0] must be equal to "MT19937"')
+
+    if not TypesUtil.is_iterable(random_state[1]) or len(random_state[1]) != 624:
+        raise InvalidRandomStateException(
+            'Random number generator random_state[1] must be an array of length 624 of unsigned ints')
+    for r in random_state[1]:
+        if not isinstance(r, (integer_types, np.uint32)):
+            raise InvalidRandomStateException(
+                'Random number generator random_state[1] must be an array of length 624 of unsigned ints')
+
+    if not isinstance(random_state[2], int):
+        raise InvalidRandomStateException('Random number generator random_state[2] must be an int')
+
+    if not isinstance(random_state[3], int):
+        raise InvalidRandomStateException('Random number generator random_state[3] must be an int')
+
+    if not isinstance(random_state[4], float):
+        raise InvalidRandomStateException('Random number generator random_state[3] must be an float')
+
+    return True
+
+
+class InvalidRandomStateException(Exception):
+    ''' An exception for invalid random states '''
+    pass
+    

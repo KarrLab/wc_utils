@@ -163,7 +163,21 @@ class TypesUtil(object):
 
         raise TypesUtilAssertionError('obj1 and obj2 have equal values')
 
+    @staticmethod
+    def is_iterable(obj):
+        """ Check if object is an iterable (list, tuple, etc.) and not a string
+
+        Args:
+            obj (:obj:`object`): object
+
+        Returns:
+            :obj:`bool`: Whether or not object is iterable
+        """
+        return hasattr(obj, '__iter__') \
+            and not isinstance(obj, (six.string_types, dict)) \
+            and not hasattr(obj, '__dict__')
+
 
 class TypesUtilAssertionError(AssertionError):
-    """ Assertion error """
+    """ Types Util assertion error """
     pass

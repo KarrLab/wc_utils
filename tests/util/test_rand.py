@@ -8,12 +8,63 @@
 
 from copy import deepcopy
 from numpy import random
-from wc_utils.util.rand import RandomStateManager, validate_random_state, InvalidRandomStateException
+from scipy.stats import binom, poisson
+from wc_utils.util.rand import RandomState, RandomStateManager, validate_random_state, InvalidRandomStateException
 import numpy as np
 import unittest
 
 
 class TestRandomState(unittest.TestCase):
+
+    def test_round(self):
+        random_state = RandomState()
+        avg = 3.4
+        samples = 10000
+
+        obs_avg = np.mean([random_state.round(avg) for i in range(samples)])
+        min = np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples
+        self.assertGreater(obs_avg, min)
+        self.assertLess(obs_avg, max)
+
+    def test_round_binomial(self):
+        random_state = RandomState()
+        avg = 3.4
+        samples = 10000
+
+        obs_avg = np.mean([random_state.round_binomial(avg) for i in range(samples)])
+        min = np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples
+        self.assertGreater(obs_avg, min)
+        self.assertLess(obs_avg, max)
+
+    def test_round_midpoint(self):
+        random_state = RandomState()
+
+        self.assertEquals(random_state.round_midpoint(3.4), 3)
+        self.assertEquals(random_state.round_midpoint(3.6), 4)
+
+        avg = 3.5
+        samples = 1000
+        obs_avg = np.mean([random_state.round_midpoint(avg) for i in range(samples)])
+        min = np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples
+        self.assertGreater(obs_avg, min)
+        self.assertLess(obs_avg, max)
+
+    def test_round_poisson(self):
+        random_state = RandomState()
+        avg = 3.4
+        samples = 10000
+
+        obs_avg = np.mean([random_state.round_poisson(avg) for i in range(samples)])
+        min = poisson.ppf(0.01, mu=avg)
+        max = poisson.ppf(0.99, mu=avg)
+        self.assertGreater(obs_avg, min)
+        self.assertLess(obs_avg, max)
+
+
+class TestRandomStateManager(unittest.TestCase):
 
     def test_singleton(self):
         r1 = RandomStateManager.instance()

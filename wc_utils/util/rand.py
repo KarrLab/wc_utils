@@ -31,7 +31,7 @@ class RandomStateManager(object):
             seed (:obj:`int`): random number generator seed
         """
         if not cls._random_state:
-            cls._random_state = np.random.RandomState(seed=seed)
+            cls._random_state = RandomState(seed=seed)
         if seed is None:
             seed = cls.DEFAULT_SEED
         cls._random_state.seed(seed)
@@ -48,65 +48,82 @@ class RandomStateManager(object):
         return cls._random_state
 
 
-class StochasticRound(object):
-    """Stochastically round floating point values.
-    Attributes:
-        RNG: A Random instance, initialized on creation of a StochasticRound.
+class RandomState(np.random.RandomState):
+    """ Enhanced random state with additional random methods for
+    * Rounding
     """
 
-    def __init__(self, rng=None):
-        """Initialize a StochasticRound.
-        Args:
-            rng (numpy random number generator, optional): to use a deterministic sequence of
-            random numbers in round() provide an RNG initialized with a deterministically selected
-            seed. Otherwise some system-dependent randomness source will be used to initialize a
-            numpy random number generator. See the documentation of `numpy.random`.
-        Raises:
-            ValueError if rng is not a numpy_random.RandomState
-        """
-        if rng is not None:
-            if not isinstance(rng, numpy_random.RandomState):
-                raise ValueError("rng must be a numpy RandomState.")
-            self.RNG = rng
-        else:
-            self.RNG = numpy_random.RandomState()
+    def round(self, x, method='binomial'):
+        """Stochastically round a floating point value
 
-    def round(self, x):
+        Args:
+            x (:obj:`float`): a value to be rounded.
+
+        Returns:
+            :obj:`int`: rounded value of `x`.
+        """
+        if method == 'binomial':
+            return self.round_binomial(x)
+        elif method == 'midpoint':
+            return self.round_midpoint(x)
+        elif method == 'poission':
+            return self.round_poission(x)
+        else:
+            raise Exception('Undefined rounding method: {}'.format(method))
+
+    def round_binomial(self, x):
         """Stochastically round a floating point value.
+
         A float is rounded to one of the two nearest integers. The mean of the rounded values for a
         set of floats converges to the mean of the floats. This is achieved by making
+
             P[round x down] = 1 - (x - floor(x) ), and
             P[round x up] = 1 - P[round x down].
-        This avoids the bias that would arise from always using floor() or ceiling(),
-        especially with small populations.
-        Args:
-            x (float): a value to be stochastically rounded.
-        Returns:
-            int: a stochastic round of x.
-        """
-        return math.floor(x + self.RNG.random_sample())
 
-    def random_round(self, x):
+        This avoids the bias that would arise from always using `floor` or `ceil`,
+        especially with small populations.
+
+        Args:
+            x (:obj:`float`): a value to be rounded.
+
+        Returns:
+            :obj:`int`: rounded value of `x`.
+        """
+        return math.floor(x + self.random_sample())
+
+    def round_midpoint(self, x):
         '''Randomly round a fractional part of 0.5
 
         Round a float to the closest integer. If the fractional part of `x` is 0.5, randomly
         round `x` up or down. This avoids rounding bias.
 
         Args:
-            x (:obj:`float`): a value to be randomly rounded
+            x (:obj:`float`): a value to be rounded
 
         Returns:
-            :obj:`int`: a random round of `x`
+            :obj:`int`: rounded value of `x`
         '''
         fraction = x - math.floor(x)
         if fraction < 0.5:
             return math.floor(x)
         elif 0.5 < fraction:
             return math.ceil(x)
-        elif self.RNG.randint(2):
+        elif self.randint(2):
             return math.floor(x)
         else:
             return math.ceil(x)
+
+    def round_poisson(self, x):
+        """Stochastically round a floating point value by sampling from a poisson distribution
+
+        Args:
+            x (:obj:`float`): a value to be rounded.
+
+        Returns:
+            :obj:`int`: rounded value of `x`.
+        """
+
+        return self.poisson(x)
 
 
 def validate_random_state(random_state):

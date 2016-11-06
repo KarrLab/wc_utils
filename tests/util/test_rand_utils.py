@@ -8,7 +8,7 @@
 
 from copy import deepcopy
 from numpy import random
-from wc_utils.util.rand_utils import validate_random_state, InvalidRandomStateException
+from wc_utils.util.rand import validate_random_state, InvalidRandomStateException
 import unittest
 
 

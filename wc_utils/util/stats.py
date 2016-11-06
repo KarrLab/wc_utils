@@ -1,18 +1,17 @@
 """ Statistical utilities.
 
-:Author: Jonathan Karr, karr@mssm.edu
-:Date: 3/22/2016
 :Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
-:Date: 10/05/2016
+:Date: 2016-10-05
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
 
-from random import Random
 from numpy import random as numpy_random
-import sys
+from random import Random
 import math
 import numpy as np
+import sys
+
 
 class ExponentialMovingAverage(object):
     """An exponential moving average.
@@ -65,5 +64,3 @@ class ExponentialMovingAverage(object):
             The curent exponential moving average.
         """
         return self.exponential_moving_average
-    
-

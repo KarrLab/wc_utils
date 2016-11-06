@@ -40,6 +40,6 @@ def parse_requirements(req_file_lines):
     return (install_requires, dependency_links)
 
 
-def install_dependencies_from_links(dependency_links):
+def install_dependencies(dependency_links):
     for dependency_link in dependency_links:
         pip.main(['install', dependency_link])

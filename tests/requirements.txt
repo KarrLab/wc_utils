@@ -1,9 +1,5 @@
-test
 capturer
-coverage
-coveralls
-junit2html
-nose
-nose2unitth
 configobj
 numpy
+scipy
+test

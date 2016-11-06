@@ -8,12 +8,12 @@
 
 import unittest
 
-from wc_utils.util.installation import parse_requirements
+from wc_utils.util.install import parse_requirements
 
 
-class TestInstallation(unittest.TestCase):
+class TestInstall(unittest.TestCase):
 
-    def testInstallation(self):
+    def test_install(self):
         requirements_lines = [
             'numpy\n',
             'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils\n',

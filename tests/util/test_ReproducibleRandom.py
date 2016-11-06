@@ -9,7 +9,7 @@
 import unittest
 import re
 
-from wc_utils.util.rand_utils import ReproducibleRandom as RepRand
+from wc_utils.util.rand import ReproducibleRandom as RepRand
 
 class TestRepRand(unittest.TestCase):
 

@@ -1,7 +1,6 @@
 configobj
-PyYAML
-numpy
-six
 enum34
-capturer
 git+https://github.com/KarrLab/log#egg=log >=2016.10.12
+numpy
+PyYAML
+six

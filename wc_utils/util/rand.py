@@ -122,7 +122,7 @@ class StochasticRound( object ):
         """Initialize a StochasticRound.
         Args:
             rng (numpy random number generator, optional): to use a deterministic sequence of
-            random numbers in Round() provide an RNG initialized with a deterministically selected
+            random numbers in round() provide an RNG initialized with a deterministically selected
             seed. Otherwise some system-dependent randomness source will be used to initialize a
             numpy random number generator. See the documentation of `numpy.random`.
         Raises:
@@ -158,9 +158,10 @@ class StochasticRound( object ):
         See http://www.clivemaxfield.com/diycalculator/sp-round.shtml#A15
 
         Args:
-            x (float): a value to be randomly rounded
+            x (:obj:`float`): a value to be randomly rounded
+
         Returns:
-            int: a random round of x
+            :obj:`int`: a random round of `x`
         '''
         fraction = x - math.floor( x )
         if fraction < 0.5:

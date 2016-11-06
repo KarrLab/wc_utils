@@ -6,7 +6,7 @@
 :License: MIT
 """
 
-from wc_utils.environ import EnvironUtils
+from wc_utils.util.environ import EnvironUtils
 import os
 import unittest
 

@@ -6,7 +6,6 @@
 :License: MIT
 """
 
-from random import Random
 from numpy import random as numpy_random
 from six import integer_types
 from wc_utils.util.types import TypesUtil
@@ -14,111 +13,48 @@ import math
 import numpy as np
 
 
-class ReproducibleRandom(object):
-    """A source of reproducible random numbers.
+class RandomStateManager(object):
+    """ Manager for singleton of :obj:`numpy.random.RandomState` """
 
-    A static, singleton class that can provide random numbers that are reproducible 
-    or non-reproducible. 'Reproducible' will produce identical sequences of random
-    values for independent executions of a deterministic application that uses this class,
-    thereby making the application reproducible. This enables comparison of multiple independent
-    simulator executions that use different algorithms and/or inputs.
+    DEFAULT_SEED = 117
+    #:obj:`int`: default seed for the random state
 
-    Naturally, non-reproducible random numbers are randomly independent. 
+    _random_state = None
+    #:obj:'numpy.random.RandomState': singleton random state
 
-    ReproducibleRandom provides both reproducible sequences of random numbers and independent, 
-    reproducible random number streams. These can be seeded by a built-in seed 
-    (used by the 'reproducible' argument to init()) or a single random seed provided 
-    to the 'seed' argument to init().
-
-    If ReproducibleRandom is initialized without either of these seeds, then it
-    will generate random numbers and streams seeded by the randomness source used by numpy's
-    RandomState().
-
-    Attributes:
-        built_in_seed (int): a built-in RNG seed, to provide reproducibility when no
-            external seed is provided
-        _private_PRNG (PRNG): used to generate random values
-        RNG_generator (numpy RandomState()): a PRNG for generating additional, independent
-            random number streams
-    """
-
-    _built_in_seed = 17
-    _private_PRNG = None
-    _RNG_generator = None
-
-    @staticmethod
-    def init(reproducible=False, seed=None):
-        """Initialize ReproducibleRandom.
+    @classmethod
+    def initialize(cls, seed=None):
+        """ Constructs the singleton random state, if it doesn't already exist
+        and seeds the random state. 
 
         Args:
-            reproducible (boolean): if set, use the hard-coded, built-in PRNG seed
-            seed (a hashable object): if reproducible is not set, a seed that seeds
-                all random numbers and random streams provided by ReproducibleRandom.
+            seed (:obj:`int`): random number generator seed
         """
-        if reproducible:
-            ReproducibleRandom._private_PRNG = numpy_random.RandomState(
-                ReproducibleRandom._built_in_seed)
-        elif seed != None:
-            ReproducibleRandom._private_PRNG = numpy_random.RandomState(seed)
-        else:
-            ReproducibleRandom._private_PRNG = numpy_random.RandomState()
-        ReproducibleRandom._RNG_generator = numpy_random.RandomState(
-            ReproducibleRandom._private_PRNG.randint(np.iinfo(np.uint32).max))
+        if not cls._random_state:
+            cls._random_state = np.random.RandomState(seed=seed)
+        if seed is None:
+            seed = cls.DEFAULT_SEED
+        cls._random_state.seed(seed)
 
-    @staticmethod
-    def _check_that_init_was_called():
-        """Checks whether ReproducibleRandom.init() was called.
-
-        Raises:
-            ValueError: if init() was not called
-        """
-        if ReproducibleRandom._private_PRNG == None:
-            raise ValueError("Error: ReproducibleRandom: ReproducibleRandom.init() must "
-                             "be called before calling other ReproducibleRandom methods.")
-
-    @staticmethod
-    def get_numpy_random_state():
-        """Provide a new numpy RandomState() instance.
-
-        The RandomState() instance can be used by threads or to initialize
-        concurrent processes which cannot share a random number stream because
-        they execute asynchronously.
+    @classmethod
+    def instance(cls):
+        """ Returns the single random state
 
         Returns:
-            numpy RandomState(): A new `RandomState()` instance. If ReproducibleRandom.init() was
-            called to make reproducible random numbers, then the RandomState() instance will do so.
-
-        Raises:
-            ValueError: if init() was not called
+            :obj:`numpy.random.RandomState`: random state
         """
-        ReproducibleRandom._check_that_init_was_called()
-        return numpy_random.RandomState(ReproducibleRandom._RNG_generator.randint(np.iinfo(np.uint32).max))
+        if not cls._random_state:
+            cls.initialize()
+        return cls._random_state
 
-    @staticmethod
-    def get_numpy_random():
-        """Provide a reference to a singleton numpy RandomState() instance.
 
-        The output of this RandomState() instance is not reproducible across threads or
-        other non-deterministically asynchronous components, but it can shared by components
-        of a deterministic sequential program.
-
-        Returns:
-            numpy RandomState(): If ReproducibleRandom.init() was called to make reproducible
-            random numbers, then the RandomState() instance will do so.
-
-        Raises:
-            ValueError: if init() was not called
-        """
-        ReproducibleRandom._check_that_init_was_called()
-        return ReproducibleRandom._private_PRNG
-
-class StochasticRound( object ):
+class StochasticRound(object):
     """Stochastically round floating point values.
     Attributes:
         RNG: A Random instance, initialized on creation of a StochasticRound.
     """
 
-    def __init__( self, rng=None ):
+    def __init__(self, rng=None):
         """Initialize a StochasticRound.
         Args:
             rng (numpy random number generator, optional): to use a deterministic sequence of
@@ -129,13 +65,13 @@ class StochasticRound( object ):
             ValueError if rng is not a numpy_random.RandomState
         """
         if rng is not None:
-            if not isinstance( rng, numpy_random.RandomState ):
-                raise ValueError( "rng must be a numpy RandomState." )
+            if not isinstance(rng, numpy_random.RandomState):
+                raise ValueError("rng must be a numpy RandomState.")
             self.RNG = rng
         else:
-            self.RNG = numpy_random.RandomState( )
+            self.RNG = numpy_random.RandomState()
 
-    def round( self, x ):
+    def round(self, x):
         """Stochastically round a floating point value.
         A float is rounded to one of the two nearest integers. The mean of the rounded values for a
         set of floats converges to the mean of the floats. This is achieved by making
@@ -150,7 +86,7 @@ class StochasticRound( object ):
         """
         return math.floor(x + self.RNG.random_sample())
 
-    def random_round( self, x ):
+    def random_round(self, x):
         '''Randomly round a fractional part of 0.5
 
         Round a float to the closest integer. If the fractional part of `x` is 0.5, randomly
@@ -162,15 +98,15 @@ class StochasticRound( object ):
         Returns:
             :obj:`int`: a random round of `x`
         '''
-        fraction = x - math.floor( x )
+        fraction = x - math.floor(x)
         if fraction < 0.5:
-            return math.floor( x )
+            return math.floor(x)
         elif 0.5 < fraction:
-            return math.ceil( x )
+            return math.ceil(x)
         elif self.RNG.randint(2):
-            return math.floor( x )
+            return math.floor(x)
         else:
-            return math.ceil( x )
+            return math.ceil(x)
 
 
 def validate_random_state(random_state):
@@ -215,4 +151,3 @@ def validate_random_state(random_state):
 class InvalidRandomStateException(Exception):
     ''' An exception for invalid random states '''
     pass
-    

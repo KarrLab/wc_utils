@@ -11,15 +11,15 @@ import unittest
 from random import Random
 from scipy.stats import binom
 
-from wc_utils.util.rand import StochasticRound, ReproducibleRandom
+from wc_utils.util.rand import StochasticRound, RandomStateManager
 
 
 class TestStochasticRound(unittest.TestCase):
 
     @staticmethod
     def get_sequence_of_rounds( samples, value, seed=None ):
-        ReproducibleRandom.init( seed=seed )
-        aStochasticRound = StochasticRound( ReproducibleRandom.get_numpy_random() )
+        RandomStateManager.initialize( seed=seed )
+        aStochasticRound = StochasticRound( RandomStateManager.instance() )
         return [ aStochasticRound.round( value ) for j in range(samples) ]
 
     def test_seed( self ):
@@ -53,8 +53,8 @@ class TestStochasticRound(unittest.TestCase):
         self.assertAlmostEqual( mean_values, mean_stochastic_rounds_values, places=3 )        
 
     def test_random_round(self):
-        ReproducibleRandom.init( seed=0 )
-        aStochasticRound = StochasticRound( rng=ReproducibleRandom.get_numpy_random() )
+        RandomStateManager.initialize( seed=0 )
+        aStochasticRound = StochasticRound( rng=RandomStateManager.instance() )
         
         self.assertEquals(aStochasticRound.random_round(3.4), 3)
         self.assertEquals(aStochasticRound.random_round(3.6), 4)

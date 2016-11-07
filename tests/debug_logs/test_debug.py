@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from capturer import CaptureOutput
 from log.levels import LogLevel
-from tests.config_fixtures.paths import debug_logs as debug_logs_default_paths
+from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import ConfigManager
 from wc_utils.debug_logs.core import DebugLogsManager
 log_config = ConfigManager(debug_logs_default_paths).get_config()

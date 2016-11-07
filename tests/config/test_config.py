@@ -14,7 +14,7 @@ import sys
 import tempfile
 import unittest
 
-from tests.config_fixtures.paths import debug_logs as debug_logs_default_paths
+from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import ConfigManager, any_checker, ExtraValuesError, InvalidConfigError
 from wc_utils.util.environ import EnvironUtils
 from wc_utils.util.types import TypesUtil

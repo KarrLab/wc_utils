@@ -55,7 +55,7 @@ auto_test( %s )
         """
 
         test_class="""
-class c(object):
+class C(object):
     def __init__(self):
         pass
 
@@ -63,7 +63,7 @@ class c(object):
     def auto_test( self, d_dict=%s ):
         print(d_dict)
 
-x=c()
+x=C()
 x.auto_test( %s )
 """
         # Iterate over the 8 combinations

@@ -1,7 +1,7 @@
 """ Util tests
 
 :Author: Jonathan Karr <karr@mssm.edu>
-:Date: 2017-08-20
+:Date: 2016-08-20
 :Copyright: 2016, Karr Lab
 :License: MIT
 """

@@ -1,7 +1,7 @@
 """ Utility functions
 
 :Author: Jonathan Karr <karr@mssm.edu>
-:Date: 2017-08-20
+:Date: 2016-08-20
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
@@ -98,10 +98,10 @@ class TypesUtil(object):
                     val2 = getattr(obj2, attr)
                 TypesUtil.assert_value_equal(val1, val2, check_type, check_iterable_ordering)
 
-        elif (hasattr(obj1, '__iter__') and not (isinstance(obj1, dict) or hasattr(obj1, '__dict__') or 
-            isinstance(obj1, six.string_types))):
-            if not ((hasattr(obj2, '__iter__') and not (isinstance(obj2, dict) or 
-                hasattr(obj2, '__dict__') or isinstance(obj2, six.string_types)))):
+        elif (hasattr(obj1, '__iter__') and not (isinstance(obj1, dict) or hasattr(obj1, '__dict__') or
+                                                 isinstance(obj1, six.string_types))):
+            if not ((hasattr(obj2, '__iter__') and not (isinstance(obj2, dict) or
+                                                        hasattr(obj2, '__dict__') or isinstance(obj2, six.string_types)))):
                 raise TypesUtilAssertionError('obj1 is iterable, but obj2 is not')
 
             if len(obj1) != len(obj2):
@@ -157,7 +157,8 @@ class TypesUtil(object):
         """
 
         try:
-            TypesUtil.assert_value_equal(obj1, obj2, check_type=check_type, check_iterable_ordering=check_iterable_ordering)
+            TypesUtil.assert_value_equal(obj1, obj2, check_type=check_type,
+                                         check_iterable_ordering=check_iterable_ordering)
         except TypesUtilAssertionError:
             return
 

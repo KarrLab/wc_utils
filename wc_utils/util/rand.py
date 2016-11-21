@@ -8,7 +8,7 @@
 
 from numpy import random as numpy_random
 from six import integer_types
-from wc_utils.util.types import TypesUtil
+from wc_utils.util.types import is_iterable
 import math
 import numpy as np
 
@@ -149,7 +149,7 @@ def validate_random_state(random_state):
         :obj:`InvalidRandomStateException`: if `random_state` is not valid
     """
 
-    if not TypesUtil.is_iterable(random_state):
+    if not is_iterable(random_state):
         raise InvalidRandomStateException('Random state must be a tuple')
 
     if len(random_state) != 5:
@@ -158,7 +158,7 @@ def validate_random_state(random_state):
     if random_state[0] != 'MT19937':
         raise InvalidRandomStateException('Random random_state[0] must be equal to "MT19937"')
 
-    if not TypesUtil.is_iterable(random_state[1]) or len(random_state[1]) != 624:
+    if not is_iterable(random_state[1]) or len(random_state[1]) != 624:
         raise InvalidRandomStateException(
             'Random number generator random_state[1] must be an array of length 624 of unsigned ints')
     for r in random_state[1]:

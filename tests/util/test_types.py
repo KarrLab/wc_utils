@@ -6,7 +6,7 @@
 :License: MIT
 """
 
-from wc_utils.util.types import assert_value_equal, assert_value_not_equal, cast_to_builtins, is_iterable, get_subclasses, TypesUtilAssertionError
+from wc_utils.util.types import assert_value_equal, assert_value_not_equal, cast_to_builtins, is_iterable, get_subclasses, get_superclasses, TypesUtilAssertionError
 import numpy as np
 import unittest
 
@@ -115,9 +115,18 @@ class TestAssertValueNotEqual(unittest.TestCase):
 class TestGetSubclasses(unittest.TestCase):
 
     def test(self):
-        self.assertEqual(set(get_subclasses(Parent1)), set([Child11, Child12]))
-        self.assertEqual(set(get_subclasses(GrandParent)), set([Parent1, Parent2, Child11, Child12, Child21, Child22]))
-        self.assertEqual(set(get_subclasses(GrandParent, immediate_only=True)), set([Parent1, Parent2]))
+        self.assertEqual(get_subclasses(Parent1), set([Child11, Child12]))
+        self.assertEqual(get_subclasses(GrandParent), set([Parent1, Parent2, Child11, Child12, Child21, Child22]))
+        self.assertEqual(get_subclasses(GrandParent, immediate_only=True), set([Parent1, Parent2]))
+
+
+class TestGetSuperclasses(unittest.TestCase):
+
+    def test(self):
+        self.assertEqual(get_superclasses(GrandParent), (object, ))
+        self.assertEqual(get_superclasses(Parent1), (GrandParent, object, ))
+        self.assertEqual(get_superclasses(Child11, immediate_only=True), (Parent1, ))
+        self.assertEqual(get_superclasses(Child11), (Parent1, GrandParent, object, ))
 
 
 class SetAttrClass(object):

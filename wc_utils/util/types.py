@@ -176,14 +176,14 @@ def is_iterable(obj):
 
 
 def get_subclasses(cls, immediate_only=False):
-    """ Get subclasses of a classes. If `immediate_only`, only return direct subclasses.
+    """ Get subclasses of a class. If `immediate_only`, only return direct subclasses.
 
     Args:
         cls (:obj:`type`): class
         immediate_only (:obj:`bool`): if true, only return direct subclasses
 
     Returns:
-        :obj:`list` of `type`: list of subclasses
+        :obj:`set` of `type`: list of subclasses
     """
     subclasses = cls.__subclasses__()
 
@@ -191,7 +191,26 @@ def get_subclasses(cls, immediate_only=False):
         for sub_cls in cls.__subclasses__():
             subclasses.extend(get_subclasses(sub_cls, immediate_only=immediate_only))
 
-    return list(set(subclasses))
+    return set(subclasses)
+
+
+def get_superclasses(cls, immediate_only=False):
+    """ Get superclasses of a class. If `immediate_only`, only return direct superclasses.
+
+    Args:
+        cls (:obj:`type`): class
+        immediate_only (:obj:`bool`): if true, only return direct superclasses
+
+    Returns:
+        :obj:`list` of `type`: list of superclasses
+    """
+    superclasses = list(cls.__bases__)
+
+    if not immediate_only:
+        for superclass in cls.__bases__:
+            superclasses += get_superclasses(superclass)
+
+    return tuple(superclasses)
 
 
 class TypesUtilAssertionError(AssertionError):

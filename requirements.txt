@@ -1,6 +1,9 @@
 configobj
 enum34
 git+https://github.com/KarrLab/log#egg=log >=2016.10.12
+inflect
+natsort
 numpy
 PyYAML
 six
+stringcase

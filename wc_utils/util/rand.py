@@ -25,7 +25,7 @@ class RandomStateManager(object):
     @classmethod
     def initialize(cls, seed=None):
         """ Constructs the singleton random state, if it doesn't already exist
-        and seeds the random state. 
+        and seeds the random state.
 
         Args:
             seed (:obj:`int`): random number generator seed
@@ -54,34 +54,41 @@ class RandomState(np.random.RandomState):
     """
 
     def round(self, x, method='binomial'):
-        """Stochastically round a floating point value
+        """Stochastically round a floating point value.
 
         Args:
             x (:obj:`float`): a value to be rounded.
+            method (:obj:`str`, optional): the type of rounding to use. The default is 'binomial'.
 
         Returns:
             :obj:`int`: rounded value of `x`.
+
+        Raises:
+            :obj:`Exception`: if `method` is not one of the valid types: 'binomial', 'midpoint',
+                'poisson', and 'quadratic'.
         """
         if method == 'binomial':
             return self.round_binomial(x)
         elif method == 'midpoint':
             return self.round_midpoint(x)
-        elif method == 'poission':
-            return self.round_poission(x)
+        elif method == 'poisson':
+            return self.round_poisson(x)
+        elif method == 'quadratic':
+            return self.round_quadratic(x)
         else:
             raise Exception('Undefined rounding method: {}'.format(method))
 
     def round_binomial(self, x):
-        """Stochastically round a floating point value.
+        """Stochastically round a float.
 
-        A float is rounded to one of the two nearest integers. The mean of the rounded values for a
-        set of floats converges to the mean of the floats. This is achieved by making
+        Randomly round a float to one of the two nearest integers. This is achieved by making
 
-            P[round x down] = 1 - (x - floor(x) ), and
-            P[round x up] = 1 - P[round x down].
+            P[round `x` to floor(`x`)] = f = 1 - (`x` - floor(`x`)), and
+            P[round `x` to ceil(`x`)] = 1 - f.
 
         This avoids the bias that would arise from always using `floor` or `ceil`,
         especially with small populations.
+        The mean of the rounded values for a set of floats converges to the mean of the floats.
 
         Args:
             x (:obj:`float`): a value to be rounded.
@@ -92,10 +99,10 @@ class RandomState(np.random.RandomState):
         return math.floor(x + self.random_sample())
 
     def round_midpoint(self, x):
-        '''Randomly round a fractional part of 0.5
+        '''Round to the closest integer; if the fractional part of `x` is 0.5, randomly round up or down.
 
         Round a float to the closest integer. If the fractional part of `x` is 0.5, randomly
-        round `x` up or down. This avoids rounding bias.
+        round `x` up or down. This avoids rounding bias if the distribution of `x` is not uniform.
         See http://www.clivemaxfield.com/diycalculator/sp-round.shtml#A15
 
         Args:
@@ -115,7 +122,10 @@ class RandomState(np.random.RandomState):
             return math.ceil(x)
 
     def round_poisson(self, x):
-        """Stochastically round a floating point value by sampling from a poisson distribution
+        """Stochastically round a floating point value by sampling from a poisson distribution.
+
+        A sample of Poisson(x) is provided, the domain of which is the integers in [0,inf). It
+        is not symmetric about a fractional part of 0.5.
 
         Args:
             x (:obj:`float`): a value to be rounded.
@@ -123,21 +133,58 @@ class RandomState(np.random.RandomState):
         Returns:
             :obj:`int`: rounded value of `x`.
         """
-
         return self.poisson(x)
 
-    def poisson_round( self, x ):
-        '''Poisson round a float
+    def round_quadratic(self, x):
+        """Stochastically round a float, with a quadratic bias towards the closest integer.
 
-        Round a float to the closest integer. 
+        Stochastically round a float. Rounding is non-linearly biased towards the closest integer.
+        This rounding behaves symmetrically about 0.5. Its expected value when rounding a
+        unif(0,1) random variable is 0.5.
 
         Args:
-            x (float): a value to be poission rounded
-        Returns:
-            int: a random round of x
-        '''
-        pass
+            x (:obj:`float`): a value to be rounded.
 
+        Returns:
+            :obj:`int`: rounded value of `x`.
+        """
+        return math.floor(x + self.std())
+
+    def std(self):
+        """Sample a symmetric triangular distribution.
+
+        The pdf of symmetric triangular distribution is
+
+            4x       for 0<=x<.5,
+            4(1-x)   for .5<=x<=1, and
+            0        elsewhere.
+
+        See https://en.wikipedia.org/wiki/Triangular_distribution.
+
+        Returns:
+            :obj:`float`: a sample from a symmetric triangular distribution.
+        """
+        return (self.random_sample()+self.random_sample())/2
+
+    def ltd(self):
+        """Sample a left triangular distribution.
+
+        The pdf of ltd is f(x) = 2(1-x) for 0<=x<=1, and 0 elsewhere.
+
+        Returns:
+            :obj:`float`: a sample from a left triangular distribution.
+        """
+        return abs(self.random_sample()-self.random_sample())
+
+    def rtd(self):
+        """Sample a right triangular distribution.
+
+        The pdf of rtd is f(x) = 2x for 0<=x<=1, and 0 elsewhere.
+
+        Returns:
+            :obj:`float`: a sample from a right triangular distribution.
+        """
+        return 1-self.ltd()
 
 def validate_random_state(random_state):
     """ Validates a random state

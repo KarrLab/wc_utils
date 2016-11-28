@@ -4,6 +4,7 @@ git+https://github.com/KarrLab/log#egg=log >=2016.10.12
 inflect
 natsort
 numpy
+openpyxl
 PyYAML
 six
 stringcase

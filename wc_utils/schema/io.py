@@ -10,7 +10,7 @@ from itertools import chain
 from natsort import natsort_keygen, ns
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import _get_column_letter
+from openpyxl.utils import get_column_letter
 from wc_utils.schema import utils
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, validate_objects
 
@@ -187,7 +187,7 @@ class ExcelIo(object):
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
             if attr is None:
                 errors.append('Header "{}" at {}1 does not match any attributes'.format(
-                    verbose_name, _get_column_letter(i_col)))
+                    verbose_name, get_column_letter(i_col)))
             else:
                 attributes.append(attr)
 

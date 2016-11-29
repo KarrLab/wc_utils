@@ -10,7 +10,7 @@ from collections import OrderedDict
 from copy import copy, deepcopy
 from enum import Enum
 from itertools import chain
-from math import isnan
+from math import isnan, ceil
 from natsort import natsort_keygen, ns
 from six import with_metaclass
 from stringcase import sentencecase
@@ -443,7 +443,7 @@ class Attribute(object):
         self.unique_case_insensitive = unique_case_insensitive
 
     def validate(self, obj, value):
-        """ Determine if `value` is a validate value of the attribute
+        """ Determine if `value` is a valid value of the attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -519,6 +519,7 @@ class EnumAttribute(Attribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+            unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
         """
         if not issubclass(enum_class, Enum):
             raise ValueError('`enum_class` must be an subclass of `Enum`')
@@ -532,7 +533,7 @@ class EnumAttribute(Attribute):
         self.enum_class = enum_class
 
     def validate(self, obj, value):
-        """ Determine if `value` is a validate value of the attribute
+        """ Determine if `value` is a valid value of the attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -595,12 +596,13 @@ class FloatAttribute(Attribute):
     """ Float attribute
 
     Attributes:
-        default (:obj:`float`, optional): default value
+        default (:obj:`float`): default value
         min (:obj:`float`): minimum value
         max (:obj:`float`): maximum value        
     """
 
-    def __init__(self, min=float('nan'), max=float('nan'), default=float('nan'), verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
+    def __init__(self, min=float('nan'), max=float('nan'), default=float('nan'), verbose_name='', help='',
+                 primary=False, unique=False):
         """
         Args:
             min (:obj:`float`, optional): minimum value
@@ -618,13 +620,14 @@ class FloatAttribute(Attribute):
             raise ValueError('max must be at least min')
 
         super(FloatAttribute, self).__init__(default=default,
-                                             verbose_name=verbose_name, help=help, primary=primary, unique=unique, unique_case_insensitive=unique_case_insensitive)
+                                             verbose_name=verbose_name, help=help,
+                                             primary=primary, unique=unique, unique_case_insensitive=False)
 
         self.min = min
         self.max = max
 
     def validate(self, obj, value):
-        """ Determine if `value` is a validate value of the attribute
+        """ Determine if `value` is a valid value of the attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -687,6 +690,155 @@ class FloatAttribute(Attribute):
         return float(value or 'nan')
 
 
+class IntegerAttribute(Attribute):
+    """ Interger attribute
+
+    Attributes:
+        default (:obj:`int`): default value
+        min (:obj:`int`): minimum value
+        max (:obj:`int`): maximum value
+    """
+
+    def __init__(self, min=None, max=None, default=None, verbose_name='', help='', primary=False, unique=False):
+        """
+        Args:
+            min (:obj:`int`, optional): minimum value
+            max (:obj:`int`, optional): maximum value
+            default (:obj:`int`, optional): default value
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+        if min is not None:
+            min = int(min)
+        if max is not None:
+            max = int(max)
+        if default is not None:
+            default = int(default)
+        if min is not None and max is not None and max < min:
+            raise ValueError('max must be at least min')
+
+        super(IntegerAttribute, self).__init__(default=default,
+                                               verbose_name=verbose_name, help=help,
+                                               primary=primary, unique=unique, unique_case_insensitive=False)
+
+        self.min = min
+        self.max = max
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`object`): object being validated
+            value (:obj:`value`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(IntegerAttribute, self).validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        try:
+            if value is not None:
+                if float(value) != ceil(float(value)):
+                    errors.append('Value must be an integer')
+
+                value = int(float(value))
+            setattr(obj, self.name, value)
+
+            if self.min is not None:
+                if value is None:
+                    errors.append('Value cannot be None')
+                elif value < self.min:
+                    errors.append('Value must be at least {:d}'.format(self.min))
+
+            if self.max is not None:
+                if value is None:
+                    errors.append('Value cannot be None')
+                elif value > self.max:
+                    errors.append('Value must be at most {:d}'.format(self.max))
+
+        except ValueError:
+            errors.append('Value must be an instance of `int`')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def serialize(self, value):
+        """ Serialize interger
+
+        Args:
+            value (:obj:`int`): Python representation
+
+        Returns:
+            :obj:`str`: string representation
+        """
+        if value is None:
+            return ''
+        return str(value)
+
+    def deserialize(self, value):
+        """ Deserialize string
+
+        Args:
+            value (:obj:`str` or None): String representation
+
+        Returns:
+            :obj:`int`: Python representation
+        """
+        if value is None:
+            return None
+        return int(value)
+
+
+class PositiveIntegerAttribute(IntegerAttribute):
+    """ Positive interger attribute """
+
+    def __init__(self, max=None, default=None, verbose_name='', help='', primary=False, unique=False):
+        """
+        Args:
+            min (:obj:`int`, optional): minimum value
+            max (:obj:`int`, optional): maximum value
+            default (:obj:`int`, optional): default value
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+        super(PositiveIntegerAttribute, self).__init__(min=None, max=max, default=default,
+                                                       verbose_name=verbose_name, help=help,
+                                                       primary=primary, unique=unique)
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`object`): object being validated
+            value (:obj:`value`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+
+        error = super(PositiveIntegerAttribute, self).validate(obj, value)
+        if error:
+            errors = error.messages
+        else:
+            errors = []
+
+        if (value is not None) and (float(value) <= 0):
+            errors.append('Value must be positive')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+
 class StringAttribute(Attribute):
     """ String attribute
 
@@ -696,7 +848,8 @@ class StringAttribute(Attribute):
         max_length (:obj:`int`): maximum length        
     """
 
-    def __init__(self, min_length=0, max_length=255, default='', verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
+    def __init__(self, min_length=0, max_length=255, default='', verbose_name='', help='',
+                 primary=False, unique=False, unique_case_insensitive=False):
         """
         Args:
             min_length (:obj:`int`, optional): minimum length
@@ -706,6 +859,7 @@ class StringAttribute(Attribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+            unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
         """
 
         if not isinstance(min_length, int) or min_length < 0:
@@ -723,7 +877,7 @@ class StringAttribute(Attribute):
         self.max_length = max_length
 
     def validate(self, obj, value):
-        """ Determine if `value` is a validate value of the attribute
+        """ Determine if `value` is a valid value of the attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -777,7 +931,8 @@ class StringAttribute(Attribute):
 class LongStringAttribute(Attribute):
     """ Long string attribute """
 
-    def __init__(self, min_length=0, max_length=2**32 - 1, default='', verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
+    def __init__(self, min_length=0, max_length=2**32 - 1, default='', verbose_name='', help='',
+                 primary=False, unique=False, unique_case_insensitive=False):
         """
         Args:
             min_length (:obj:`int`, optional): minimum length
@@ -787,6 +942,7 @@ class LongStringAttribute(Attribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+            unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
         """
 
         super(LongStringAttribute, self).__init__(min_length=min_length, max_length=max_length, default=default,
@@ -802,7 +958,8 @@ class RegexAttribute(StringAttribute):
         flags (:obj:`int`): regular expression flags
     """
 
-    def __init__(self, pattern, flags=None, min_length=0, max_length=None, default='', verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, pattern, flags=None, min_length=0, max_length=None, default='', verbose_name='', help='',
+                 primary=False, unique=False):
         """
         Args:
             pattern (:obj:`str`): regular expression pattern
@@ -828,7 +985,7 @@ class RegexAttribute(StringAttribute):
         self.flags = flags
 
     def validate(self, obj, value):
-        """ Determine if `value` is a validate value of the attribute
+        """ Determine if `value` is a valid value of the attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -909,6 +1066,7 @@ class RelatedAttribute(Attribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+            unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
         """
 
         if not verbose_related_name:
@@ -933,7 +1091,7 @@ class RelatedAttribute(Attribute):
         pass
 
     def related_validate(self, obj, value):
-        """ Determine if `value` is a validate value of the related attribute
+        """ Determine if `value` is a valid value of the related attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -964,6 +1122,7 @@ class ManyToOneAttribute(RelatedAttribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+            unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
         """
         super(ManyToOneAttribute, self).__init__(related_class, related_name=related_name,
                                                  verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name,
@@ -994,7 +1153,7 @@ class ManyToOneAttribute(RelatedAttribute):
                 new_related_value.add(obj)
 
     def validate(self, obj, value):
-        """ Determine if `value` is a validate value of the attribute
+        """ Determine if `value` is a valid value of the attribute
 
         Args:
             obj (:obj:`object`): object being validated
@@ -1030,7 +1189,7 @@ class ManyToOneAttribute(RelatedAttribute):
         return None
 
     def related_validate(self, obj, value):
-        """ Determine if `value` is a validate value of the related attribute
+        """ Determine if `value` is a valid value of the related attribute
 
         Args:
             obj (:obj:`object`): object being validated

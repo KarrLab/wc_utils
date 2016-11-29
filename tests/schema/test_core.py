@@ -75,6 +75,8 @@ class Child(core.Model):
 class UniqueRoot(Root):
     label = core.SlugAttribute(verbose_name='Label', primary=True)
     url = core.UrlAttribute()
+    int_attr = core.IntegerAttribute()
+    pos_int_attr = core.PositiveIntegerAttribute()
 
     class Meta(core.Model.Meta):
         pass
@@ -339,6 +341,50 @@ class TestCore(unittest.TestCase):
 
         leaf.float3 = float('nan')
         self.assertIn('float3', [x.attribute.name for x in leaf.validate().attributes])
+
+    def test_validate_int_attribute(self):
+        root = UniqueRoot(int_attr='1.0.')
+        self.assertIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.int_attr = '1.5'
+        self.assertIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.int_attr = 1.5
+        self.assertIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.int_attr = '1.'
+        self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.int_attr = 1.
+        self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.int_attr = 1
+        self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.int_attr = None
+        self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
+
+    def test_validate_pos_int_attribute(self):
+        root = UniqueRoot(pos_int_attr='0.')
+        self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.pos_int_attr = 1.5
+        self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.pos_int_attr = -1
+        self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.pos_int_attr = 0
+        self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.pos_int_attr = 1.
+        self.assertNotIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.pos_int_attr = 1
+        self.assertNotIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
+
+        root.pos_int_attr = None
+        self.assertNotIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
     def test_validate_enum_attribute(self):
         leaf = UnrootedLeaf()

@@ -5,6 +5,8 @@ inflect
 natsort
 numpy
 openpyxl
+pyexcel
+pyexcel-io
 PyYAML
 six
 stringcase

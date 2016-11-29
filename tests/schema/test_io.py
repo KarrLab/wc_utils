@@ -47,9 +47,8 @@ class TestIo(unittest.TestCase):
         _, self.filename = tempfile.mkstemp(suffix='.xlsx')
 
     def tearDown(self):
-        print(self.filename)
-        # if os.path.isfile(self.filename):
-        #    os.remove(self.filename)
+        if os.path.isfile(self.filename):
+            os.remove(self.filename)
 
     def test_write_read(self):
         root = Root(id='root', name='root')

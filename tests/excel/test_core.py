@@ -43,9 +43,7 @@ class TestExcel(unittest.TestCase):
 
     def tearDown(self):
         # remove temp directory
-        # todo: delete and uncomment below
-        print(self.tempdir)
-        # shutil.rmtree(self.tempdir)
+        shutil.rmtree(self.tempdir)
 
     def test_read_write_excel(self):
         # write to file

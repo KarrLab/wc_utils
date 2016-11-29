@@ -7,7 +7,6 @@
 """
 
 # todo: add method to compare (difference) models
-
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, InvalidObjectSet, InvalidObject, validate_objects
 
 

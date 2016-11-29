@@ -357,11 +357,28 @@ class Model(with_metaclass(ModelMeta, object)):
 
         return _related_objects
 
+    def clean(self):
+        """ Clean all of the object's attributes
+
+        Returns:
+            :obj:`InvalidObject` or None: `None` if the object is valid,
+                otherwise return a list of errors as an instance of `InvalidObject`
+        """
+        errors = []
+
+        for attr_name, attr in self.Meta.attributes.items():
+            value, error = attr.clean(getattr(self, attr_name))
+            if error:
+                errors.append(error)
+            else:
+                setattr(self, attr_name, value)
+
+        if errors:
+            return InvalidObject(self, errors)
+        return None
+
     def validate(self):
         """ Determine if all of the object's attributes are valid
-
-        Args:
-            related (:obj:`bool`): if true, validate all recursively related objects
 
         Returns:
             :obj:`InvalidObject` or None: `None` if the object is valid,
@@ -377,9 +394,10 @@ class Model(with_metaclass(ModelMeta, object)):
 
         # related attributes
         for attr_name, attr in self.Meta.related_attributes.items():
-            error = attr.related_validate(self, getattr(self, attr_name))
-            if error:
-                errors.append(error)
+            if attr.related_name:
+                error = attr.related_validate(self, getattr(self, '_' + attr.related_name))
+                if error:
+                    errors.append(error)
 
         if errors:
             return InvalidObject(self, errors)
@@ -442,12 +460,23 @@ class Attribute(object):
         self.unique = unique
         self.unique_case_insensitive = unique_case_insensitive
 
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        return (value, None)
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, otherwise return a list of errors as an instance of `InvalidAttribute`
@@ -459,7 +488,7 @@ class Attribute(object):
 
         Args:
             objects (:obj:`set` of `Model`): set of `Model` objects
-            values (:obj:`list`): list of values            
+            values (:obj:`list`): list of values
 
         Returns:
            :obj:`InvalidAttribute` or None: None if values are unique, otherwise return a list of errors as an instance of `InvalidAttribute`
@@ -486,20 +515,20 @@ class Attribute(object):
             value (:obj:`object`): Python representation
 
         Returns:
-            :obj:`str`: string representation
+            :obj:`bool`, `float`, `str`, or `None`: simple Python representation
         """
-        return str(value)
+        return value
 
     def deserialize(self, value):
         """ Deserialize value
 
         Args:
-            value (:obj:`object`): String representation
+            value (:obj:`object`): semantically equivalent representation
 
         Returns:
-            :obj:`object`: Python representation
+            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
-        return value
+        return self.clean(value)
 
 
 class EnumAttribute(Attribute):
@@ -532,12 +561,43 @@ class EnumAttribute(Attribute):
 
         self.enum_class = enum_class
 
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `Enum`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        error = None
+
+        if isinstance(value, str):
+            if value in self.enum_class.__members__:
+                value = self.enum_class[value]
+            else:
+                error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
+
+        elif isinstance(value, (int, float)):
+            try:
+                value = self.enum_class(value)
+            except ValueError:
+                error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
+
+        elif not isinstance(value, self.enum_class):
+            error = 'Value must be an instance of `{}`'.format(self.enum_class.__name__)
+
+        if error:
+            return (None, InvalidAttribute(self, [error]))
+        else:
+            return (value, None)
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -548,21 +608,7 @@ class EnumAttribute(Attribute):
         else:
             errors = []
 
-        if isinstance(value, str):
-            if value in self.enum_class.__members__:
-                value = self.enum_class[value]
-                setattr(obj, self.name, value)
-            else:
-                errors.append('Value must be convertible to an instance of {}'.format(self.enum_class.__name__))
-
-        elif isinstance(value, (int, float)):
-            try:
-                value = self.enum_class(value)
-                setattr(obj, self.name, value)
-            except ValueError:
-                errors.append('Value must be convertible to an instance of {}'.format(self.enum_class.__name__))
-
-        elif not isinstance(value, self.enum_class):
+        if not isinstance(value, self.enum_class):
             errors.append('Value must be an instance of `{}`'.format(self.enum_class.__name__))
 
         if errors:
@@ -576,20 +622,99 @@ class EnumAttribute(Attribute):
             value (:obj:`Enum`): Python representation
 
         Returns:
-            :obj:`str`: string representation
+            :obj:`str`: simple Python representation
         """
         return value.name
 
-    def deserialize(self, value):
-        """ Deserialize enumeration
+
+class BooleanAttribute(Attribute):
+    """ Boolean attribute
+
+    Attributes:
+        default (:obj:`bool`): default value
+    """
+
+    def __init__(self, default=False, verbose_name='', help='Enter a Boolean value'):
+        """
+        Args:
+            default (:obj:`float`, optional): default value
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+        """
+        if default is not None and not isinstance(default, bool):
+            raise ValueError('`default` must be None or an instance of `bool`')
+
+        super(BooleanAttribute, self).__init__(default=default,
+                                               verbose_name=verbose_name, help=help,
+                                               primary=False, unique=False, unique_case_insensitive=False)
+
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
 
         Args:
-            value (:obj:`str`): string representation
+            value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`Enum`: Python representation
+            :obj:`tuple` of `bool`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
-        return self.enum_class[value]
+        errors = []
+        if isinstance(value, str):
+            if value == '':
+                value = None
+            elif value in ['true', 'True', 'TRUE', '1']:
+                value = True
+            elif value in ['false', 'False', 'FALSE', '0']:
+                value = False
+
+        try:
+            float_value = float(value)
+
+            if isnan(float_value):
+                value = None
+            elif float_value == 0.:
+                value = False
+            elif float_value == 1.:
+                value = True
+        except ValueError:
+            pass
+
+        if (value is None) or isinstance(value, bool):
+            return (value, None)
+        return (None, InvalidAttribute(attr, ['Value must be a `bool` or `None`']))
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(BooleanAttribute, self).validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        if value is not None and not isinstance(value, bool):
+            errors.append('Value must be an instance of `bool` or `None`')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def serialize(self, value):
+        """ Serialize value
+
+        Args:
+            value (:obj:`bool`): Python representation
+
+        Returns:
+            :obj:`bool`: simple Python representation
+        """
+        return value
 
 
 class FloatAttribute(Attribute):
@@ -598,7 +723,7 @@ class FloatAttribute(Attribute):
     Attributes:
         default (:obj:`float`): default value
         min (:obj:`float`): minimum value
-        max (:obj:`float`): maximum value        
+        max (:obj:`float`): maximum value
     """
 
     def __init__(self, min=float('nan'), max=float('nan'), default=float('nan'), verbose_name='', help='',
@@ -626,12 +751,30 @@ class FloatAttribute(Attribute):
         self.min = min
         self.max = max
 
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `float`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        if value is None or (isinstance(value, str) and value == ''):
+            value = float('nan')
+
+        try:
+            value = float(value)
+            return (value, None)
+        except ValueError:
+            return (None, InvalidAttribute(self, 'Value must be a `float`'))
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -642,10 +785,7 @@ class FloatAttribute(Attribute):
         else:
             errors = []
 
-        try:
-            value = float(value)
-            setattr(obj, self.name, value)
-
+        if isinstance(value, float):
             if not isnan(self.min):
                 if isnan(value):
                     errors.append('Value cannot be nan')
@@ -657,8 +797,7 @@ class FloatAttribute(Attribute):
                     errors.append('Value cannot be nan')
                 elif value > self.max:
                     errors.append('Value must be at most {:f}'.format(self.max))
-
-        except ValueError:
+        else:
             errors.append('Value must be an instance of `float`')
 
         if errors:
@@ -672,22 +811,11 @@ class FloatAttribute(Attribute):
             value (:obj:`float`): Python representation
 
         Returns:
-            :obj:`str`: string representation
+            :obj:`float`: simple Python representation
         """
         if isnan(value):
-            return ''
-        return str(value)
-
-    def deserialize(self, value):
-        """ Deserialize string
-
-        Args:
-            value (:obj:`str` or None): String representation
-
-        Returns:
-            :obj:`float`: Python representation
-        """
-        return float(value or 'nan')
+            return None
+        return value
 
 
 class IntegerAttribute(Attribute):
@@ -726,12 +854,32 @@ class IntegerAttribute(Attribute):
         self.min = min
         self.max = max
 
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `int`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+
+        if value is None or (isinstance(value, str) and value == ''):
+            return (value, None, )
+
+        try:
+            if float(value) == int(float(value)):
+                return (int(float(value)), None, )
+        except ValueError:
+            pass
+        return (None, InvalidAttribute(self, ['Value must be an integer']), )
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -742,14 +890,7 @@ class IntegerAttribute(Attribute):
         else:
             errors = []
 
-        try:
-            if value is not None:
-                if float(value) != ceil(float(value)):
-                    errors.append('Value must be an integer')
-
-                value = int(float(value))
-            setattr(obj, self.name, value)
-
+        if isinstance(value, int):
             if self.min is not None:
                 if value is None:
                     errors.append('Value cannot be None')
@@ -761,9 +902,8 @@ class IntegerAttribute(Attribute):
                     errors.append('Value cannot be None')
                 elif value > self.max:
                     errors.append('Value must be at most {:d}'.format(self.max))
-
-        except ValueError:
-            errors.append('Value must be an instance of `int`')
+        elif value is not None:
+            errors.append('Value must be an instance of `int` or `None`')
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -776,24 +916,11 @@ class IntegerAttribute(Attribute):
             value (:obj:`int`): Python representation
 
         Returns:
-            :obj:`str`: string representation
-        """
-        if value is None:
-            return ''
-        return str(value)
-
-    def deserialize(self, value):
-        """ Deserialize string
-
-        Args:
-            value (:obj:`str` or None): String representation
-
-        Returns:
-            :obj:`int`: Python representation
+            :obj:`float`: simple Python representation
         """
         if value is None:
             return None
-        return int(value)
+        return float(value)
 
 
 class PositiveIntegerAttribute(IntegerAttribute):
@@ -818,8 +945,8 @@ class PositiveIntegerAttribute(IntegerAttribute):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -876,12 +1003,27 @@ class StringAttribute(Attribute):
         self.min_length = min_length
         self.max_length = max_length
 
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `str`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        if value is None:
+            value = ''
+        elif not isinstance(value, str):
+            value = str(value)
+        return (value, None)
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -895,7 +1037,7 @@ class StringAttribute(Attribute):
         if not isinstance(value, str):
             errors.append('Value must be an instance of `str`')
         else:
-            if len(value) < self.min_length:
+            if self.min_length and len(value) < self.min_length:
                 errors.append('Value must be at least {:d} characters'.format(self.min_length))
 
             if self.max_length and len(value) > self.max_length:
@@ -912,20 +1054,9 @@ class StringAttribute(Attribute):
             value (:obj:`str`): Python representation
 
         Returns:
-            :obj:`str`: string representation
+            :obj:`str`: simple Python representation
         """
         return value
-
-    def deserialize(self, value):
-        """ Deserialize string
-
-        Args:
-            value (:obj:`str` or None): String representation
-
-        Returns:
-            :obj:`str`: Python representation
-        """
-        return value or ''
 
 
 class LongStringAttribute(Attribute):
@@ -988,8 +1119,8 @@ class RegexAttribute(StringAttribute):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -1094,13 +1225,25 @@ class RelatedAttribute(Attribute):
         """ Determine if `value` is a valid value of the related attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object to validate
+            value (:obj:`set`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
         """
         return None
+
+    def deserialize(self, value, objects):
+        """ Deserialize value
+
+        Args:
+            value (:obj:`object`): String representation
+            objects (:obj:`dict`): dictionary of objects, grouped by model
+
+        Returns:
+            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        return (value, None)
 
 
 class ManyToOneAttribute(RelatedAttribute):
@@ -1156,8 +1299,8 @@ class ManyToOneAttribute(RelatedAttribute):
         """ Determine if `value` is a valid value of the attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`object`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -1170,19 +1313,15 @@ class ManyToOneAttribute(RelatedAttribute):
 
         if value is None:
             if not self.is_none:
-                errors.append('Value cannot be none')
-
-        else:
-            if not isinstance(value, self.related_class):
-                errors.append('Value must be an instance of "{:s}'.format(self.related_class))
-            elif self.related_name:
-                related_value = getattr(value, '_' + self.related_name)
-
-                if not isinstance(related_value, set):
-                    errors.append('Related value must be a set')
-
-                elif obj not in getattr(value, '_' + self.related_name):
-                    errors.append('Object must be a member of the related property "_{:s}"'.format(self.related_name))
+                errors.append('Value cannot be `None`')
+        elif not isinstance(value, self.related_class):
+            errors.append('Value must be an instance of "{:s}" or `None`'.format(self.related_class))
+        elif self.related_name:
+            related_value = getattr(value, '_' + self.related_name)
+            if not isinstance(related_value, set):
+                errors.append('Related value must be a set')
+            if obj not in related_value:
+                errors.append('Object must be in related values')
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -1192,8 +1331,8 @@ class ManyToOneAttribute(RelatedAttribute):
         """ Determine if `value` is a valid value of the related attribute
 
         Args:
-            obj (:obj:`object`): object being validated
-            value (:obj:`value`): value of attribute to validate
+            obj (:obj:`Model`): object being validated
+            value (:obj:`set`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -1204,12 +1343,15 @@ class ManyToOneAttribute(RelatedAttribute):
         else:
             errors = []
 
-        if not isinstance(value, set):
-            errors.append('Related value must be a set')
+        if self.related_name:
+            if not isinstance(value, set):
+                errors.append('Related value must be a set')
 
-        for v in value:
-            if not isinstance(v, self.primary_class):
-                errors.append('Related value must be an instance of "{:s}"'.format(self.primary_class.__name__))
+            for v in value:
+                if not isinstance(v, self.primary_class):
+                    errors.append('Related value must be an instance of "{:s}"'.format(self.primary_class.__name__))
+                elif getattr(v, self.name) is not obj:
+                    errors.append('Object must be in related values')
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -1222,7 +1364,7 @@ class ManyToOneAttribute(RelatedAttribute):
             value (:obj:`Model`): Python representation
 
         Returns:
-            :obj:`str`: string representation
+            :obj:`str`: simple Python representation
         """
         primary_attr = value.__class__.Meta.primary_attribute
         return primary_attr.serialize(getattr(value, primary_attr.name))
@@ -1235,7 +1377,7 @@ class ManyToOneAttribute(RelatedAttribute):
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
-            :obj:`Model`: Python representation
+            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
         if not value:
             return None
@@ -1250,13 +1392,12 @@ class ManyToOneAttribute(RelatedAttribute):
                         related_objs.append(obj)
 
         if len(related_objs) == 0:
-            raise ValueError('Unable to find {} with {}={}'.format(
-                self.related_class.__name__, primary_attr.name, value))
+            return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
 
         if len(related_objs) == 1:
-            return related_objs[0]
+            return (related_objs[0], None)
 
-        raise ValueError('Multiple matching objects with primary attribute = {}'.format(value))
+        return (None, InvalidAttribute(self, ['Multiple matching objects with primary attribute = {}'.format(value)]))
 
 
 class InvalidObjectSet(object):
@@ -1347,6 +1488,28 @@ def get_model(name):
     return None
 
 
+def clean_objects(objects):
+    """ Clean a list of objects and return their errors
+
+    Args:
+        object (:obj:`list` of `Model`): list of objects
+
+    Returns:
+        :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+    """
+
+    object_errors = []
+    for obj in objects:
+        error = obj.clean()
+        if error:
+            object_errors.append(error)
+
+    if object_errors:
+        return InvalidObjectSet(object_errors, None)
+
+    return None
+
+
 def validate_objects(objects):
     """ Validate a list of objects and return their errors
 
@@ -1384,3 +1547,18 @@ def validate_objects(objects):
         return InvalidObjectSet(object_errors, model_errors)
 
     return None
+
+
+def clean_and_validate_objects(objects):
+    """ Validate a list of objects and return their errors
+
+    Args:
+        object (:obj:`list` of `Model`): list of objects
+
+    Returns:
+        :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+    """
+    error = clean_objects(objects)
+    if error:
+        return error
+    return validate_objects(objects)

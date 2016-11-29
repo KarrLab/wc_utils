@@ -244,6 +244,7 @@ class TestCore(unittest.TestCase):
 
     def test_validate_attribute(self):
         root = Root()
+        root.clean()
         self.assertEqual(root.validate(), None)
 
         leaf = Leaf()
@@ -312,99 +313,129 @@ class TestCore(unittest.TestCase):
 
         # max=3.
         leaf.float2 = 'a'
+        leaf.clean()
         self.assertIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = 1
+        leaf.clean()
         self.assertIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = 4
+        leaf.clean()
         self.assertIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = 3
+        leaf.clean()
         self.assertNotIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = 3.
+        leaf.clean()
         self.assertNotIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = 2.
+        leaf.clean()
         self.assertNotIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = 2.5
+        leaf.clean()
         self.assertNotIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float2 = float('nan')
+        leaf.clean()
         self.assertIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         # max=nan
         leaf.float3 = 2.5
+        leaf.clean()
         self.assertNotIn('float3', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.float3 = float('nan')
+        leaf.clean()
         self.assertIn('float3', [x.attribute.name for x in leaf.validate().attributes])
 
     def test_validate_int_attribute(self):
         root = UniqueRoot(int_attr='1.0.')
+        root.clean()
         self.assertIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.int_attr = '1.5'
+        root.clean()
         self.assertIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.int_attr = 1.5
+        root.clean()
         self.assertIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.int_attr = '1.'
+        root.clean()
         self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.int_attr = 1.
+        root.clean()
         self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.int_attr = 1
+        root.clean()
         self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.int_attr = None
+        root.clean()
         self.assertNotIn('int_attr', [x.attribute.name for x in root.validate().attributes])
 
     def test_validate_pos_int_attribute(self):
         root = UniqueRoot(pos_int_attr='0.')
+        root.clean()
         self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.pos_int_attr = 1.5
+        root.clean()
         self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.pos_int_attr = -1
+        root.clean()
         self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.pos_int_attr = 0
+        root.clean()
         self.assertIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.pos_int_attr = 1.
+        root.clean()
         self.assertNotIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.pos_int_attr = 1
+        root.clean()
         self.assertNotIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
         root.pos_int_attr = None
+        root.clean()
         self.assertNotIn('pos_int_attr', [x.attribute.name for x in root.validate().attributes])
 
     def test_validate_enum_attribute(self):
         leaf = UnrootedLeaf()
+        leaf.clean()
 
         self.assertIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
         self.assertNotIn('enum3', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.enum2 = Order['root']
+        leaf.clean()
         self.assertNotIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.enum2 = 'root'
+        leaf.clean()
         self.assertNotIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.enum2 = 1
+        leaf.clean()
         self.assertNotIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.enum2 = 'root2'
+        leaf.clean()
         self.assertIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
 
         leaf.enum2 = 3
+        leaf.clean()
         self.assertIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
 
     def test_validate_manytoone_attribute(self):
@@ -423,14 +454,14 @@ class TestCore(unittest.TestCase):
         unrooted_leaf = UnrootedLeaf()
         self.assertNotIn('root2', [x.attribute.name for x in unrooted_leaf.validate().attributes])
 
-    def test_validate_objects(self):
+    def test_clean_and_validate_objects(self):
         grandparent = Grandparent(id='root')
         parents = [
             Parent(grandparent=grandparent, id='node-0'),
             Parent(grandparent=grandparent),
         ]
 
-        errors = core.validate_objects(parents)
+        errors = core.clean_and_validate_objects(parents)
         self.assertEqual(len(errors.objects), 1)
         self.assertEqual(errors.objects[0].object, parents[0])
         self.assertEqual(len(errors.objects[0].attributes), 1)
@@ -441,7 +472,7 @@ class TestCore(unittest.TestCase):
             Root(label='root-0'),
             Root(label='root-0'),
         ]
-        errors = core.validate_objects(roots)
+        errors = core.clean_and_validate_objects(roots)
         self.assertEqual(errors, None)
 
         roots = [
@@ -449,7 +480,7 @@ class TestCore(unittest.TestCase):
             UniqueRoot(label='root_0', url='http://www.test.com'),
             UniqueRoot(label='root_0', url='http://www.test.com'),
         ]
-        errors = core.validate_objects(roots)
+        errors = core.clean_and_validate_objects(roots)
         self.assertEqual(len(errors.objects), 0)
         self.assertEqual(len(errors.models), 1)
         self.assertEqual(errors.models[0].model, UniqueRoot)

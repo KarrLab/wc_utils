@@ -69,7 +69,9 @@ class TestIo(unittest.TestCase):
         objects = set((root, )) | root.get_related()
         objects = utils.group_objects_by_model(objects)
 
-        ExcelIo.write(self.filename, {Root: set((root, ))}, [Root, ])
+        root.clean()
+
+        ExcelIo.write(self.filename, set((root,)), [Root, ])
         objects2 = ExcelIo.read(self.filename, set((Root, Node, Leaf, )))
 
         self.assertEqual(len(objects2[Root]), 1)

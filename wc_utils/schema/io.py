@@ -9,33 +9,41 @@
 from itertools import chain
 from natsort import natsort_keygen, ns
 from openpyxl import Workbook, load_workbook
+from openpyxl.cell.cell import Cell
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from wc_utils.schema import utils
-from wc_utils.schema.core import Model, Attribute, RelatedAttribute, validate_objects
+from wc_utils.schema.core import Model, Attribute, RelatedAttribute, clean_objects, clean_and_validate_objects
 
 
 class ExcelIo(object):
 
     @classmethod
-    def write(cls, filename, grouped_objects, model_order):
+    def write(cls, filename, objects, model_order):
         """ Write a set of model objects to an Excel workbook with one worksheet for each `Model`
 
         Args:
             filename (:obj:`str`): path to write Excel file
-            grouped_objects (:obj:`dict`): dictionary of objects, grouped by model
-            model_order (:obj:`list`): list of model, in the order that they should 
-                appear as worksheets; all models which are not in `model_order` will 
+            objects (:obj:`set`): set of objects
+            model_order (:obj:`list`): list of model, in the order that they should
+                appear as worksheets; all models which are not in `model_order` will
                 follow in alphabetical order
         """
 
         # get related objects
         more_objects = set()
-        for model, objects in grouped_objects.items():
-            for obj in objects:
-                more_objects.update(obj.get_related())
+        for obj in objects:
+            more_objects.update(obj.get_related())
 
-        for obj in more_objects:
+        # clean objects
+        all_objects = objects | more_objects
+        error = clean_objects(all_objects)
+        if error:
+            raise(error)
+
+        # group objects by class
+        grouped_objects = {}
+        for obj in all_objects:
             if obj.__class__ not in grouped_objects:
                 grouped_objects[obj.__class__] = set()
             grouped_objects[obj.__class__].add(obj)
@@ -67,7 +75,7 @@ class ExcelIo(object):
         Args:
             workbook (:obj:`Workbook`): workbook
             model (:obj:`class`): model
-            objects (:obj:`set` of `Model`): set of instances of `model`            
+            objects (:obj:`set` of `Model`): set of instances of `model`
         """
 
         # create new worksheet
@@ -101,7 +109,20 @@ class ExcelIo(object):
         for i_obj, obj in enumerate(objects):
             for i_attr, attr in enumerate(attributes):
                 cell = ws.cell(row=2 + i_obj, column=1 + i_attr)
-                cell.value = attr.serialize(getattr(obj, attr.name))
+
+                value = attr.serialize(getattr(obj, attr.name))
+                if isinstance(value, str):
+                    data_type = Cell.TYPE_STRING
+                elif isinstance(value, bool):
+                    data_type = Cell.TYPE_BOOL
+                elif isinstance(value, float):
+                    data_type = Cell.TYPE_NUMERIC
+                else:
+                    raise ValueError('Cannot save values of type "{}" for {}.{}'.format(
+                        value.__class__.__name__, obj.__class__.__name__, attr.name))
+
+                if value is not None:
+                    cell.set_explicit_value(value=value, data_type=data_type)
                 cell.alignment = alignment
 
             ws.row_dimensions[2 + i_obj].height = height
@@ -130,7 +151,6 @@ class ExcelIo(object):
             if model_errors:
                 errors[model] = model_errors
 
-        # print any spreadsheet errors (e.g. column names)
         if errors:
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
             for model, model_errors in errors.items():
@@ -138,8 +158,17 @@ class ExcelIo(object):
             ValueError(msg)
 
         # link objects
+        errors = {}
         for model in models:
-            cls.read_model(workbook, model, objects, set_related=True)
+            _, model_errors = cls.read_model(workbook, model, objects, set_related=True)
+            if model_errors:
+                errors[model] = model_errors
+
+        if errors:
+            msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
+            for model, model_errors in errors.items():
+                msg += '- {}:\n  - {}\n'.format(model.__name__, '\n  - '.join(model_errors))
+            ValueError(msg)
 
         # convert to sets
         for model in models:
@@ -150,7 +179,7 @@ class ExcelIo(object):
         for model in models:
             all_objects.update(objects[model])
 
-        errors = validate_objects(all_objects)
+        errors = clean_and_validate_objects(all_objects)
         if errors:
             ValueError(utils.get_object_set_error_string(errors))
 
@@ -196,18 +225,27 @@ class ExcelIo(object):
 
         # read data
         objects = list()
-
+        errors = []
         for i_row in range(2, ws.max_row + 1):
             obj = model()
 
             for i_attr, attr in enumerate(attributes):
+                cell = ws.cell(row=i_row, column=i_attr + 1)
+
                 if not set_related and not isinstance(attr, RelatedAttribute):
-                    value = attr.deserialize(ws.cell(row=i_row, column=i_attr + 1).value)
-                    setattr(obj, attr.name, value)
+                    value, error = attr.deserialize(cell.value)
+                    if error:
+                        errors.append(error)
+                    else:
+                        setattr(obj, attr.name, value)
+
                 elif set_related and isinstance(attr, RelatedAttribute):
-                    value = attr.deserialize(ws.cell(row=i_row, column=i_attr + 1).value, all_objects)
-                    setattr(obj, attr.name, value)
+                    value, error = attr.deserialize(cell.value, all_objects)
+                    if error:
+                        errors.append(error)
+                    else:
+                        setattr(obj, attr.name, value)
 
             objects.append(obj)
 
-        return (objects, None)
+        return (objects, errors)

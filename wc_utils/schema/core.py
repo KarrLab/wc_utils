@@ -792,6 +792,21 @@ class RegexAttribute(StringAttribute):
         return None
 
 
+class SlugAttribute(RegexAttribute):
+
+    def __init__(self, verbose_name='', is_primary=True):
+        """
+        Args:
+            verbose_name (:obj:`str`, optional): verbose name
+            is_primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+        """
+
+        super(SlugAttribute, self).__init__(pattern=r'^[a-z_][a-z0-9_]*$', flags=re.I,
+                                            min_length=1, max_length=63,
+                                            default='', verbose_name=verbose_name,
+                                            is_primary=is_primary, is_unique=True)
+
+
 class RelatedAttribute(Attribute):
     """ Attribute which represents relationships with other objects
 

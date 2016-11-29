@@ -73,7 +73,7 @@ class Child(core.Model):
 
 
 class UniqueRoot(Root):
-    label = core.StringAttribute(verbose_name='Label', max_length=255, is_primary=True, is_unique=True)
+    label = core.SlugAttribute(verbose_name='Label', is_primary=True)
 
     class Meta(core.Model.Meta):
         pass
@@ -290,6 +290,13 @@ class TestCore(unittest.TestCase):
         leaf.id = 'a_'
         self.assertNotIn('id', [x.attribute.name for x in leaf.validate().attributes])
 
+    def test_validate_slug_attribute(self):
+        root = UniqueRoot(label='root-0')
+        self.assertIn('label', [x.attribute.name for x in root.validate().attributes])
+
+        root.label = 'root_0'
+        self.assertEqual(root.validate(), None)
+
     def test_validate_float_attribute(self):
         leaf = UnrootedLeaf()
 
@@ -384,9 +391,9 @@ class TestCore(unittest.TestCase):
         self.assertEqual(errors, None)
 
         roots = [
-            UniqueRoot(label='root-0'),
-            UniqueRoot(label='root-0'),
-            UniqueRoot(label='root-0'),
+            UniqueRoot(label='root_0'),
+            UniqueRoot(label='root_0'),
+            UniqueRoot(label='root_0'),
         ]
         errors = core.validate_objects(roots)
         self.assertEqual(len(errors.objects), 0)

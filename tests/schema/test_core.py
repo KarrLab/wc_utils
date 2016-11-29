@@ -74,6 +74,7 @@ class Child(core.Model):
 
 class UniqueRoot(Root):
     label = core.SlugAttribute(verbose_name='Label', primary=True)
+    url = core.UrlAttribute()
 
     class Meta(core.Model.Meta):
         pass
@@ -295,7 +296,14 @@ class TestCore(unittest.TestCase):
         self.assertIn('label', [x.attribute.name for x in root.validate().attributes])
 
         root.label = 'root_0'
-        self.assertEqual(root.validate(), None)
+        self.assertNotIn('label', [x.attribute.name for x in root.validate().attributes])
+
+    def test_validate_url_attribute(self):
+        root = UniqueRoot(url='root-0')
+        self.assertIn('url', [x.attribute.name for x in root.validate().attributes])
+
+        root.url = 'http://www.test.com'
+        self.assertNotIn('url', [x.attribute.name for x in root.validate().attributes])
 
     def test_validate_float_attribute(self):
         leaf = UnrootedLeaf()
@@ -391,9 +399,9 @@ class TestCore(unittest.TestCase):
         self.assertEqual(errors, None)
 
         roots = [
-            UniqueRoot(label='root_0'),
-            UniqueRoot(label='root_0'),
-            UniqueRoot(label='root_0'),
+            UniqueRoot(label='root_0', url='http://www.test.com'),
+            UniqueRoot(label='root_0', url='http://www.test.com'),
+            UniqueRoot(label='root_0', url='http://www.test.com'),
         ]
         errors = core.validate_objects(roots)
         self.assertEqual(len(errors.objects), 0)

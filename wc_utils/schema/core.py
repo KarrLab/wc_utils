@@ -516,6 +516,7 @@ class EnumAttribute(Attribute):
             enum_class (:obj:`type`): subclass of `Enum`
             default (:obj:`object`, optional): default value
             verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
@@ -594,9 +595,9 @@ class FloatAttribute(Attribute):
     """ Float attribute
 
     Attributes:
-        min (:obj:`float`): minimum value
-        max (:obj:`float`): maximum value
         default (:obj:`float`, optional): default value
+        min (:obj:`float`): minimum value
+        max (:obj:`float`): maximum value        
     """
 
     def __init__(self, min=float('nan'), max=float('nan'), default=float('nan'), verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
@@ -606,6 +607,7 @@ class FloatAttribute(Attribute):
             max (:obj:`float`, optional): maximum value
             default (:obj:`float`, optional): default value
             verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
@@ -689,18 +691,19 @@ class StringAttribute(Attribute):
     """ String attribute
 
     Attributes:
-        min_length (:obj:`int`): minimum length
-        max_length (:obj:`int`): maximum length
         default (:obj:`str`, optional): default value
+        min_length (:obj:`int`): minimum length
+        max_length (:obj:`int`): maximum length        
     """
 
-    def __init__(self, min_length=0, max_length=None, default='', verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
+    def __init__(self, min_length=0, max_length=255, default='', verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
         """
         Args:
             min_length (:obj:`int`, optional): minimum length
             max_length (:obj:`int`, optional): maximum length
             default (:obj:`str`, optional): default value
             verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
@@ -771,6 +774,26 @@ class StringAttribute(Attribute):
         return value or ''
 
 
+class LongStringAttribute(Attribute):
+    """ Long string attribute """
+
+    def __init__(self, min_length=0, max_length=2**32 - 1, default='', verbose_name='', help='', primary=False, unique=False, unique_case_insensitive=False):
+        """
+        Args:
+            min_length (:obj:`int`, optional): minimum length
+            max_length (:obj:`int`, optional): maximum length
+            default (:obj:`str`, optional): default value
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+
+        super(LongStringAttribute, self).__init__(min_length=min_length, max_length=max_length, default=default,
+                                                  verbose_name=verbose_name, help=help,
+                                                  primary=primary, unique=unique, unique_case_insensitive=unique_case_insensitive)
+
+
 class RegexAttribute(StringAttribute):
     """ Regular expression attribute
 
@@ -788,6 +811,7 @@ class RegexAttribute(StringAttribute):
             max_length (:obj:`int`, optional): maximum length
             default (:obj:`str`, optional): default value
             verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
@@ -834,6 +858,7 @@ class SlugAttribute(RegexAttribute):
         """
         Args:
             verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
         """
         if help is None:
@@ -843,6 +868,24 @@ class SlugAttribute(RegexAttribute):
                                             min_length=1, max_length=63,
                                             default='', verbose_name=verbose_name, help=help,
                                             primary=primary, unique=True)
+
+
+class UrlAttribute(RegexAttribute):
+    """ Slug attribute to be used for string IDs """
+
+    def __init__(self, verbose_name='URL', help='Enter a valid URL', primary=False, unique=False):
+        """
+        Args:
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+        super(UrlAttribute, self).__init__(pattern=r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)',
+                                           flags=0,
+                                           min_length=1, max_length=2**16 - 1,
+                                           default='', verbose_name=verbose_name, help=help,
+                                           primary=primary, unique=unique)
 
 
 class RelatedAttribute(Attribute):
@@ -855,16 +898,21 @@ class RelatedAttribute(Attribute):
         verbose_related_name (:obj:`str`): verbose related name
     """
 
-    def __init__(self, related_class, related_name='', verbose_name='', help='', verbose_related_name='', primary=False, unique=False, unique_case_insensitive=False):
+    def __init__(self, related_class, related_name='', verbose_name='', verbose_related_name='', help='',
+                 primary=False, unique=False, unique_case_insensitive=False):
         """
         Args:
             related_class (:obj:`class`): related class
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
+
+        if not verbose_related_name:
+            verbose_related_name = sentencecase(related_name)
 
         super(RelatedAttribute, self).__init__(verbose_name=verbose_name,
                                                help=help, primary=primary, unique=unique, unique_case_insensitive=unique_case_insensitive)
@@ -904,7 +952,8 @@ class ManyToOneAttribute(RelatedAttribute):
         is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', is_none=False, verbose_name='', help='', verbose_related_name='', primary=False, unique=False, unique_case_insensitive=False):
+    def __init__(self, related_class, related_name='', is_none=False, verbose_name='', verbose_related_name='', help='',
+                 primary=False, unique=False, unique_case_insensitive=False):
         """
         Args:
             related_class (:obj:`class`): related class
@@ -912,6 +961,7 @@ class ManyToOneAttribute(RelatedAttribute):
             is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
+            help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """

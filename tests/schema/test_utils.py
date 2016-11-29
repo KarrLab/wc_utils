@@ -11,16 +11,16 @@ import unittest
 
 
 class Root(core.Model):
-    id = core.StringAttribute(max_length=1, is_primary=True, verbose_name='Identifier')
+    id = core.StringAttribute(max_length=1, primary=True, verbose_name='Identifier')
 
 
 class Node(core.Model):
-    id = core.StringAttribute(max_length=2, is_primary=True)
+    id = core.StringAttribute(max_length=2, primary=True)
     root = core.ManyToOneAttribute(Root, related_name='nodes')
 
 
 class Leaf(core.Model):
-    id = core.StringAttribute(is_primary=True)
+    id = core.StringAttribute(primary=True)
     node = core.ManyToOneAttribute(Node, related_name='leaves')
 
 

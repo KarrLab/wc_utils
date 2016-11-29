@@ -14,7 +14,7 @@ import unittest
 
 
 class Root(core.Model):
-    id = core.StringAttribute(is_primary=True)
+    id = core.StringAttribute(primary=True)
     name = core.StringAttribute()
 
     class Meta(core.Model.Meta):
@@ -22,7 +22,7 @@ class Root(core.Model):
 
 
 class Node(core.Model):
-    id = core.StringAttribute(is_primary=True)
+    id = core.StringAttribute(primary=True)
     root = core.ManyToOneAttribute(Root, related_name='nodes')
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()
@@ -32,7 +32,7 @@ class Node(core.Model):
 
 
 class Leaf(core.Model):
-    id = core.StringAttribute(is_primary=True)
+    id = core.StringAttribute(primary=True)
     node = core.ManyToOneAttribute(Node, related_name='leaves')
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()

@@ -19,7 +19,7 @@ class Order(Enum):
 
 
 class Root(core.Model):
-    label = core.StringAttribute(verbose_name='Label', max_length=255, is_primary=True)
+    label = core.StringAttribute(verbose_name='Label', max_length=255, primary=True)
 
     class Meta(core.Model.Meta):
         pass
@@ -29,7 +29,7 @@ class Leaf(core.Model):
     root = core.ManyToOneAttribute(Root, verbose_name='Root',
                                    related_name='leaves', verbose_related_name='Leaves')
     id = core.RegexAttribute(verbose_name='ID', min_length=1, max_length=63,
-                             pattern=r'^[a-z][a-z0-9_]*$', flags=re.I, is_primary=True)
+                             pattern=r'^[a-z][a-z0-9_]*$', flags=re.I, primary=True)
     name = core.StringAttribute(verbose_name='Name', max_length=255)
 
     class Meta(core.Model.Meta):
@@ -59,21 +59,21 @@ class Leaf3(UnrootedLeaf):
 
 
 class Grandparent(core.Model):
-    id = core.StringAttribute(max_length=1, is_primary=True)
+    id = core.StringAttribute(max_length=1, primary=True)
 
 
 class Parent(core.Model):
-    id = core.StringAttribute(max_length=2, is_primary=True)
+    id = core.StringAttribute(max_length=2, primary=True)
     grandparent = core.ManyToOneAttribute(Grandparent, related_name='children')
 
 
 class Child(core.Model):
-    id = core.StringAttribute(is_primary=True)
+    id = core.StringAttribute(primary=True)
     parent = core.ManyToOneAttribute(Parent, related_name='children')
 
 
 class UniqueRoot(Root):
-    label = core.SlugAttribute(verbose_name='Label', is_primary=True)
+    label = core.SlugAttribute(verbose_name='Label', primary=True)
 
     class Meta(core.Model.Meta):
         pass

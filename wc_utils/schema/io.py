@@ -90,7 +90,7 @@ class ExcelIo(object):
         height = 15
 
         # attribute order
-        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attributes_order]
+        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attribute_order]
 
         # column labels
         for i_attr, attr in enumerate(attributes):
@@ -206,7 +206,7 @@ class ExcelIo(object):
         ws = workbook[model.Meta.verbose_name_plural]
 
         # get attributes order
-        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attributes_order]
+        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attribute_order]
 
         # read headers
         attributes = []

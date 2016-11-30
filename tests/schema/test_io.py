@@ -14,21 +14,21 @@ import unittest
 
 
 class Root(core.Model):
-    id = core.StringAttribute(primary=True)
+    id = core.StringAttribute(primary=True, unique=True)
     name = core.StringAttribute()
 
     class Meta(core.Model.Meta):
-        attributes_order = ('id', 'name', )
+        attribute_order = ('id', 'name', )
 
 
 class Node(core.Model):
-    id = core.StringAttribute(primary=True)
+    id = core.StringAttribute(primary=True, unique=True)
     root = core.ManyToOneAttribute(Root, related_name='nodes')
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()
 
     class Meta(core.Model.Meta):
-        attributes_order = ('id', 'root', 'val1', 'val2', )
+        attribute_order = ('id', 'root', 'val1', 'val2', )
 
 
 class Leaf(core.Model):
@@ -38,7 +38,7 @@ class Leaf(core.Model):
     val2 = core.FloatAttribute()
 
     class Meta(core.Model.Meta):
-        attributes_order = ('id', 'node', 'val1', 'val2', )
+        attribute_order = ('id', 'node', 'val1', 'val2', )
 
 
 class TestIo(unittest.TestCase):

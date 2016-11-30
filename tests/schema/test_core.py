@@ -7,6 +7,7 @@
 """
 
 from enum import Enum
+from itertools import chain
 from wc_utils.schema import core
 import re
 import sys
@@ -19,7 +20,7 @@ class Order(Enum):
 
 
 class Root(core.Model):
-    label = core.StringAttribute(verbose_name='Label', max_length=255, primary=True)
+    label = core.StringAttribute(verbose_name='Label', max_length=255, primary=True, unique=True)
 
     class Meta(core.Model.Meta):
         pass
@@ -35,7 +36,7 @@ class Leaf(core.Model):
     class Meta(core.Model.Meta):
         verbose_name = 'Leaf'
         verbose_name_plural = 'Leaves'
-        attributes_order = ('id', )
+        attribute_order = ('id', )
 
 
 class UnrootedLeaf(Leaf):
@@ -55,15 +56,15 @@ class UnrootedLeaf(Leaf):
 class Leaf3(UnrootedLeaf):
 
     class Meta(core.Model.Meta):
-        attributes_order = ('id2', 'name2', )
+        attribute_order = ('id2', 'name2', )
 
 
 class Grandparent(core.Model):
-    id = core.StringAttribute(max_length=1, primary=True)
+    id = core.StringAttribute(max_length=1, primary=True, unique=True)
 
 
 class Parent(core.Model):
-    id = core.StringAttribute(max_length=2, primary=True)
+    id = core.StringAttribute(max_length=2, primary=True, unique=True)
     grandparent = core.ManyToOneAttribute(Grandparent, related_name='children')
 
 
@@ -73,13 +74,21 @@ class Child(core.Model):
 
 
 class UniqueRoot(Root):
-    label = core.SlugAttribute(verbose_name='Label', primary=True)
+    label = core.SlugAttribute(verbose_name='Label')
     url = core.UrlAttribute()
     int_attr = core.IntegerAttribute()
     pos_int_attr = core.PositiveIntegerAttribute()
 
     class Meta(core.Model.Meta):
         pass
+
+
+class ManyToManyRoot(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
+
+
+class ManyToManyLeaf(core.Model):
+    roots = core.ManyToManyAttribute(ManyToManyRoot, related_name='leaves')
 
 
 class TestCore(unittest.TestCase):
@@ -114,21 +123,21 @@ class TestCore(unittest.TestCase):
     def test_attributes(self):
         root = Root()
         leaf = Leaf()
-        self.assertEqual(set(vars(root).keys()), set(('label', '_leaves', '_leaves2', )))
+        self.assertEqual(set(vars(root).keys()), set(('label', 'leaves', 'leaves2', )))
         self.assertEqual(set(vars(leaf).keys()), set(('root', 'id', 'name')))
 
-    def test_attributes_order(self):
-        self.assertEqual(set(Root.Meta.attributes_order), set(Root.Meta.attributes.keys()))
-        self.assertEqual(set(Leaf.Meta.attributes_order), set(Leaf.Meta.attributes.keys()))
-        self.assertEqual(set(UnrootedLeaf.Meta.attributes_order), set(UnrootedLeaf.Meta.attributes.keys()))
-        self.assertEqual(set(Leaf3.Meta.attributes_order), set(Leaf3.Meta.attributes.keys()))
+    def test_attribute_order(self):
+        self.assertEqual(set(Root.Meta.attribute_order), set(Root.Meta.attributes.keys()))
+        self.assertEqual(set(Leaf.Meta.attribute_order), set(Leaf.Meta.attributes.keys()))
+        self.assertEqual(set(UnrootedLeaf.Meta.attribute_order), set(UnrootedLeaf.Meta.attributes.keys()))
+        self.assertEqual(set(Leaf3.Meta.attribute_order), set(Leaf3.Meta.attributes.keys()))
 
-        self.assertEqual(Root.Meta.attributes_order, ('label', ))
-        self.assertEqual(Leaf.Meta.attributes_order, ('id', 'name', 'root'))
-        self.assertEqual(UnrootedLeaf.Meta.attributes_order, (
+        self.assertEqual(Root.Meta.attribute_order, ('label', ))
+        self.assertEqual(Leaf.Meta.attribute_order, ('id', 'name', 'root'))
+        self.assertEqual(UnrootedLeaf.Meta.attribute_order, (
             'id', 'name', 'root',
             'enum2', 'enum3', 'float2', 'float3', 'id2', 'multi_word_name', 'name2', 'root2', ))
-        self.assertEqual(Leaf3.Meta.attributes_order, (
+        self.assertEqual(Leaf3.Meta.attribute_order, (
             'id2', 'name2',
             'enum2', 'enum3', 'float2', 'float3', 'id', 'multi_word_name', 'name', 'root', 'root2', ))
 
@@ -454,6 +463,30 @@ class TestCore(unittest.TestCase):
         unrooted_leaf = UnrootedLeaf()
         self.assertNotIn('root2', [x.attribute.name for x in unrooted_leaf.validate().attributes])
 
+    def test_validate_manytomany_attribute(self):
+        roots = [
+            ManyToManyRoot(id='root_0'),
+            ManyToManyRoot(id='root_1'),
+            ManyToManyRoot(id='root_2'),
+            ManyToManyRoot(id='root_3'),
+        ]
+        leaves = [
+            ManyToManyLeaf(roots=roots[0:2]),
+            ManyToManyLeaf(roots=roots[1:3]),
+            ManyToManyLeaf(roots=roots[2:4]),
+        ]
+
+        self.assertEqual(roots[0].leaves, set((leaves[0],)))
+        self.assertEqual(roots[1].leaves, set(leaves[0:2]))
+        self.assertEqual(roots[2].leaves, set(leaves[1:3]))
+        self.assertEqual(roots[3].leaves, set((leaves[2],)))
+
+        #self.assertRaises(Exception, lambda: leaves[0].roots.add(roots[2]))
+
+        for obj in chain(roots, leaves):
+            error = obj.validate()
+            self.assertEqual(error, None)
+
     def test_clean_and_validate_objects(self):
         grandparent = Grandparent(id='root')
         parents = [
@@ -469,8 +502,8 @@ class TestCore(unittest.TestCase):
 
         roots = [
             Root(label='root-0'),
-            Root(label='root-0'),
-            Root(label='root-0'),
+            Root(label='root-1'),
+            Root(label='root-2'),
         ]
         errors = core.clean_and_validate_objects(roots)
         self.assertEqual(errors, None)
@@ -481,9 +514,9 @@ class TestCore(unittest.TestCase):
             UniqueRoot(label='root_0', url='http://www.test.com'),
         ]
         errors = core.clean_and_validate_objects(roots)
+
         self.assertEqual(len(errors.objects), 0)
-        self.assertEqual(len(errors.models), 1)
-        self.assertEqual(errors.models[0].model, UniqueRoot)
+        self.assertEqual(set([model.model for model in errors.models]), set((Root, UniqueRoot)))
         self.assertEqual(len(errors.models[0].attributes), 1)
         self.assertEqual(errors.models[0].attributes[0].attribute.name, 'label')
         self.assertEqual(len(errors.models[0].attributes[0].messages), 1)

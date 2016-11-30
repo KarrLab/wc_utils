@@ -18,11 +18,11 @@ class TestRandomState(unittest.TestCase):
     def test_round(self):
         random_state = RandomState()
         avg = 3.4
-        samples = 10000
+        samples = 1000
 
         obs_avg = np.mean([random_state.round(avg) for i in range(samples)])
-        min = np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples
-        max = np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples
+        min = np.floor(avg) + binom.ppf(0.001, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.999, n=samples, p=avg % 1) / samples
         self.assertGreater(obs_avg, min)
         self.assertLess(obs_avg, max)
 
@@ -46,11 +46,11 @@ class TestRandomState(unittest.TestCase):
         self.assertEqual( random_state.round_binomial(x), x)
 
         avg = 3.4
-        samples = 50000
+        samples = 1000
 
         obs_avg = np.mean([random_state.round_binomial(avg) for i in range(samples)])
-        min = np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples
-        max = np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples
+        min = np.floor(avg) + binom.ppf(0.001, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.999, n=samples, p=avg % 1) / samples
         self.assertGreater(obs_avg, min)
         self.assertLess(obs_avg, max)
 
@@ -61,22 +61,22 @@ class TestRandomState(unittest.TestCase):
         self.assertEquals(random_state.round_midpoint(3.6), 4)
 
         avg = 3.5
-        samples = 3000
+        samples = 1000
         obs_avg = np.mean([random_state.round_midpoint(avg) for i in range(samples)])
-        min = np.floor(avg) + binom.ppf(0.01, n=samples, p=avg % 1) / samples
-        max = np.floor(avg) + binom.ppf(0.99, n=samples, p=avg % 1) / samples
+        min = np.floor(avg) + binom.ppf(0.001, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.999, n=samples, p=avg % 1) / samples
         self.assertGreater(obs_avg, min)
         self.assertLess(obs_avg, max)
 
     def test_round_poisson(self):
         random_state = RandomState()
         avg = 3.4
-        samples = 10000
+        samples = 1000
 
         rounds = [random_state.round_poisson(avg) for i in range(samples)]
         obs_avg = np.mean(rounds)
-        min = poisson.ppf(0.01, mu=avg)
-        max = poisson.ppf(0.99, mu=avg)
+        min = poisson.ppf(0.001, mu=avg)
+        max = poisson.ppf(0.999, mu=avg)
         self.assertGreater(obs_avg, min)
         self.assertLess(obs_avg, max)
 
@@ -104,7 +104,6 @@ class TestRandomState(unittest.TestCase):
         # test mean
         samples = list(np.random.random_sample(nsamples))
         obs_avg = np.mean([random_state.round_quadratic(s) for s in samples])
-        print(obs_avg)
         self.assertLess(abs(obs_avg - 0.5), 0.1)
 
     @unittest.skip("plot distributions of the stochastic rounding methods in wc_utils.util.rand")

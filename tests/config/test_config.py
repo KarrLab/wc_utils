@@ -1,7 +1,7 @@
 """ Test configuration
 
 :Author: Jonathan Karr <karr@mssm.edu>
-:Date: 2017-08-25
+:Date: 2016-08-25
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
@@ -17,7 +17,7 @@ import unittest
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import ConfigManager, any_checker, ExtraValuesError, InvalidConfigError
 from wc_utils.util.environ import EnvironUtils
-from wc_utils.util.types import TypesUtil
+from wc_utils.util.types import assert_value_equal
 
 
 class TestConfig(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestConfig(unittest.TestCase):
         config_settings = ConfigManager(temp_paths).get_config()
 
         self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
-        TypesUtil.assert_value_equal(config_settings, expected)
+        assert_value_equal(config_settings, expected)
 
         os.remove(temp_config_filename)
 
@@ -55,7 +55,7 @@ class TestConfig(unittest.TestCase):
             config_settings = ConfigManager(debug_logs_default_paths).get_config()
 
         self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
-        TypesUtil.assert_value_equal(config_settings, expected)
+        assert_value_equal(config_settings, expected)
 
     def test_get_from_args(self):
         expected = ConfigManager(debug_logs_default_paths).get_config()
@@ -65,7 +65,7 @@ class TestConfig(unittest.TestCase):
         config_settings = ConfigManager(debug_logs_default_paths).get_config(extra=extra)
 
         self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
-        TypesUtil.assert_value_equal(config_settings, expected)
+        assert_value_equal(config_settings, expected)
 
     def test_extra(self):
         # test to __str__
@@ -166,7 +166,7 @@ class TestConfig(unittest.TestCase):
         self.assertEquals(validator.check('any', '1,false'), [1, False])
         self.assertEquals(validator.check('any', '1,false, string'), [1, False, 'string'])
         self.assertEquals(validator.check('any', '1,false, string, 2.1'), [1, False, 'string', 2.1])
-        TypesUtil.assert_value_equal(validator.check('any', '1,false, string, 2.1, nan'),
+        assert_value_equal(validator.check('any', '1,false, string, 2.1, nan'),
                                      [1, False, 'string', 2.1, float('nan')])
 
         # string

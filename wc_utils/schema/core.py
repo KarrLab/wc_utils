@@ -227,20 +227,22 @@ class Model(with_metaclass(ModelMeta, object)):
                 raise TypeError("'{:s}' is an invalid keyword argument for this function".format(attr_name))
             setattr(self, attr_name, val)
 
-    def __setattr__(self, attr_name, value):
+    def __setattr__(self, attr_name, value, propagate=True):
         """ Set attribute
 
         Args:
             attr_name (:obj:`str`): attribute name
             value (:obj:`object`): value
+            propagate (:obj:`bool`, optional): propagate change through attribute `set_value` and `set_related_value`
         """
-        if attr_name in self.__class__.Meta.attributes:
-            attr = self.__class__.Meta.attributes[attr_name]
-            value = attr.set_value(self, value)
+        if propagate:
+            if attr_name in self.__class__.Meta.attributes:
+                attr = self.__class__.Meta.attributes[attr_name]
+                value = attr.set_value(self, value)
 
-        elif attr_name in self.__class__.Meta.related_attributes:
-            attr = self.__class__.Meta.related_attributes[attr_name]
-            value = attr.set_related_value(self, value)
+            elif attr_name in self.__class__.Meta.related_attributes:
+                attr = self.__class__.Meta.related_attributes[attr_name]
+                value = attr.set_related_value(self, value)
 
         super(Model, self).__setattr__(attr_name, value)
 
@@ -1198,6 +1200,7 @@ class RelatedAttribute(Attribute):
         related_class (:obj:`class`): related class
         related_name (:obj:`str`): name of related attribute on `related_class`
         verbose_related_name (:obj:`str`): verbose related name
+        related_default (:obj:`object`): default value of related attribute
     """
 
     def __init__(self, related_class, related_name='', verbose_name='', verbose_related_name='', help=''):
@@ -1219,6 +1222,7 @@ class RelatedAttribute(Attribute):
         self.related_class = related_class
         self.related_name = related_name
         self.verbose_related_name = verbose_related_name
+        self.related_default = None
 
     def get_init_related_value(self, obj):
         """ Get initial related value for attribute
@@ -1268,6 +1272,180 @@ class RelatedAttribute(Attribute):
         return (value, None)
 
 
+class OneToOneAttribute(RelatedAttribute):
+    """ Represents a one-to-one relationship between two types of objects.
+
+    Attributes:
+        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+    """
+
+    def __init__(self, related_class, related_name='', is_none=False, verbose_name='', verbose_related_name='', help=''):
+        """
+        Args:
+            related_class (:obj:`class`): related class
+            related_name (:obj:`str`, optional): name of related attribute on `related_class`
+            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            verbose_name (:obj:`str`, optional): verbose name
+            verbose_related_name (:obj:`str`, optional): verbose related name
+            help (:obj:`str`, optional): help string
+        """
+        super(OneToOneAttribute, self).__init__(related_class, related_name=related_name,
+                                                verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
+        self.is_none = is_none
+        self.related_default = None
+
+    def get_init_related_value(self, obj):
+        return self.related_default
+
+    def set_value(self, obj, new_value):
+        """ Update the values of the related attributes of the attribute
+
+        Args:
+            obj (:obj:`object`): object whose attribute should be set
+            new_value (:obj:`Model`): new attribute value
+
+        Returns:
+            :obj:`Model`: new attribute value
+        """
+        cur_value = getattr(obj, self.name)
+        if cur_value is new_value:
+            return new_value
+
+        if new_value and getattr(new_value, self.related_name):
+            raise ValueError('Related attribute of `new_value` must be `None`')
+
+        if self.related_name:
+            if cur_value:
+                cur_value.__setattr__(self.related_name, None, propagate=False)
+
+            if new_value:
+                new_value.__setattr__(self.related_name, obj, propagate=False)
+
+        return new_value
+
+    def set_related_value(self, obj, new_value):
+        """ Update the values of the related attributes of the attribute
+
+        Args:
+            obj (:obj:`object`): object whose attribute should be set
+            new_value (:obj:`Model`): value of the attribute
+
+        Returns:
+            :obj:`Model`: value of the attribute
+        """
+        cur_value = getattr(obj, self.related_name)
+        if cur_value is new_value:
+            return new_value
+
+        if new_value and getattr(new_value, self.name):
+            raise ValueError('Attribute of `new_value` must be `None`')
+
+        if cur_value:
+            cur_value.__setattr__(self.name, None, propagate=False)
+
+        if new_value:
+            new_value.__setattr__(self.name, obj, propagate=False)
+
+        return new_value
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`Model`): object being validated
+            value (:obj:`Model`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(OneToOneAttribute, self).validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        if value is None:
+            if not self.is_none:
+                errors.append('Value cannot be `None`')
+        elif not isinstance(value, self.related_class):
+            errors.append('Value must be an instance of "{:s}" or `None`'.format(self.related_class.__name__))
+        elif self.related_name:
+            if obj is not getattr(value, self.related_name):
+                errors.append('Object must be related value')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def related_validate(self, obj, value):
+        """ Determine if `value` is a valid value of the related attribute
+
+        Args:
+            obj (:obj:`Model`): object being validated
+            value (:obj:`set` of `Model`): value to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(OneToOneAttribute, self).related_validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        if self.related_name and value:
+            if not isinstance(value, self.primary_class):
+                errors.append('Related value must be an instance of "{:s}"'.format(self.primary_class.__name__))
+            elif getattr(value, self.name) is not obj:
+                errors.append('Object must be related value')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def serialize(self, value):
+        """ Serialize related object
+
+        Args:
+            value (:obj:`Model`): Python representation
+
+        Returns:
+            :obj:`str`: simple Python representation
+        """
+        primary_attr = value.__class__.Meta.primary_attribute
+        return primary_attr.serialize(getattr(value, primary_attr.name))
+
+    def deserialize(self, value, objects):
+        """ Deserialize value
+
+        Args:
+            value (:obj:`object`): String representation
+            objects (:obj:`dict`): dictionary of objects, grouped by model
+
+        Returns:
+            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        if not value:
+            return None
+
+        related_objs = []
+        related_classes = chain([self.related_class], get_subclasses(self.related_class))
+        for related_class in related_classes:
+            if issubclass(related_class, Model):
+                primary_attr = self.related_class.Meta.primary_attribute
+                for obj in objects[related_class]:
+                    if primary_attr.serialize(getattr(obj, primary_attr.name)) == value:
+                        related_objs.append(obj)
+
+        if len(related_objs) == 0:
+            return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
+
+        if len(related_objs) == 1:
+            return (related_objs[0], None)
+
+        return (None, InvalidAttribute(self, ['Multiple matching objects with primary attribute = {}'.format(value)]))
+
+
 class ManyToOneAttribute(RelatedAttribute):
     """ Represents a many-to-one relationship between two types of objects. This is analagous to a foreign key relationship in a database.
 
@@ -1288,6 +1466,7 @@ class ManyToOneAttribute(RelatedAttribute):
         super(ManyToOneAttribute, self).__init__(related_class, related_name=related_name,
                                                  verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
         self.is_none = is_none
+        self.related_default = ManyToOneRelatedManager
 
     def get_init_related_value(self, obj):
         return ManyToOneRelatedManager(obj, self)
@@ -1300,16 +1479,13 @@ class ManyToOneAttribute(RelatedAttribute):
             new_value (:obj:`Model`): new attribute value
 
         Returns:
-            :obj:`set`: new attribute value
+            :obj:`Model`: new attribute value
         """
         cur_value = getattr(obj, self.name)
         if cur_value is new_value:
             return new_value
 
         if self.related_name:
-            if not hasattr(new_value, self.related_name):
-                raise ValueError('New value does not have related attribute {}'.format(self.related_name))
-
             if cur_value:
                 cur_related = getattr(cur_value, self.related_name)
                 cur_related.remove(obj, propagate=False)
@@ -1391,7 +1567,7 @@ class ManyToOneAttribute(RelatedAttribute):
                 if not isinstance(v, self.primary_class):
                     errors.append('Related value must be an instance of "{:s}"'.format(self.primary_class.__name__))
                 elif getattr(v, self.name) is not obj:
-                    errors.append('Object must be in related values')
+                    errors.append('Object must be related value')
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -1454,6 +1630,8 @@ class ManyToManyAttribute(RelatedAttribute):
         """
         super(ManyToManyAttribute, self).__init__(related_class, related_name=related_name,
                                                   verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
+
+        self.related_default = ManyToManyRelatedManager
 
     def get_init_value(self, obj):
         return ManyToManyRelatedManager(obj, self, related=False)

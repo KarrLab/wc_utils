@@ -83,6 +83,14 @@ class UniqueRoot(Root):
         pass
 
 
+class OneToOneRoot(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
+
+
+class OneToOneLeaf(core.Model):
+    root = core.OneToOneAttribute(OneToOneRoot, related_name='leaf')
+
+
 class ManyToManyRoot(core.Model):
     id = core.SlugAttribute(verbose_name='ID')
 
@@ -447,6 +455,15 @@ class TestCore(unittest.TestCase):
         leaf.clean()
         self.assertIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
 
+    def test_validate_onetoone_attribute(self):
+        root = OneToOneRoot(id='root')
+        leaf = OneToOneLeaf(root=root)
+
+        self.assertEqual(root.leaf, leaf)
+
+        self.assertEqual(root.validate(), None)
+        self.assertEqual(leaf.validate(), None)
+
     def test_validate_manytoone_attribute(self):
         # is_none=False
         leaf = Leaf()
@@ -454,7 +471,7 @@ class TestCore(unittest.TestCase):
 
         def set_root():
             leaf.root = Leaf()
-        self.assertRaises(ValueError, set_root)
+        self.assertRaises(AttributeError, set_root)
 
         leaf.root = Root()
         self.assertNotIn('root', [x.attribute.name for x in leaf.validate().attributes])

@@ -8,13 +8,15 @@
 
 from collections import OrderedDict
 from copy import copy, deepcopy
+from datetime import date, time, datetime
 from enum import Enum
 from itertools import chain
-from math import isnan, ceil
+from math import floor, isnan
 from natsort import natsort_keygen, ns
 from six import with_metaclass
 from stringcase import sentencecase
 from wc_utils.util.types import get_subclasses, get_superclasses
+import dateutil.parser
 import inflect
 import re
 
@@ -1175,7 +1177,7 @@ class SlugAttribute(RegexAttribute):
 
 
 class UrlAttribute(RegexAttribute):
-    """ Slug attribute to be used for string IDs """
+    """ URL attribute to be used for URLs """
 
     def __init__(self, verbose_name='URL', help='Enter a valid URL', primary=False, unique=False):
         """
@@ -1190,6 +1192,328 @@ class UrlAttribute(RegexAttribute):
                                            min_length=1, max_length=2**16 - 1,
                                            default='', verbose_name=verbose_name, help=help,
                                            primary=primary, unique=unique)
+
+
+class DateAttribute(Attribute):
+    """ Date attribute 
+
+    Attributes:
+        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        default (:obj:`date`): default date
+    """
+
+    def __init__(self, is_none=False, default=None, verbose_name='', help='', primary=False, unique=False):
+        """
+        Args:
+            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            default (:obj:`date`, optional): default date
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+        super(DateAttribute, self).__init__(default=default,
+                                            verbose_name=verbose_name, help=help,
+                                            primary=primary, unique=unique)
+        self.is_none = is_none
+
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `date`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        if value is None:
+            return (value, None)
+
+        if isinstance(value, date):
+            return (value, None)
+
+        if isinstance(value, datetime):
+            if value.hour == 0 and value.minute == 0 and value.second == 0 and value.microsecond == 0:
+                return (value.date(), None)
+            else:
+                return (None, InvalidAttribute(self, ['Time must be 0:0:0.0']))
+
+        if isinstance(value, str):
+            try:
+                datetime_value = dateutil.parser.parse(value)
+                if datetime_value.hour == 0 and datetime_value.minute == 0 and datetime_value.second == 0 and datetime_value.microsecond == 0:
+                    return (datetime_value.date(), None)
+                else:
+                    return (None, InvalidAttribute(self, ['Time must be 0:0:0.0']))
+            except ValueError:
+                return (None, InvalidAttribute(self, ['String must be a valid date']))
+
+        try:
+            float_value = float(value)
+            int_value = int(float_value)
+            if float_value == int_value:
+                return (date.fromordinal(int_value + date(1900, 1, 1).toordinal() - 1), None)
+        except ValueError:
+            pass
+
+        return (None, 'Value must be an instance of `date`')
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`Model`): object being validated
+            value (:obj:`date`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(DateAttribute, self).validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        if value is None:
+            if not self.is_none:
+                errors.append('Value cannot be `None`')
+        elif isinstance(value, date):
+            if value.year < 1900 or value.year > 10000:
+                errors.append('Year must be between 1900 and 9999')
+        else:
+            errors.append('Value must be an instance of `date`')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def serialize(self, value):
+        """ Serialize string
+
+        Args:
+            value (:obj:`date`): Python representation
+
+        Returns:
+            :obj:`float`: simple Python representation
+        """
+        return value.toordinal() - date(1900, 1, 1).toordinal() + 1.
+
+
+class TimeAttribute(Attribute):
+    """ Time attribute 
+
+    Attributes:
+        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        default (:obj:`time`): defaul time
+    """
+
+    def __init__(self, is_none=False, default=None, verbose_name='', help='', primary=False, unique=False):
+        """
+        Args:
+            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            default (:obj:`time`, optional): default time
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+        super(TimeAttribute, self).__init__(default=default,
+                                            verbose_name=verbose_name, help=help,
+                                            primary=primary, unique=unique)
+        self.is_none = is_none
+
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `time`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        if value is None:
+            return (value, None)
+
+        if isinstance(value, time):
+            return (value, None)
+
+        if isinstance(value, str):
+            if re.match('^\d{1,2}:\d{1,2}(:\d{1,2})*$', value):
+                try:
+                    datetime_value = dateutil.parser.parse(value)
+                    return (datetime_value.time(), None)
+                except ValueError:
+                    return (None, InvalidAttribute(self, ['String must be a valid time']))
+            else:
+                return (None, InvalidAttribute(self, ['String must be a valid time']))
+
+        try:
+            int_value = round(float(value) * 24 * 60 * 60)
+            if int_value < 0 or int_value > 24 * 60 * 60 - 1:
+                return (None, InvalidAttribute(self, ['Number must be a valid time']))
+
+            hour = int(int_value / (60. * 60.))
+            minutes = int((int_value - hour * 60. * 60.) / 60.)
+            seconds = int(int_value % 60)
+            return (time(hour, minutes, seconds), None)
+        except ValueError:
+            pass
+
+        return (None, 'Value must be an instance of `time`')
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`Model`): object being validated
+            value (:obj:`time`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(TimeAttribute, self).validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        if value is None:
+            if not self.is_none:
+                errors.append('Value cannot be `None`')
+        elif isinstance(value, time):
+            if value.microsecond != 0:
+                errors.append('Microsecond must be 0')
+        else:
+            errors.append('Value must be an instance of `time`')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def serialize(self, value):
+        """ Serialize string
+
+        Args:
+            value (:obj:`time`): Python representation
+
+        Returns:
+            :obj:`float`: simple Python representation
+        """
+        return (value.hour * 60. * 60. + value.minute * 60. + value.second) / (24. * 60. * 60.)
+
+
+class DateTimeAttribute(Attribute):
+    """ Datetime attribute 
+
+    Attributes:
+        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        default (:obj:`datetime`): default datetime
+    """
+
+    def __init__(self, is_none=False, default=None, verbose_name='', help='', primary=False, unique=False):
+        """
+        Args:
+            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            default (:obj:`datetime`, optional): default datetime
+            verbose_name (:obj:`str`, optional): verbose name
+            help (:obj:`str`, optional): help string
+            primary (:obj:`bool`, optional): indicate if attribute is primary attribute
+            unique (:obj:`bool`, optional): indicate if attribute value must be unique
+        """
+        super(DateTimeAttribute, self).__init__(default=default,
+                                                verbose_name=verbose_name, help=help,
+                                                primary=primary, unique=unique)
+        self.is_none = is_none
+
+    def clean(self, value):
+        """ Convert attribute value into the appropriate type
+
+        Args:
+            value (:obj:`object`): value of attribute to clean
+
+        Returns:
+            :obj:`tuple` of `datetime`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+        """
+        if value is None:
+            return (value, None)
+
+        if isinstance(value, datetime):
+            return (value, None)
+
+        if isinstance(value, date):
+            return (datetime.combine(value, time(0, 0, 0, 0)), None)
+
+        if isinstance(value, str):
+            try:
+                return (dateutil.parser.parse(value), None)
+            except ValueError:
+                return (None, InvalidAttribute(self, ['String must be a valid datetime']))
+
+        try:
+            float_value = float(value)
+            date_int_value = int(float_value)
+            time_int_value = round((float_value % 1) * 24 * 60 * 60)
+
+            date_value = date.fromordinal(date_int_value + date(1900, 1, 1).toordinal() - 1)
+
+            if time_int_value < 0 or time_int_value > 24 * 60 * 60 - 1:
+                return (None, InvalidAttribute(self, ['Number must be a valid datetime']))
+            hour = int(time_int_value / (60. * 60.))
+            minutes = int((time_int_value - hour * 60. * 60.) / 60.)
+            seconds = int(time_int_value % 60)
+            time_value = time(hour, minutes, seconds)
+
+            return (datetime.combine(date_value, time_value), None)
+        except ValueError:
+            pass
+
+        return (None, 'Value must be an instance of `datetime`')
+
+    def validate(self, obj, value):
+        """ Determine if `value` is a valid value of the attribute
+
+        Args:
+            obj (:obj:`Model`): object being validated
+            value (:obj:`datetime`): value of attribute to validate
+
+        Returns:
+            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+        """
+        errors = super(DateTimeAttribute, self).validate(obj, value)
+        if errors:
+            errors = errors.messages
+        else:
+            errors = []
+
+        if value is None:
+            if not self.is_none:
+                errors.append('Value cannot be `None`')
+        elif isinstance(value, datetime):
+            if value.year < 1900 or value.year > 10000:
+                errors.append('Year must be between 1900 and 9999')
+            if value.microsecond != 0:
+                errors.append('Microsecond must be 0')
+        else:
+            errors.append('Value must be an instance of `date`')
+
+        if errors:
+            return InvalidAttribute(self, errors)
+        return None
+
+    def serialize(self, value):
+        """ Serialize string
+
+        Args:
+            value (:obj:`datetime`): Python representation
+
+        Returns:
+            :obj:`float`: simple Python representation
+        """
+        date_value = value.date()
+        time_value = value.time()
+
+        return date_value.toordinal() - date(1900, 1, 1).toordinal() + 1 \
+            + (time_value.hour * 60. * 60. + time_value.minute * 60. + time_value.second) / (24. * 60. * 60.)
 
 
 class RelatedAttribute(Attribute):

@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from datetime import date, time, datetime
 from enum import Enum
 from itertools import chain
 from wc_utils.schema import core
@@ -81,6 +82,18 @@ class UniqueRoot(Root):
 
     class Meta(core.Model.Meta):
         pass
+
+
+class DateRoot(core.Model):
+    date = core.DateAttribute(is_none=True)
+    time = core.TimeAttribute(is_none=True)
+    datetime = core.DateTimeAttribute(is_none=True)
+
+
+class NotNoneDateRoot(core.Model):
+    date = core.DateAttribute(is_none=False)
+    time = core.TimeAttribute(is_none=False)
+    datetime = core.DateTimeAttribute(is_none=False)
 
 
 class OneToOneRoot(core.Model):
@@ -454,6 +467,168 @@ class TestCore(unittest.TestCase):
         leaf.enum2 = 3
         leaf.clean()
         self.assertIn('enum2', [x.attribute.name for x in leaf.validate().attributes])
+
+    def test_validate_date_attribute(self):
+        root = DateRoot()
+
+        # positive examples
+        root.date = date(2000, 10, 1)
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.date = '1900-1-1'
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.date = 1
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.date = 1.
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        # negative examples
+        root.date = date(1, 10, 1)
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.date = datetime(1, 10, 1, 1, 0, 0, 0)
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.date = '1900-1-1 1:00:00.00'
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.date = 0
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.date = 1.5
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        # Not none
+        root = NotNoneDateRoot()
+        root.date = date(1900, 1, 1)
+        root.time = time(0, 0, 0, 0)
+        root.datetime = datetime(1900, 1, 1, 0, 0, 0, 0)
+
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.date = None
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+    def test_time_attribute(self):
+        root = DateRoot()
+
+        # positive examples
+        root.time = time(1, 0, 0, 0)
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.time = '1:1'
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.time = '1:1:1'
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.time = 0.25
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        # negative examples
+        root.time = time(1, 0, 0, 1)
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.time = '1:1:1.01'
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.time = '1900-01-01 1:1:1.01'
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.time = -0.25
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.time = 1.25
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        # Not none
+        root = NotNoneDateRoot()
+        root.date = date(1900, 1, 1)
+        root.time = time(0, 0, 0, 0)
+        root.datetime = datetime(1900, 1, 1, 0, 0, 0, 0)
+
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.time = None
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+    def test_datetime_attribute(self):
+        root = DateRoot()
+
+        # positive examples
+        root.datetime = None
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.datetime = datetime(2000, 10, 1, 0, 0, 1, 0)
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.datetime = date(2000, 10, 1)
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.datetime = '2000-10-01'
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.datetime = '2000-10-01 1:00:00'
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.datetime = 10.25
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        # negative examples
+        root.datetime = datetime(2000, 10, 1, 0, 0, 1, 1)
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.datetime = '2000-10-01 1:00:00.01'
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        root.datetime = -1.5
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
+
+        # Not none
+        root = NotNoneDateRoot()
+        root.date = date(1900, 1, 1)
+        root.time = time(0, 0, 0, 0)
+        root.datetime = datetime(1900, 1, 1, 0, 0, 0, 0)
+
+        root.clean()
+        self.assertEqual(root.validate(), None)
+
+        root.datetime = None
+        root.clean()
+        self.assertNotEqual(root.validate(), None)
 
     def test_validate_onetoone_attribute(self):
         root = OneToOneRoot(id='root')

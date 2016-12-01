@@ -15,6 +15,7 @@ from openpyxl.utils import get_column_letter
 from wc_utils.util.list import transpose
 from wc_utils.schema import utils
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, clean_objects, clean_and_validate_objects, TabularOrientation
+from six import string_types
 
 
 class ExcelIo(object):
@@ -166,7 +167,7 @@ class ExcelIo(object):
             for i_col, value in enumerate(data_row):
                 cell = ws.cell(row=1 + len(column_headings) + i_row, column=1 + len(row_headings) + i_col)
 
-                if isinstance(value, str):
+                if isinstance(value, string_types):
                     data_type = Cell.TYPE_STRING
                 elif isinstance(value, bool):
                     data_type = Cell.TYPE_BOOL

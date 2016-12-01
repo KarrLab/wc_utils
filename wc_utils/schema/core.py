@@ -13,7 +13,7 @@ from enum import Enum
 from itertools import chain
 from math import floor, isnan
 from natsort import natsort_keygen, ns
-from six import with_metaclass
+from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
 from wc_utils.util.types import get_subclasses, get_superclasses
 import dateutil.parser
@@ -98,7 +98,7 @@ class ModelMeta(type):
             if isinstance(attr, RelatedAttribute):
 
                 # deserialize related class references by class name
-                if isinstance(attr.related_class, str):
+                if isinstance(attr.related_class, string_types):
                     related_class_name = attr.related_class
                     if '.' not in related_class_name:
                         related_class_name = cls.__module__ + '.' + related_class_name
@@ -527,7 +527,7 @@ class Attribute(object):
         rep_vals = set()
 
         for val in values:
-            if self.unique_case_insensitive and isinstance(val, str):
+            if self.unique_case_insensitive and isinstance(val, string_types):
                 val = val.lower()
             if val in unq_vals:
                 rep_vals.add(val)
@@ -602,13 +602,13 @@ class EnumAttribute(Attribute):
         """
         error = None
 
-        if isinstance(value, str):
+        if isinstance(value, string_types):
             if value in self.enum_class.__members__:
                 value = self.enum_class[value]
             else:
                 error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
 
-        elif isinstance(value, (int, float)):
+        elif isinstance(value, (integer_types, float)):
             try:
                 value = self.enum_class(value)
             except ValueError:
@@ -688,7 +688,7 @@ class BooleanAttribute(Attribute):
             :obj:`tuple` of `bool`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
         errors = []
-        if isinstance(value, str):
+        if isinstance(value, string_types):
             if value == '':
                 value = None
             elif value in ['true', 'True', 'TRUE', '1']:
@@ -790,7 +790,7 @@ class FloatAttribute(Attribute):
         Returns:
             :obj:`tuple` of `float`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
-        if value is None or (isinstance(value, str) and value == ''):
+        if value is None or (isinstance(value, string_types) and value == ''):
             value = float('nan')
 
         try:
@@ -894,7 +894,7 @@ class IntegerAttribute(Attribute):
             :obj:`tuple` of `int`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
 
-        if value is None or (isinstance(value, str) and value == ''):
+        if value is None or (isinstance(value, string_types) and value == ''):
             return (value, None, )
 
         try:
@@ -920,7 +920,7 @@ class IntegerAttribute(Attribute):
         else:
             errors = []
 
-        if isinstance(value, int):
+        if isinstance(value, integer_types):
             if self.min is not None:
                 if value is None:
                     errors.append('Value cannot be None')
@@ -1019,11 +1019,11 @@ class StringAttribute(Attribute):
             unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
         """
 
-        if not isinstance(min_length, int) or min_length < 0:
+        if not isinstance(min_length, integer_types) or min_length < 0:
             raise ValueError('min_length must be a non-negative integer')
-        if (max_length is not None) and (not isinstance(max_length, int) or max_length < 0):
+        if (max_length is not None) and (not isinstance(max_length, integer_types) or max_length < 0):
             raise ValueError('max_length must be None or a non-negative integer')
-        if not isinstance(default, str):
+        if not isinstance(default, string_types):
             raise ValueError('Default must be a string')
 
         super(StringAttribute, self).__init__(default=default,
@@ -1044,7 +1044,7 @@ class StringAttribute(Attribute):
         """
         if value is None:
             value = ''
-        elif not isinstance(value, str):
+        elif not isinstance(value, string_types):
             value = str(value)
         return (value, None)
 
@@ -1064,7 +1064,7 @@ class StringAttribute(Attribute):
         else:
             errors = []
 
-        if not isinstance(value, str):
+        if not isinstance(value, string_types):
             errors.append('Value must be an instance of `str`')
         else:
             if self.min_length and len(value) < self.min_length:
@@ -1250,7 +1250,7 @@ class DateAttribute(Attribute):
             else:
                 return (None, InvalidAttribute(self, ['Time must be 0:0:0.0']))
 
-        if isinstance(value, str):
+        if isinstance(value, string_types):
             try:
                 datetime_value = dateutil.parser.parse(value)
                 if datetime_value.hour == 0 and datetime_value.minute == 0 and datetime_value.second == 0 and datetime_value.microsecond == 0:
@@ -1349,7 +1349,7 @@ class TimeAttribute(Attribute):
         if isinstance(value, time):
             return (value, None)
 
-        if isinstance(value, str):
+        if isinstance(value, string_types):
             if re.match('^\d{1,2}:\d{1,2}(:\d{1,2})*$', value):
                 try:
                     datetime_value = dateutil.parser.parse(value)
@@ -1455,7 +1455,7 @@ class DateTimeAttribute(Attribute):
         if isinstance(value, date):
             return (datetime.combine(value, time(0, 0, 0, 0)), None)
 
-        if isinstance(value, str):
+        if isinstance(value, string_types):
             try:
                 return (dateutil.parser.parse(value), None)
             except ValueError:

@@ -74,6 +74,7 @@ class ConfigManager(object):
 
         Raises:
             :obj:`InvalidConfigError`: if configuration doesn't validate against schema
+            :obj:`ValueError`: if no configuration is found
         """
 
         # read configuration schema/specification
@@ -98,6 +99,11 @@ class ConfigManager(object):
         if extra is None:
             extra = {}
         config.merge(extra)
+
+        # ensure that a configuration is found
+        if not config:
+            raise ValueError("no config found in envt. variables or {}, {}, or {}".format(
+                self.paths.default, self.paths.user, extra))
 
         # validate configuration against schema
         validator = Validator()

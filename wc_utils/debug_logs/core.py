@@ -68,6 +68,7 @@ class DebugLogsManager(object):
                 raise ValueError("No log initialized.")
 
         if name not in logs:
-            raise ValueError("log named '{}' not found.".format(name))
+            raise ValueError("log named '{}' not found in logs '{}'.".format(name,
+                list(logs.keys())))
 
         return logs[name]

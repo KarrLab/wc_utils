@@ -10,9 +10,11 @@ from collections import OrderedDict
 from glob import glob
 from math import isnan
 from openpyxl import Workbook as XlsWorkbook, load_workbook
+from openpyxl.cell.cell import Cell as CellType
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
 import pyexcel
+import six
 
 
 def read_excel(filename):
@@ -77,7 +79,25 @@ def write_excel(workbook, filename, style=None):
         for i_row, row in enumerate(worksheet.rows):
             for i_col, cell in enumerate(row.cells):
                 xls_cell = xls_worksheet.cell(row=i_row + 1, column=i_col + 1)
-                xls_cell.value = cell.value
+
+                value = cell.value
+                if value is None:
+                    pass
+                elif isinstance(value, six.string_types):
+                    data_type = CellType.TYPE_STRING
+                elif isinstance(value, bool):
+                    data_type = CellType.TYPE_BOOL
+                elif isinstance(value, six.integer_types):
+                    value = float(value)
+                    data_type = CellType.TYPE_NUMERIC
+                elif isinstance(value, float):
+                    data_type = CellType.TYPE_NUMERIC
+                else:
+                    raise ValueError('Unsupported type {}'.format(value.__class__.__name__))
+
+                if value is not None:
+                    xls_cell.set_explicit_value(value=value, data_type=data_type)
+
                 xls_cell.alignment = alignment
 
                 if i_row < frozen_rows:
@@ -121,6 +141,13 @@ def read_separated_values(filename_pattern):
             row = Row()
             worksheet.rows.append(row)
             for sv_cell in sv_row:
+                if sv_cell == '':
+                    sv_cell = None
+                elif sv_cell == 'True':
+                    sv_cell = True
+                elif sv_cell == 'False':
+                    sv_cell = False
+
                 row.cells.append(Cell(sv_cell))
 
     return workbook

@@ -10,6 +10,7 @@ from os import path
 from wc_utils.excel import core
 from wc_utils.util.types import assert_value_equal
 import shutil
+import six
 import tempfile
 import unittest
 
@@ -21,10 +22,10 @@ class TestExcel(unittest.TestCase):
         wk = self.wk = core.Workbook()
 
         ws0 = wk.worksheets['Ws-0'] = core.Worksheet()
-        ws0.rows.append(core.Row([core.Cell('Id'), core.Cell('Val-1'), core.Cell('Val-2')]))
-        ws0.rows.append(core.Row([core.Cell('a0\taa0\naaa0'), core.Cell(1), core.Cell(2.)]))
-        ws0.rows.append(core.Row([core.Cell('b0'), core.Cell(3), core.Cell(4.)]))
-        ws0.rows.append(core.Row([core.Cell('c0'), core.Cell(5), core.Cell(6.)]))
+        ws0.rows.append(core.Row([core.Cell('Id'), core.Cell('Val-1'), core.Cell('Val-2'), core.Cell('Val-3')]))
+        ws0.rows.append(core.Row([core.Cell('a0\taa0\naaa0'), core.Cell(1), core.Cell(2.), core.Cell(True)]))
+        ws0.rows.append(core.Row([core.Cell(u'b0\x80'), core.Cell(3), core.Cell(4.), core.Cell(False)]))
+        ws0.rows.append(core.Row([core.Cell('c0'), core.Cell(5), core.Cell(6.), core.Cell(None)]))
 
         ws1 = wk.worksheets['Ws-1'] = core.Worksheet()
         ws1.rows.append(core.Row([core.Cell('Id'), core.Cell('Val-1'), core.Cell('Val-2')]))
@@ -62,6 +63,14 @@ class TestExcel(unittest.TestCase):
         wk = core.read_excel(filename)
 
         # assert content is the same
+        ws = wk.worksheets['Ws-0']
+        self.assertIsInstance(ws.rows[1].cells[0].value, six.string_types)
+        self.assertIsInstance(ws.rows[1].cells[1].value, six.integer_types)
+        self.assertIsInstance(ws.rows[1].cells[2].value, six.integer_types)
+        self.assertIsInstance(ws.rows[1].cells[3].value, bool)
+        self.assertEqual(ws.rows[2].cells[0].value, u'b0\x80')
+        self.assertEqual(ws.rows[3].cells[3].value, None)
+
         assert_value_equal(wk, self.wk)
 
     def test_read_write_csv(self):
@@ -76,6 +85,14 @@ class TestExcel(unittest.TestCase):
         wk = core.read_separated_values(filename_pattern)
 
         # assert content is the same
+        ws = wk.worksheets['Ws-0']
+        self.assertIsInstance(ws.rows[1].cells[0].value, six.string_types)
+        self.assertIsInstance(ws.rows[1].cells[1].value, six.integer_types)
+        self.assertIsInstance(ws.rows[1].cells[2].value, float)
+        self.assertIsInstance(ws.rows[1].cells[3].value, bool)
+        self.assertEqual(ws.rows[2].cells[0].value, u'b0\x80')
+        self.assertEqual(ws.rows[3].cells[3].value, None)
+
         assert_value_equal(wk, self.wk)
 
     def test_read_write_tsv(self):
@@ -90,6 +107,14 @@ class TestExcel(unittest.TestCase):
         wk = core.read_separated_values(filename_pattern)
 
         # assert content is the same
+        ws = wk.worksheets['Ws-0']
+        self.assertIsInstance(ws.rows[1].cells[0].value, six.string_types)
+        self.assertIsInstance(ws.rows[1].cells[1].value, six.integer_types)
+        self.assertIsInstance(ws.rows[1].cells[2].value, float)
+        self.assertIsInstance(ws.rows[1].cells[3].value, bool)
+        self.assertEqual(ws.rows[2].cells[0].value, u'b0\x80')
+        self.assertEqual(ws.rows[3].cells[3].value, None)
+
         assert_value_equal(wk, self.wk)
 
     def test_convert_excel_to_csv(self):

@@ -121,7 +121,7 @@ class ModelMeta(type):
                                 related_class.Meta.primary_attribute.name, related_class.__name__))
 
                         if isinstance(attr, ManyToManyAttribute) and not isinstance(related_class.Meta.primary_attribute, (SlugAttribute, IntegerAttribute)):
-                            raise ValueError('Primary attribute {} of related class {} must be unique'.format(
+                            raise ValueError('Primary attribute {} of related class {} must be a slug or integer attribute'.format(
                                 related_class.Meta.primary_attribute.name, related_class.__name__))
 
                         # check that name doesn't conflict with another attribute
@@ -1762,7 +1762,7 @@ class OneToOneAttribute(RelatedAttribute):
             :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
         if not value:
-            return None
+            return (None, None)
 
         related_objs = []
         related_classes = chain([self.related_class], get_subclasses(self.related_class))
@@ -1932,7 +1932,7 @@ class ManyToOneAttribute(RelatedAttribute):
             :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
         if not value:
-            return None
+            return (None, None)
 
         related_objs = []
         related_classes = chain([self.related_class], get_subclasses(self.related_class))
@@ -2098,7 +2098,7 @@ class ManyToManyAttribute(RelatedAttribute):
             :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
         """
         if not values:
-            return set()
+            return (set(), None)
 
         deserialized_values = set()
         errors = []
@@ -2156,7 +2156,7 @@ class RelatedManager(set):
 
     def clear(self):
         """ Remove all elements from set """
-        for value in self:
+        for value in list(self):
             self.remove(value)
 
     def pop(self):
@@ -2179,7 +2179,7 @@ class RelatedManager(set):
         Args:
             values (:obj:`set`): values to intersect with set
         """
-        for value in self:
+        for value in list(self):
             if value not in values:
                 self.remove(value)
 
@@ -2199,12 +2199,12 @@ class RelatedManager(set):
         Args:
             values (:obj:`set`): values to difference with set
         """
-        for value in self:
+        for value in list(self):
             if value in values:
                 self.remove(value)
                 values.remove(value)
 
-        for value in values:
+        for value in list(values):
             if value in self:
                 self.remove(value)
                 values.remove(value)
@@ -2224,7 +2224,7 @@ class ManyToOneRelatedManager(RelatedManager):
         """
         super(ManyToOneRelatedManager, self).add(value)
         if propagate:
-            setattr(value, attr.name, obj)
+            value.__setattr__(self.attribute.name, self.object)
 
     def remove(self, value, update_set=True, propagate=True):
         """ Remove value from set
@@ -2233,10 +2233,10 @@ class ManyToOneRelatedManager(RelatedManager):
             value (:obj:`object`): value
             propagate (:obj:`bool`, optional): propagate change to related attribute
         """
-        if update_set:
+        if update_set and value in self:
             super(ManyToOneRelatedManager, self).remove(value)
         if propagate:
-            setattr(value, attr.name, None)
+            value.__setattr__(self.attribute.name, None)
 
 
 class ManyToManyRelatedManager(RelatedManager):
@@ -2269,9 +2269,9 @@ class ManyToManyRelatedManager(RelatedManager):
         super(ManyToManyRelatedManager, self).add(value)
         if propagate:
             if self.related:
-                getattr(value, self.attribute.name).add(self.object)
+                getattr(value, self.attribute.name).add(self.object, propagate=False)
             else:
-                getattr(value, self.attribute.related_name).add(self.object)
+                getattr(value, self.attribute.related_name).add(self.object, propagate=False)
 
     def remove(self, value, update_set=True, propagate=True):
         """ Remove value from set
@@ -2285,9 +2285,9 @@ class ManyToManyRelatedManager(RelatedManager):
             super(ManyToManyRelatedManager, self).remove(value)
         if propagate:
             if self.related:
-                getattr(value, self.attribute.name).remove(self.object)
+                getattr(value, self.attribute.name).remove(self.object, propagate=False)
             else:
-                getattr(value, self.attribute.related_name).remove(self.object)
+                getattr(value, self.attribute.related_name).remove(self.object, propagate=False)
 
 
 class InvalidObjectSet(object):

@@ -5,6 +5,7 @@
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
+from six import string_types
 from wc_utils.schema import core, utils
 import sys
 import unittest
@@ -72,4 +73,4 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(errors_by_model[Root]), 1)
         self.assertEqual(len(errors_by_model[Node]), 2)
 
-        self.assertIsInstance(utils.get_object_set_error_string(errors), str)
+        self.assertIsInstance(utils.get_object_set_error_string(errors), string_types)

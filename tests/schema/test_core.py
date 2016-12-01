@@ -104,6 +104,14 @@ class OneToOneLeaf(core.Model):
     root = core.OneToOneAttribute(OneToOneRoot, related_name='leaf')
 
 
+class ManyToOneRoot(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
+
+
+class ManyToOneLeaf(core.Model):
+    root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves')
+
+
 class ManyToManyRoot(core.Model):
     id = core.SlugAttribute(verbose_name='ID')
 
@@ -678,6 +686,128 @@ class TestCore(unittest.TestCase):
         for obj in chain(roots, leaves):
             error = obj.validate()
             self.assertEqual(error, None)
+
+    def test_onetoone_set_related(self):
+        root = OneToOneRoot()
+        leaf = OneToOneLeaf()
+
+        root.leaf = leaf
+        self.assertEqual(leaf.root, root)
+
+        root.leaf = None
+        self.assertEqual(leaf.root, None)
+
+        leaf.root = root
+        self.assertEqual(root.leaf, leaf)
+
+        leaf.root = None
+        self.assertEqual(root.leaf, None)
+
+    def test_manytoone_set_related(self):
+        roots = [
+            ManyToOneRoot(),
+            ManyToOneRoot(),
+        ]
+        leaves = [
+            ManyToOneLeaf(),
+            ManyToOneLeaf(),
+        ]
+
+        leaves[0].root = roots[0]
+        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+
+        leaves[1].root = roots[0]
+        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+
+        leaves[0].root = None
+        self.assertEqual(roots[0].leaves, set(leaves[1:2]))
+
+        roots[0].leaves = set()
+        self.assertEqual(roots[0].leaves, set())
+        self.assertEqual(leaves[1].root, None)
+
+        roots[0].leaves.add(leaves[0])
+        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+        self.assertEqual(leaves[0].root, roots[0])
+
+        roots[0].leaves.update(leaves[1:2])
+        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+        self.assertEqual(leaves[1].root, roots[0])
+
+        roots[0].leaves.remove(leaves[0])
+        self.assertEqual(roots[0].leaves, set(leaves[1:2]))
+        self.assertEqual(leaves[0].root, None)
+
+        roots[0].leaves = set()
+        leaves[0].root = roots[0]
+        leaves[0].root = roots[1]
+        self.assertEqual(roots[0].leaves, set())
+        self.assertEqual(roots[1].leaves, set(leaves[0:1]))
+
+        roots[0].leaves = leaves[0:1]
+        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+        self.assertEqual(roots[1].leaves, set())
+        self.assertEqual(leaves[0].root, roots[0])
+
+        roots[1].leaves = leaves[0:2]
+        self.assertEqual(roots[0].leaves, set())
+        self.assertEqual(roots[1].leaves, set(leaves[0:2]))
+        self.assertEqual(leaves[0].root, roots[1])
+        self.assertEqual(leaves[1].root, roots[1])
+
+    def test_manytomany_set_related(self):
+        roots = [
+            ManyToManyRoot(),
+            ManyToManyRoot(),
+        ]
+        leaves = [
+            ManyToManyLeaf(),
+            ManyToManyLeaf(),
+        ]
+
+        roots[0].leaves.add(leaves[0])
+        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+
+        roots[0].leaves.remove(leaves[0])
+        self.assertEqual(leaves[0].roots, set())
+
+        roots[0].leaves.add(leaves[0])
+        roots[1].leaves.add(leaves[0])
+        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+
+        roots[0].leaves.clear()
+        roots[1].leaves.clear()
+        self.assertEqual(leaves[0].roots, set())
+        self.assertEqual(leaves[1].roots, set())
+
+        roots[0].leaves = leaves
+        roots[1].leaves = leaves
+        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+        self.assertEqual(leaves[1].roots, set(roots[0:2]))
+
+        # reverse
+        roots[0].leaves.clear()
+        roots[1].leaves.clear()
+
+        leaves[0].roots.add(roots[0])
+        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+
+        leaves[0].roots.remove(roots[0])
+        self.assertEqual(roots[0].leaves, set())
+
+        leaves[0].roots.add(roots[0])
+        leaves[1].roots.add(roots[0])
+        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+
+        leaves[0].roots.clear()
+        leaves[1].roots.clear()
+        self.assertEqual(roots[0].leaves, set())
+        self.assertEqual(roots[1].leaves, set())
+
+        leaves[0].roots = roots
+        leaves[1].roots = roots
+        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+        self.assertEqual(roots[1].leaves, set(leaves[0:2]))
 
     def test_clean_and_validate_objects(self):
         grandparent = Grandparent(id='root')

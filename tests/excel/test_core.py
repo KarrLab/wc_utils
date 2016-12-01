@@ -24,7 +24,7 @@ class TestExcel(unittest.TestCase):
         ws0 = wk.worksheets['Ws-0'] = core.Worksheet()
         ws0.rows.append(core.Row([core.Cell('Id'), core.Cell('Val-1'), core.Cell('Val-2'), core.Cell('Val-3')]))
         ws0.rows.append(core.Row([core.Cell('a0\taa0\naaa0'), core.Cell(1), core.Cell(2.), core.Cell(True)]))
-        ws0.rows.append(core.Row([core.Cell(u'b0\x80'), core.Cell(3), core.Cell(4.), core.Cell(False)]))
+        ws0.rows.append(core.Row([core.Cell(u'b0\u20ac'), core.Cell(3), core.Cell(4.), core.Cell(False)]))
         ws0.rows.append(core.Row([core.Cell('c0'), core.Cell(5), core.Cell(6.), core.Cell(None)]))
 
         ws1 = wk.worksheets['Ws-1'] = core.Worksheet()
@@ -68,7 +68,7 @@ class TestExcel(unittest.TestCase):
         self.assertIsInstance(ws.rows[1].cells[1].value, six.integer_types)
         self.assertIsInstance(ws.rows[1].cells[2].value, six.integer_types)
         self.assertIsInstance(ws.rows[1].cells[3].value, bool)
-        self.assertEqual(ws.rows[2].cells[0].value, u'b0\x80')
+        self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
         self.assertEqual(ws.rows[3].cells[3].value, None)
 
         assert_value_equal(wk, self.wk)
@@ -90,7 +90,7 @@ class TestExcel(unittest.TestCase):
         self.assertIsInstance(ws.rows[1].cells[1].value, six.integer_types)
         self.assertIsInstance(ws.rows[1].cells[2].value, float)
         self.assertIsInstance(ws.rows[1].cells[3].value, bool)
-        self.assertEqual(ws.rows[2].cells[0].value, u'b0\x80')
+        self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
         self.assertEqual(ws.rows[3].cells[3].value, None)
 
         assert_value_equal(wk, self.wk)
@@ -112,7 +112,7 @@ class TestExcel(unittest.TestCase):
         self.assertIsInstance(ws.rows[1].cells[1].value, six.integer_types)
         self.assertIsInstance(ws.rows[1].cells[2].value, float)
         self.assertIsInstance(ws.rows[1].cells[3].value, bool)
-        self.assertEqual(ws.rows[2].cells[0].value, u'b0\x80')
+        self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
         self.assertEqual(ws.rows[3].cells[3].value, None)
 
         assert_value_equal(wk, self.wk)

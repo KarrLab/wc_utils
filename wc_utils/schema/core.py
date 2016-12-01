@@ -48,6 +48,9 @@ class ModelMeta(type):
                             Meta.attribute_order.append(attr_name)
             Meta.attribute_order = tuple(Meta.attribute_order)
 
+            tabular_orientation = bases[0].Meta.tabular_orientation
+            frozen_columns = bases[0].Meta.frozen_columns
+
         # call super class method
         cls = super(ModelMeta, metacls).__new__(metacls, name, bases, namespace)
 
@@ -179,6 +182,11 @@ class ModelMeta(type):
             cls.Meta.verbose_name_plural = inflect_engine.plural(cls.Meta.verbose_name)
 
 
+class TabularOrientation(Enum):
+    row = 1
+    column = 2
+
+
 class Model(with_metaclass(ModelMeta, object)):
     """ Base object model """
 
@@ -192,6 +200,9 @@ class Model(with_metaclass(ModelMeta, object)):
             attribute_order (:obj:`tuple` of `str`): tuple of attribute names, in the order in which they should be displayed
             verbose_name (:obj:`str`): verbose name to refer to a instance of the model
             verbose_name_plural (:obj:`str`): plural verbose name to refer to instances of the model
+            tabular_orientation (:obj:`TabularOrientation`): orientation of model objects in table (e.g. Excel)
+            frozen_columns (:obj:`int`): number of Excel columns to freeze
+            inheritance (:obj:`tuple` of `class`): tuple of all superclasses
         """
         attributes = None
         related_attributes = None
@@ -199,7 +210,8 @@ class Model(with_metaclass(ModelMeta, object)):
         attribute_order = ()
         verbose_name = ''
         verbose_name_plural = ''
-        num_frozen_columns = 1
+        tabular_orientation = TabularOrientation['row']
+        frozen_columns = 1
         inheritance = None
 
     def __init__(self, **kwargs):

@@ -19,6 +19,7 @@ class Root(core.Model):
 
     class Meta(core.Model.Meta):
         attribute_order = ('id', 'name', )
+        tabular_orientation = core.TabularOrientation['column']
 
 
 class Node(core.Model):

@@ -12,8 +12,9 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from wc_utils.util.list import transpose
 from wc_utils.schema import utils
-from wc_utils.schema.core import Model, Attribute, RelatedAttribute, clean_objects, clean_and_validate_objects
+from wc_utils.schema.core import Model, Attribute, RelatedAttribute, clean_objects, clean_and_validate_objects, TabularOrientation
 
 
 class ExcelIo(object):
@@ -78,39 +79,93 @@ class ExcelIo(object):
             objects (:obj:`set` of `Model`): set of instances of `model`
         """
 
-        # create new worksheet
-        ws = workbook.create_sheet(model.Meta.verbose_name_plural)
+        # attribute order
+        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attribute_order]
 
-        # styling
-        ws.freeze_panes = ws.cell(column=model.Meta.num_frozen_columns + 1, row=2)
+        # column labels
+        headings = [[attr.verbose_name for attr in attributes]]
+
+        # objects
+        objects = list(objects)
+        objects.sort(key=natsort_keygen(key=lambda obj: obj.get_primary_attribute(), alg=ns.IGNORECASE))
+
+        data = []
+        for obj in objects:
+            obj_data = []
+            for attr in attributes:
+                obj_data.append(attr.serialize(getattr(obj, attr.name)))
+            data.append(obj_data)
+
+        # transpose data for column orientation
+        if model.Meta.tabular_orientation == TabularOrientation['row']:
+            cls.write_sheet(workbook,
+                            sheet_name=model.Meta.verbose_name_plural,
+                            data=data,
+                            column_headings=headings,
+                            frozen_rows=1,
+                            frozen_columns=model.Meta.frozen_columns,
+                            )
+        else:
+            cls.write_sheet(workbook,
+                            sheet_name=model.Meta.verbose_name_plural,
+                            data=transpose(data),
+                            row_headings=headings,
+                            frozen_rows=model.Meta.frozen_columns,
+                            frozen_columns=1,
+                            )
+
+    @staticmethod
+    def write_sheet(workbook, sheet_name, data,
+                    row_headings=None, column_headings=None,
+                    frozen_rows=0, frozen_columns=0):
+        """ Write data to sheet
+
+        Args:
+            workbook (:obj:`Workbook`): workbook
+            sheet_name (:obj:`str`): sheet name
+            data (:obj:`list` of `list` of `object`): list of list of cell values
+            row_headings (:obj:`list` of `list` of `str`, optional): list of list of row headings
+            column_headings (:obj:`list` of `list` of `str`, optional): list of list of column headings
+            frozen_rows (:obj:`int`, optional): number of rows to freeze
+            frozen_columns (:obj:`int`, optional): number of columns to freeze
+        """
+        row_headings = row_headings or []
+        column_headings = column_headings or []
+
+        # create sheet
+        ws = workbook.create_sheet(sheet_name)
+
+        # initialize styling
+        ws.freeze_panes = ws.cell(row=frozen_rows + 1, column=frozen_columns + 1)
 
         alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
         fill = PatternFill("solid", fgColor='CCCCCC')
         font = Font(bold=True)
         height = 15
 
-        # attribute order
-        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attribute_order]
+        # row headings
+        for i_col, row_headings_col in enumerate(row_headings):
+            for i_row, heading in enumerate(row_headings_col):
+                cell = ws.cell(row=1 + len(column_headings) + i_row, column=1 + i_col)
+                cell.value = heading
+                cell.alignment = alignment
+                cell.fill = fill
+                cell.font = font
 
-        # column labels
-        for i_attr, attr in enumerate(attributes):
-            cell = ws.cell(row=1, column=1 + i_attr)
-            cell.value = attr.verbose_name
-            cell.alignment = alignment
-            cell.fill = fill
-            cell.font = font
+        # column headings
+        for i_row, column_headings_row in enumerate(column_headings):
+            for i_col, heading in enumerate(column_headings_row):
+                cell = ws.cell(row=1 + i_row, column=1 + len(row_headings) + i_col)
+                cell.value = heading
+                cell.alignment = alignment
+                cell.fill = fill
+                cell.font = font
 
-        ws.row_dimensions[1].height = height
+        # data
+        for i_row, data_row in enumerate(data):
+            for i_col, value in enumerate(data_row):
+                cell = ws.cell(row=1 + len(column_headings) + i_row, column=1 + len(row_headings) + i_col)
 
-        # objects
-        objects = list(objects)
-        objects.sort(key=natsort_keygen(key=lambda obj: obj.get_primary_attribute(), alg=ns.IGNORECASE))
-
-        for i_obj, obj in enumerate(objects):
-            for i_attr, attr in enumerate(attributes):
-                cell = ws.cell(row=2 + i_obj, column=1 + i_attr)
-
-                value = attr.serialize(getattr(obj, attr.name))
                 if isinstance(value, str):
                     data_type = Cell.TYPE_STRING
                 elif isinstance(value, bool):
@@ -118,14 +173,15 @@ class ExcelIo(object):
                 elif isinstance(value, float):
                     data_type = Cell.TYPE_NUMERIC
                 else:
-                    raise ValueError('Cannot save values of type "{}" for {}.{}'.format(
-                        value.__class__.__name__, obj.__class__.__name__, attr.name))
+                    raise ValueError('Cannot save values of type "{}"'.format(value.__class__.__name__))
 
                 if value is not None:
                     cell.set_explicit_value(value=value, data_type=data_type)
                 cell.alignment = alignment
 
-            ws.row_dimensions[2 + i_obj].height = height
+        # row heights
+        for i_row in range(1, ws.max_row + 1):
+            ws.row_dimensions[i_row].height = height
 
     @classmethod
     def read(cls, filename, models):
@@ -203,20 +259,29 @@ class ExcelIo(object):
             return set()
 
         # get workshet
-        ws = workbook[model.Meta.verbose_name_plural]
+        if model.Meta.tabular_orientation == TabularOrientation['row']:
+            data, _, headings = cls.read_sheet(
+                workbook,
+                model.Meta.verbose_name_plural,
+                num_column_heading_rows=1)
+        else:
+            data, headings, _ = cls.read_sheet(
+                workbook,
+                model.Meta.verbose_name_plural,
+                num_row_heading_columns=1)
+            data = transpose(data)
+        headings = headings[0]
 
         # get attributes order
         attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attribute_order]
 
-        # read headers
+        # sort attributes by header order
         attributes = []
         errors = []
-        for i_col in range(1, ws.max_column + 1):
-            verbose_name = ws.cell(row=1, column=i_col).value
+        for verbose_name in headings:
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
             if attr is None:
-                errors.append('Header "{}" at {}1 does not match any attributes'.format(
-                    verbose_name, get_column_letter(i_col)))
+                errors.append('Header "{}" does not match any attributes'.format(verbose_name))
             else:
                 attributes.append(attr)
 
@@ -226,21 +291,19 @@ class ExcelIo(object):
         # read data
         objects = list()
         errors = []
-        for i_row in range(2, ws.max_row + 1):
+        for obj_data in data:
             obj = model()
 
-            for i_attr, attr in enumerate(attributes):
-                cell = ws.cell(row=i_row, column=i_attr + 1)
-
+            for attr, attr_value in zip(attributes, obj_data):
                 if not set_related and not isinstance(attr, RelatedAttribute):
-                    value, error = attr.deserialize(cell.value)
+                    value, error = attr.deserialize(attr_value)
                     if error:
                         errors.append(error)
                     else:
                         setattr(obj, attr.name, value)
 
                 elif set_related and isinstance(attr, RelatedAttribute):
-                    value, error = attr.deserialize(cell.value, all_objects)
+                    value, error = attr.deserialize(attr_value, all_objects)
                     if error:
                         errors.append(error)
                     else:
@@ -249,3 +312,41 @@ class ExcelIo(object):
             objects.append(obj)
 
         return (objects, errors)
+
+    @staticmethod
+    def read_sheet(workbook, sheet_name, num_row_heading_columns=0, num_column_heading_rows=0):
+        """ Read an Excel sheet in to a two-dimensioanl list
+
+        Args:
+            workbook (:obj:`Workbook`): workbook
+            sheet_name (:obj:`str`): worksheet name
+            num_row_heading_columns (:obj:`int`, optional): number of columns of row headings
+            num_column_heading_rows (:obj:`int`, optional): number of rows of column headings
+
+        Returns:
+            :obj:`list` of `list`: two-dimensional list of table values
+        """
+        ws = workbook[sheet_name]
+
+        row_headings = []
+        for i_col in range(1, num_row_heading_columns + 1):
+            row_headings_col = []
+            row_headings.append(row_headings_col)
+            for i_row in range(1 + num_column_heading_rows, ws.max_row + 1):
+                row_headings_col.append(ws.cell(row=i_row, column=i_col).value)
+
+        column_headings = []
+        for i_row in range(1, num_column_heading_rows + 1):
+            column_headings_row = []
+            column_headings.append(column_headings_row)
+            for i_col in range(1 + num_row_heading_columns, ws.max_column + 1):
+                column_headings_row.append(ws.cell(row=i_row, column=i_col).value)
+
+        data = []
+        for i_row in range(1 + num_column_heading_rows, ws.max_row + 1):
+            data_row = []
+            data.append(data_row)
+            for i_col in range(1 + num_row_heading_columns, ws.max_column + 1):
+                data_row.append(ws.cell(row=i_row, column=i_col).value)
+
+        return (data, row_headings, column_headings)

@@ -1214,7 +1214,7 @@ class DateAttribute(Attribute):
         default (:obj:`date`): default date
     """
 
-    def __init__(self, is_none=False, default=None, verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, is_none=True, default=None, verbose_name='', help='', primary=False, unique=False):
         """
         Args:
             is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
@@ -1319,7 +1319,7 @@ class TimeAttribute(Attribute):
         default (:obj:`time`): defaul time
     """
 
-    def __init__(self, is_none=False, default=None, verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, is_none=True, default=None, verbose_name='', help='', primary=False, unique=False):
         """
         Args:
             is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
@@ -1422,7 +1422,7 @@ class DateTimeAttribute(Attribute):
         default (:obj:`datetime`): default datetime
     """
 
-    def __init__(self, is_none=False, default=None, verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, is_none=True, default=None, verbose_name='', help='', primary=False, unique=False):
         """
         Args:
             is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
@@ -1615,7 +1615,7 @@ class OneToOneAttribute(RelatedAttribute):
         is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', is_none=False, verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='', is_none=True, verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class

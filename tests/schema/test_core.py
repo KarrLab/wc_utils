@@ -29,7 +29,7 @@ class Root(core.Model):
 
 class Leaf(core.Model):
     root = core.ManyToOneAttribute(Root, verbose_name='Root',
-                                   related_name='leaves', verbose_related_name='Leaves')
+                                   related_name='leaves', verbose_related_name='Leaves', is_none=False)
     id = core.RegexAttribute(verbose_name='ID', min_length=1, max_length=63,
                              pattern=r'^[a-z][a-z0-9_]*$', flags=re.I, primary=True)
     name = core.StringAttribute(verbose_name='Name', max_length=255)
@@ -66,12 +66,12 @@ class Grandparent(core.Model):
 
 class Parent(core.Model):
     id = core.StringAttribute(max_length=2, primary=True, unique=True)
-    grandparent = core.ManyToOneAttribute(Grandparent, related_name='children')
+    grandparent = core.ManyToOneAttribute(Grandparent, related_name='children', is_none=False)
 
 
 class Child(core.Model):
     id = core.StringAttribute(primary=True)
-    parent = core.ManyToOneAttribute(Parent, related_name='children')
+    parent = core.ManyToOneAttribute(Parent, related_name='children', is_none=False)
 
 
 class UniqueRoot(Root):
@@ -101,7 +101,7 @@ class OneToOneRoot(core.Model):
 
 
 class OneToOneLeaf(core.Model):
-    root = core.OneToOneAttribute(OneToOneRoot, related_name='leaf')
+    root = core.OneToOneAttribute(OneToOneRoot, related_name='leaf', is_none=False)
 
 
 class ManyToOneRoot(core.Model):
@@ -109,7 +109,7 @@ class ManyToOneRoot(core.Model):
 
 
 class ManyToOneLeaf(core.Model):
-    root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves')
+    root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves', is_none=False)
 
 
 class ManyToManyRoot(core.Model):

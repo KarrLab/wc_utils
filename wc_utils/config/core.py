@@ -43,7 +43,7 @@ class ConfigManager(object):
 
     Load configuration information from an ini format file, environment variables, and/or function arguments.
     Validate the configuration against a configuration schema. Return the configuration
-    as a nested dictionary. 
+    as a nested dictionary.
 
     Attributes:
         paths (:obj:`ConfigPaths`): paths to configuration files and schema
@@ -56,7 +56,7 @@ class ConfigManager(object):
         """ Setup configuration from config file(s), environment variables, and/or function arguments.
 
         1. Setup configuration from default values specified in `paths.default`.
-        2. If `paths.user` is set, find the first file in it that exists, and override 
+        2. If `paths.user` is set, find the first file in it that exists, and override
            the default configuration with the values specified in the file.
         3. Override configuration with values from environment variables. Environment variables
            can be set with the following syntax::
@@ -121,7 +121,7 @@ class ConfigManager(object):
 
 
 def any_checker(value):
-    ''' Convert value to its built-in data type if possible 
+    ''' Convert value to its built-in data type if possible
 
     Convert a string value to its built-in data type (integer, float, boolean, str
     or list of these) if possible
@@ -207,7 +207,7 @@ class InvalidConfigError(Exception):
         self.msg = '\n'.join(messages)
 
     def __str__(self):
-        """ Get string representation of error 
+        """ Get string representation of error
 
         Returns:
             :obj:`str`: string representation of error

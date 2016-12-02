@@ -56,7 +56,7 @@ def assert_value_equal(obj1, obj2, check_type=False, check_iterable_ordering=Fal
         obj1 (:obj:`object`): first object
         obj1 (:obj:`object`): second object
         check_type (:obj:`bool`, optional): If true, raise an exception if `obj1` and `obj2` have different types
-        check_iterable_ordering (:obj:`bool`, optional): If true, raise an exception if the objects have different 
+        check_iterable_ordering (:obj:`bool`, optional): If true, raise an exception if the objects have different
             orderings of iterable attributes
 
     Raises:
@@ -145,7 +145,7 @@ def assert_value_not_equal(obj1, obj2, check_type=False, check_iterable_ordering
         obj1 (:obj:`object`): first object
         obj1 (:obj:`object`): second object
         check_type (:obj:`bool`, optional): If true, raise an exception if `obj1` and `obj2` have different types
-        check_iterable_ordering (:obj:`bool`, optional): If true, raise an exception if the objects have different 
+        check_iterable_ordering (:obj:`bool`, optional): If true, raise an exception if the objects have different
             orderings of iterable attributes
 
     Raises:

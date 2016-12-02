@@ -14,7 +14,7 @@ import os
 class EnvironUtils(object):
 
     @staticmethod
-    @contextlib.contextmanager    
+    @contextlib.contextmanager
     def make_temp_environ(**environ):
         """ Temporarily set environment variables.:
 

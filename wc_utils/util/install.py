@@ -14,7 +14,7 @@ import re
 def parse_requirements(req_file_lines):
     ''' Parse requirements.txt file.
 
-    Return lists of package dependencies and dependency links, to be used 
+    Return lists of package dependencies and dependency links, to be used
     as `install_requires`/`tests_require` and `dependency_links`
     by `setuptools.setup`.
 

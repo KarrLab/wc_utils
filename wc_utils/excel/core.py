@@ -180,7 +180,7 @@ def convert_excel_to_separated_values(filename_excel, filename_pattern_separated
 
     Args:
         filename_pattern_separated_values (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
-        filename_excel (:obj:`str`): path to Excel file    
+        filename_excel (:obj:`str`): path to Excel file
     """
     workbook = read_excel(filename_excel)
     write_separated_values(workbook, filename_pattern_separated_values)

@@ -11,7 +11,7 @@ def transpose(lst):
     """ Swaps the first two dimensions of a two (or more) dimensional list
 
     Args:
-        lst (:obj:`list` of `list`): two-dimensional list 
+        lst (:obj:`list` of `list`): two-dimensional list
 
     Returns:
         :obj:`list` of `list`: two-dimensional list

@@ -28,7 +28,7 @@ class CheckForEnum34Test(unittest.TestCase):
     def test_enum34(self):
         self.assertFalse( isinstance(LogLevel.DEBUG, int), msg="Install enum34 for enum compatibility "
             "in Python < 3.4")
- 
+
 
 class DefaultDebugLogsTest(unittest.TestCase):
 

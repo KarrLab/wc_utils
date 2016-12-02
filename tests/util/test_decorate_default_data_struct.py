@@ -26,10 +26,10 @@ class TestDefaultMutableParams(unittest.TestCase):
         FUNC_DICT_VAL = '{1: 2}'
         D_DICT = "'d_dict'"
         # This table provides the correct value for d_dict in auto_test(), given all 8
-        # combinations of the values in the decorator, d_dict's default value, and 
+        # combinations of the values in the decorator, d_dict's default value, and
         # d_dict's value in the call to auto_test()
-    
-        #         VV d_dict in decorator, 
+
+        #         VV d_dict in decorator,
         #                     VV d_dict default in auto_test
         #                                   VV d_dict in call to auto_test,
         #                                                   VV CORRECT d_dict in auto_test
@@ -70,17 +70,17 @@ x.auto_test( %s )
         for mutable_param_in_decorator in ['', D_DICT]:
             for param_default in [NEW_DICT, 'None']:
                 for param_passed_to_func in ['', OPTI_FUNC_DICT]:
-                
+
                     test_tuple = (mutable_param_in_decorator, param_default, param_passed_to_func)
                     correct_value = correct_values_in_auto_test[ test_tuple ]
 
-                    code_instance = test_code % test_tuple 
+                    code_instance = test_code % test_tuple
                     with CaptureOutput() as capturer:
                         exec(code_instance)
                         out = capturer.get_text()
                     self.assertEquals( out, correct_value )
 
-                    class_instance = test_class % test_tuple 
+                    class_instance = test_class % test_tuple
                     with CaptureOutput() as capturer:
                         exec(code_instance)
                         out = capturer.get_text()

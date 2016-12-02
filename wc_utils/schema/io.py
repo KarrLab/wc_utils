@@ -229,7 +229,7 @@ class ExcelIo(object):
 
         # convert to sets
         for model in models:
-            objects[model] = set(objects[model])
+            objects[model] = set(objects[model].values())
 
         # validate
         all_objects = set()
@@ -254,7 +254,7 @@ class ExcelIo(object):
             set_related (:obj:`bool`, optional): if true, set values of `RelatedAttribute`
 
         Returns:
-            :obj:`tuple` of `list` of `Model`, `list` of `str`: tuple of a list of objects and 
+            :obj:`tuple` of `dict` of `object` => `Model`, `list` of `str`: tuple of a list of objects and 
                 a list of parsing errors
         """
         if model.Meta.verbose_name_plural not in workbook:
@@ -291,7 +291,7 @@ class ExcelIo(object):
             return (None, errors)
 
         # read data
-        objects = list()
+        objects = {}
         errors = []
         for obj_data in data:
             obj = model()
@@ -311,7 +311,7 @@ class ExcelIo(object):
                     else:
                         setattr(obj, attr.name, value)
 
-            objects.append(obj)
+            objects[obj.get_primary_attribute()] = obj
 
         return (objects, errors)
 

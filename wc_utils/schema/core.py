@@ -1829,11 +1829,8 @@ class OneToOneAttribute(RelatedAttribute):
         related_objs = []
         related_classes = chain([self.related_class], get_subclasses(self.related_class))
         for related_class in related_classes:
-            if issubclass(related_class, Model):
-                primary_attr = self.related_class.Meta.primary_attribute
-                for obj in objects[related_class]:
-                    if primary_attr.serialize(getattr(obj, primary_attr.name)) == value:
-                        related_objs.append(obj)
+            if issubclass(related_class, Model) and value in objects[related_class]:
+                related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
             return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
@@ -1851,7 +1848,8 @@ class ManyToOneAttribute(RelatedAttribute):
         is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', is_none=False, verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='', is_none=False,
+                 verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
@@ -1999,11 +1997,8 @@ class ManyToOneAttribute(RelatedAttribute):
         related_objs = []
         related_classes = chain([self.related_class], get_subclasses(self.related_class))
         for related_class in related_classes:
-            if issubclass(related_class, Model):
-                primary_attr = self.related_class.Meta.primary_attribute
-                for obj in objects[related_class]:
-                    if primary_attr.serialize(getattr(obj, primary_attr.name)) == value:
-                        related_objs.append(obj)
+            if issubclass(related_class, Model) and value in objects[related_class]:
+                related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
             return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
@@ -2170,11 +2165,8 @@ class ManyToManyAttribute(RelatedAttribute):
             related_objs = []
             related_classes = chain([self.related_class], get_subclasses(self.related_class))
             for related_class in related_classes:
-                if issubclass(related_class, Model):
-                    primary_attr = self.related_class.Meta.primary_attribute
-                    for obj in objects[related_class]:
-                        if primary_attr.serialize(getattr(obj, primary_attr.name)) == value:
-                            related_objs.append(obj)
+                if issubclass(related_class, Model) and value in objects[related_class]:
+                    related_objs.append(objects[related_class][value])
 
             if len(related_objs) == 1:
                 deserialized_values.add(related_objs[0])

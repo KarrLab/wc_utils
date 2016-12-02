@@ -457,7 +457,7 @@ class Model(with_metaclass(ModelMeta, object)):
             objects (:obj:`set` of `Model`): set of objects
 
         Returns:
-            :obj:`InvalidModel`: list of invalid attributes and their errors
+            :obj:`InvalidModel` or `None`: list of invalid attributes and their errors
         """
         errors = []
 
@@ -558,7 +558,7 @@ class Attribute(object):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         return (value, None)
 
@@ -617,7 +617,7 @@ class Attribute(object):
             value (:obj:`object`): semantically equivalent representation
 
         Returns:
-            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         return self.clean(value)
 
@@ -659,7 +659,7 @@ class EnumAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `Enum`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `Enum`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         error = None
 
@@ -746,7 +746,7 @@ class BooleanAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `bool`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `bool`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         errors = []
         if isinstance(value, string_types):
@@ -849,7 +849,7 @@ class FloatAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `float`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `float`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if value is None or (isinstance(value, string_types) and value == ''):
             value = float('nan')
@@ -952,7 +952,7 @@ class IntegerAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `int`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `int`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
 
         if value is None or (isinstance(value, string_types) and value == ''):
@@ -1101,7 +1101,7 @@ class StringAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `str`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `str`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if value is None:
             value = ''
@@ -1297,7 +1297,7 @@ class DateAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `date`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `date`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if value is None:
             return (value, None)
@@ -1402,7 +1402,7 @@ class TimeAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `time`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `time`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if value is None:
             return (value, None)
@@ -1505,7 +1505,7 @@ class DateTimeAttribute(Attribute):
             value (:obj:`object`): value of attribute to clean
 
         Returns:
-            :obj:`tuple` of `datetime`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `datetime`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if value is None:
             return (value, None)
@@ -1664,7 +1664,7 @@ class RelatedAttribute(Attribute):
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
-            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         return (value, None)
 
@@ -1820,7 +1820,7 @@ class OneToOneAttribute(RelatedAttribute):
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
-            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if not value:
             return (None, None)
@@ -1990,7 +1990,7 @@ class ManyToOneAttribute(RelatedAttribute):
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
-            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if not value:
             return (None, None)
@@ -2156,7 +2156,7 @@ class ManyToManyAttribute(RelatedAttribute):
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
-            :obj:`tuple` of `object`, `InvalidAttribute`: tuple of cleaned value and cleaning error
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if not values:
             return (set(), None)
@@ -2449,7 +2449,7 @@ class Validator(object):
             object (:obj:`list` of `Model`): list of objects
 
         Returns:
-            :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+            :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors
         """
         error = self.clean(objects)
         if error:
@@ -2463,7 +2463,7 @@ class Validator(object):
             object (:obj:`list` of `Model`): list of objects
 
         Returns:
-            :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+            :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors
         """
 
         object_errors = []
@@ -2484,7 +2484,7 @@ class Validator(object):
             object (:obj:`list` of `Model`): list of objects
 
         Returns:
-            :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+            :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors
         """
 
         # validate individual objects

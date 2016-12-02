@@ -254,12 +254,13 @@ class ExcelIo(object):
             set_related (:obj:`bool`, optional): if true, set values of `RelatedAttribute`
 
         Returns:
-            :obj:`set` of `Model`: set of objects
+            :obj:`tuple` of `list` of `Model`, `list` of `str`: tuple of a list of objects and 
+                a list of parsing errors
         """
         if model.Meta.verbose_name_plural not in workbook:
-            return set()
+            return ([], None)
 
-        # get workshet
+        # get worksheet
         if model.Meta.tabular_orientation == TabularOrientation['row']:
             data, _, headings = cls.read_sheet(
                 workbook,

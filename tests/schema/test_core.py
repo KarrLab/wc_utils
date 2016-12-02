@@ -48,7 +48,7 @@ class UnrootedLeaf(Leaf):
                               pattern=r'^[a-z][a-z0-9_]*$', flags=re.I)
     name2 = core.StringAttribute(verbose_name='Name', min_length=2, max_length=3)
     float2 = core.FloatAttribute(verbose_name='Float', min=2., max=3.)
-    float3 = core.FloatAttribute(verbose_name='Float', min=2.)
+    float3 = core.FloatAttribute(verbose_name='Float', min=2., nan=False)
     enum2 = core.EnumAttribute(Order, verbose_name='Enum')
     enum3 = core.EnumAttribute(Order, verbose_name='Enum', default=Order['leaf'])
     multi_word_name = core.StringAttribute()
@@ -389,7 +389,7 @@ class TestCore(unittest.TestCase):
 
         leaf.float2 = float('nan')
         leaf.clean()
-        self.assertIn('float2', [x.attribute.name for x in leaf.validate().attributes])
+        self.assertNotIn('float2', [x.attribute.name for x in leaf.validate().attributes])
 
         # max=nan
         leaf.float3 = 2.5

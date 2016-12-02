@@ -815,14 +815,17 @@ class FloatAttribute(Attribute):
         default (:obj:`float`): default value
         min (:obj:`float`): minimum value
         max (:obj:`float`): maximum value
+        nan (:obj:`bool`): if true, allow nan values
     """
 
-    def __init__(self, min=float('nan'), max=float('nan'), default=float('nan'), verbose_name='', help='',
+    def __init__(self, min=float('nan'), max=float('nan'), nan=True,
+                 default=float('nan'), verbose_name='', help='',
                  primary=False, unique=False):
         """
         Args:
             min (:obj:`float`, optional): minimum value
             max (:obj:`float`, optional): maximum value
+            nan (:obj:`bool`, optional): if true, allow nan values
             default (:obj:`float`, optional): default value
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
@@ -841,6 +844,7 @@ class FloatAttribute(Attribute):
 
         self.min = min
         self.max = max
+        self.nan = nan
 
     def clean(self, value):
         """ Convert attribute value into the appropriate type
@@ -877,17 +881,14 @@ class FloatAttribute(Attribute):
             errors = []
 
         if isinstance(value, float):
-            if not isnan(self.min):
-                if isnan(value):
-                    errors.append('Value cannot be nan')
-                elif value < self.min:
-                    errors.append('Value must be at least {:f}'.format(self.min))
+            if not self.nan and isnan(value):
+                errors.append('Value cannot be nan')
 
-            if not isnan(self.max):
-                if isnan(value):
-                    errors.append('Value cannot be nan')
-                elif value > self.max:
-                    errors.append('Value must be at most {:f}'.format(self.max))
+            if (not isnan(self.min)) and (not isnan(value)) and (value < self.min):
+                errors.append('Value must be at least {:f}'.format(self.min))
+
+            if (not isnan(self.max)) and (not isnan(value)) and (value > self.max):
+                errors.append('Value must be at most {:f}'.format(self.max))
         else:
             errors.append('Value must be an instance of `float`')
 

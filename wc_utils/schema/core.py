@@ -48,8 +48,9 @@ class ModelMeta(type):
                             Meta.attribute_order.append(attr_name)
             Meta.attribute_order = tuple(Meta.attribute_order)
 
-            tabular_orientation = bases[0].Meta.tabular_orientation
-            frozen_columns = bases[0].Meta.frozen_columns
+            Meta.unique_together = deepcopy(bases[0].Meta.unique_together)
+            Meta.tabular_orientation = bases[0].Meta.tabular_orientation
+            Meta.frozen_columns = bases[0].Meta.frozen_columns
 
         # call super class method
         cls = super(ModelMeta, metacls).__new__(metacls, name, bases, namespace)
@@ -68,6 +69,8 @@ class ModelMeta(type):
         metacls.init_attribute_order(cls)
 
         metacls.init_verbose_names(cls)
+
+        metacls.validate_attributes(cls)
 
         # Return new class
         return cls
@@ -181,6 +184,41 @@ class ModelMeta(type):
             inflect_engine = inflect.engine()
             cls.Meta.verbose_name_plural = inflect_engine.plural(cls.Meta.verbose_name)
 
+    def validate_attributes(cls):
+        """ Validate attribute values """
+
+        # `attribute_order` is a tuple of attribute names
+        if not isinstance(cls.Meta.attribute_order, tuple):
+            raise ValueError('`attribute_order` must be a tuple of attribute names')
+
+        for attr_name in cls.Meta.attribute_order:
+            if not isinstance(attr_name, str):
+                raise ValueError('`attribute_order` must be a tuple of attribute names')
+
+            if attr_name not in cls.Meta.attributes:
+                raise ValueError('`attribute_order` must be a tuple of attribute names')
+
+        # `unique_together` is a tuple of tuple of attribute names
+        if not isinstance(cls.Meta.unique_together, tuple):
+            raise ValueError('`unique_together` must be a tuple of tuple of attribute names')
+
+        for unique_together in cls.Meta.unique_together:
+            if not isinstance(unique_together, tuple):
+                raise ValueError('`unique_together` must be a tuple of tuple of attribute names')
+
+            for attr_name in unique_together:
+                if not isinstance(attr_name, str):
+                    raise ValueError('`unique_together` must be a tuple of tuple of attribute names')
+
+                if attr_name not in cls.Meta.attributes:
+                    raise ValueError('`unique_together` must be a tuple of tuple of attribute names')
+
+            if len(set(unique_together)) < len(unique_together):
+                raise ValueError('`unique_together` cannot contain repeated attribute names with each tuple')
+
+        if len(set(cls.Meta.unique_together)) < len(cls.Meta.unique_together):
+            raise ValueError('`unique_together` cannot contain repeated tuples')
+
 
 class TabularOrientation(Enum):
     row = 1
@@ -207,6 +245,7 @@ class Model(with_metaclass(ModelMeta, object)):
         attributes = None
         related_attributes = None
         primary_attribute = None
+        unique_together = ()
         attribute_order = ()
         verbose_name = ''
         verbose_name_plural = ''
@@ -421,6 +460,8 @@ class Model(with_metaclass(ModelMeta, object)):
             :obj:`InvalidModel`: list of invalid attributes and their errors
         """
         errors = []
+
+        # validate uniqueness of individual attributes
         for attr_name, attr in cls.Meta.attributes.items():
             if attr.unique:
                 vals = []
@@ -431,6 +472,26 @@ class Model(with_metaclass(ModelMeta, object)):
                 if error:
                     errors.append(error)
 
+        # validate uniqueness of combinations of attributes
+        for unique_together in cls.Meta.unique_together:
+            vals = set()
+            rep_vals = set()
+            for obj in objects:
+                val = tuple([getattr(obj, attr_name) for attr_name in unique_together])
+                if val in vals:
+                    rep_vals.add(val)
+                else:
+                    vals.add(val)
+
+            if rep_vals:
+                msg = 'Combinations of ({}) must be unique. The following combinations are repeated:'.format(
+                    ', '.join(unique_together))
+                for rep_val in rep_vals:
+                    msg += '\n- {}'.format(', '.join(rep_val))
+                attr = cls.Meta.attributes[list(unique_together)[0]]
+                errors.append(InvalidAttribute(attr, [msg]))
+
+        # return
         if errors:
             return InvalidModel(cls, errors)
         return None
@@ -1172,7 +1233,7 @@ class RegexAttribute(StringAttribute):
 class SlugAttribute(RegexAttribute):
     """ Slug attribute to be used for string IDs """
 
-    def __init__(self, verbose_name='', help=None, primary=True):
+    def __init__(self, verbose_name='', help=None, primary=True, unique=True):
         """
         Args:
             verbose_name (:obj:`str`, optional): verbose name
@@ -1185,7 +1246,7 @@ class SlugAttribute(RegexAttribute):
         super(SlugAttribute, self).__init__(pattern=r'^[a-z_][a-z0-9_]*$', flags=re.I,
                                             min_length=1, max_length=63,
                                             default='', verbose_name=verbose_name, help=help,
-                                            primary=primary, unique=True)
+                                            primary=primary, unique=unique)
 
 
 class UrlAttribute(RegexAttribute):

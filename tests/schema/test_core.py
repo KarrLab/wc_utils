@@ -120,6 +120,15 @@ class ManyToManyLeaf(core.Model):
     roots = core.ManyToManyAttribute(ManyToManyRoot, related_name='leaves')
 
 
+class UniqueTogetherRoot(core.Model):
+    val0 = core.StringAttribute(unique=True)
+    val1 = core.StringAttribute(unique=False)
+    val2 = core.StringAttribute(unique=False)
+
+    class Meta(core.Model.Meta):
+        unique_together = (('val1', 'val2'),)
+
+
 class TestCore(unittest.TestCase):
 
     def test_get_model(self):
@@ -681,7 +690,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(roots[2].leaves, set(leaves[1:3]))
         self.assertEqual(roots[3].leaves, set((leaves[2],)))
 
-        #self.assertRaises(Exception, lambda: leaves[0].roots.add(roots[2]))
+        # self.assertRaises(Exception, lambda: leaves[0].roots.add(roots[2]))
 
         for obj in chain(roots, leaves):
             error = obj.validate()
@@ -875,3 +884,28 @@ class TestCore(unittest.TestCase):
         self.assertEqual(leaf.root, root)
         self.assertEqual(unrooted_leaf.root, root)
         self.assertEqual(root.leaves, set((leaf, unrooted_leaf, )))
+
+    def test_unique(self):
+        roots = [
+            UniqueTogetherRoot(val0='a', val1='a', val2='a'),
+            UniqueTogetherRoot(val0='b', val1='b', val2='a'),
+            UniqueTogetherRoot(val0='c', val1='c', val2='a'),
+        ]
+        self.assertEqual(UniqueTogetherRoot.validate_unique(roots), None)
+
+        roots = [
+            UniqueTogetherRoot(val0='a', val1='a', val2='a'),
+            UniqueTogetherRoot(val0='a', val1='b', val2='a'),
+            UniqueTogetherRoot(val0='a', val1='c', val2='a'),
+        ]
+        errors = set([x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes])
+        self.assertEqual(errors, set(('val0',)))
+
+        roots = [
+            UniqueTogetherRoot(val0='a', val1='a', val2='a'),
+            UniqueTogetherRoot(val0='b', val1='a', val2='a'),
+            UniqueTogetherRoot(val0='c', val1='c', val2='a'),
+        ]
+        errors = set([x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes])
+        self.assertNotIn('val0', errors)
+        self.assertEqual(len(errors), 1)

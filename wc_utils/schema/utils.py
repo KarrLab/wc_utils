@@ -8,7 +8,7 @@
 
 # todo: add method to compare (difference) models
 from __future__ import unicode_literals
-from wc_utils.schema.core import Model, Attribute, RelatedAttribute, InvalidObjectSet, InvalidObject, clean_and_validate_objects
+from wc_utils.schema.core import Model, Attribute, RelatedAttribute, InvalidObjectSet, InvalidObject, Validator
 
 
 def get_attribute_by_verbose_name(cls, verbose_name):
@@ -57,7 +57,7 @@ def get_related_errors(object):
         :obj:`InvalidObjectSet`: set of errors
     """
     objects = set((object,)) | object.get_related()
-    return clean_and_validate_objects(objects)
+    return Validator().run(objects)
 
 
 def group_object_set_errors_by_model(errors):

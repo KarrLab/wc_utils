@@ -14,7 +14,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from wc_utils.util.list import transpose
 from wc_utils.schema import utils
-from wc_utils.schema.core import Model, Attribute, RelatedAttribute, clean_objects, clean_and_validate_objects, TabularOrientation
+from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation
 from six import string_types
 
 
@@ -39,7 +39,7 @@ class ExcelIo(object):
 
         # clean objects
         all_objects = objects | more_objects
-        error = clean_objects(all_objects)
+        error = Validator().clean(all_objects)
         if error:
             raise(error)
 
@@ -236,7 +236,7 @@ class ExcelIo(object):
         for model in models:
             all_objects.update(objects[model])
 
-        errors = clean_and_validate_objects(all_objects)
+        errors = Validator().run(all_objects)
         if errors:
             ValueError(utils.get_object_set_error_string(errors))
 

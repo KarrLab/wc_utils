@@ -818,14 +818,14 @@ class TestCore(unittest.TestCase):
         self.assertEqual(roots[0].leaves, set(leaves[0:2]))
         self.assertEqual(roots[1].leaves, set(leaves[0:2]))
 
-    def test_clean_and_validate_objects(self):
+    def test_validator(self):
         grandparent = Grandparent(id='root')
         parents = [
             Parent(grandparent=grandparent, id='node-0'),
             Parent(grandparent=grandparent),
         ]
 
-        errors = core.clean_and_validate_objects(parents)
+        errors = core.Validator().run(parents)
         self.assertEqual(len(errors.objects), 1)
         self.assertEqual(errors.objects[0].object, parents[0])
         self.assertEqual(len(errors.objects[0].attributes), 1)
@@ -836,7 +836,7 @@ class TestCore(unittest.TestCase):
             Root(label='root-1'),
             Root(label='root-2'),
         ]
-        errors = core.clean_and_validate_objects(roots)
+        errors = core.Validator().run(roots)
         self.assertEqual(errors, None)
 
         roots = [
@@ -844,7 +844,7 @@ class TestCore(unittest.TestCase):
             UniqueRoot(label='root_0', url='http://www.test.com'),
             UniqueRoot(label='root_0', url='http://www.test.com'),
         ]
-        errors = core.clean_and_validate_objects(roots)
+        errors = core.Validator().run(roots)
 
         self.assertEqual(len(errors.objects), 0)
         self.assertEqual(set([model.model for model in errors.models]), set((Root, UniqueRoot)))

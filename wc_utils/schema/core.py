@@ -424,7 +424,7 @@ class Model(with_metaclass(ModelMeta, object)):
         return None
 
     def validate(self):
-        """ Determine if all of the object's attributes are valid
+        """ Determine if the object is valid
 
         Returns:
             :obj:`InvalidObject` or None: `None` if the object is valid,
@@ -2439,77 +2439,78 @@ def get_model(name):
     return None
 
 
-def clean_objects(objects):
-    """ Clean a list of objects and return their errors
+class Validator(object):
+    """ Engine to validate sets of objects """
 
-    Args:
-        object (:obj:`list` of `Model`): list of objects
+    def run(self, objects):
+        """ Validate a list of objects and return their errors
 
-    Returns:
-        :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
-    """
+        Args:
+            object (:obj:`list` of `Model`): list of objects
 
-    object_errors = []
-    for obj in objects:
-        error = obj.clean()
+        Returns:
+            :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+        """
+        error = self.clean(objects)
         if error:
-            object_errors.append(error)
+            return error
+        return self.validate(objects)
 
-    if object_errors:
-        return InvalidObjectSet(object_errors, None)
+    def clean(self, objects):
+        """ Clean a list of objects and return their errors
 
-    return None
+        Args:
+            object (:obj:`list` of `Model`): list of objects
 
+        Returns:
+            :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+        """
 
-def validate_objects(objects):
-    """ Validate a list of objects and return their errors
+        object_errors = []
+        for obj in objects:
+            error = obj.clean()
+            if error:
+                object_errors.append(error)
 
-    Args:
-        object (:obj:`list` of `Model`): list of objects
+        if object_errors:
+            return InvalidObjectSet(object_errors, None)
 
-    Returns:
-        :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
-    """
+        return None
 
-    # validate individual objects
-    object_errors = []
-    for obj in objects:
-        error = obj.validate()
-        if error:
-            object_errors.append(error)
+    def validate(self, objects):
+        """ Validate a list of objects and return their errors
 
-    # group objects by class
-    objects_by_class = {}
-    for obj in objects:
-        for cls in obj.__class__.Meta.inheritance:
-            if cls not in objects_by_class:
-                objects_by_class[cls] = []
-            objects_by_class[cls].append(obj)
+        Args:
+            object (:obj:`list` of `Model`): list of objects
 
-    # validate collections of objects of each Model type
-    model_errors = []
-    for cls, cls_objects in objects_by_class.items():
-        error = cls.validate_unique(cls_objects)
-        if error:
-            model_errors.append(error)
+        Returns:
+            :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
+        """
 
-    # return errors
-    if object_errors or model_errors:
-        return InvalidObjectSet(object_errors, model_errors)
+        # validate individual objects
+        object_errors = []
+        for obj in objects:
+            error = obj.validate()
+            if error:
+                object_errors.append(error)
 
-    return None
+        # group objects by class
+        objects_by_class = {}
+        for obj in objects:
+            for cls in obj.__class__.Meta.inheritance:
+                if cls not in objects_by_class:
+                    objects_by_class[cls] = []
+                objects_by_class[cls].append(obj)
 
+        # validate collections of objects of each Model type
+        model_errors = []
+        for cls, cls_objects in objects_by_class.items():
+            error = cls.validate_unique(cls_objects)
+            if error:
+                model_errors.append(error)
 
-def clean_and_validate_objects(objects):
-    """ Validate a list of objects and return their errors
+        # return errors
+        if object_errors or model_errors:
+            return InvalidObjectSet(object_errors, model_errors)
 
-    Args:
-        object (:obj:`list` of `Model`): list of objects
-
-    Returns:
-        :obj:`InvalidObjectSet`: list of invalid objects/models and their errors
-    """
-    error = clean_objects(objects)
-    if error:
-        return error
-    return validate_objects(objects)
+        return None

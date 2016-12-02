@@ -1063,7 +1063,7 @@ class StringAttribute(Attribute):
     Attributes:
         default (:obj:`str`, optional): default value
         min_length (:obj:`int`): minimum length
-        max_length (:obj:`int`): maximum length        
+        max_length (:obj:`int`): maximum length
     """
 
     def __init__(self, min_length=0, max_length=255, default='', verbose_name='', help='',
@@ -1268,7 +1268,7 @@ class UrlAttribute(RegexAttribute):
 
 
 class DateAttribute(Attribute):
-    """ Date attribute 
+    """ Date attribute
 
     Attributes:
         is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
@@ -1373,7 +1373,7 @@ class DateAttribute(Attribute):
 
 
 class TimeAttribute(Attribute):
-    """ Time attribute 
+    """ Time attribute
 
     Attributes:
         is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
@@ -1476,7 +1476,7 @@ class TimeAttribute(Attribute):
 
 
 class DateTimeAttribute(Attribute):
-    """ Datetime attribute 
+    """ Datetime attribute
 
     Attributes:
         is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
@@ -2197,7 +2197,7 @@ class RelatedManager(set):
     """
 
     def __init__(self, object, attribute):
-        """ 
+        """
         Args:
             object (:obj:`Model`): model instance
             attribute (:obj:`Attribute`): attribute
@@ -2207,7 +2207,7 @@ class RelatedManager(set):
         self.attribute = attribute
 
     def discard(self, value):
-        """ Remove value from set if value in set 
+        """ Remove value from set if value in set
 
         Args:
             value (:obj:`object`): value
@@ -2277,7 +2277,7 @@ class ManyToOneRelatedManager(RelatedManager):
     """ Represent values of related attributes """
 
     def add(self, value, propagate=True):
-        """ Add value to set 
+        """ Add value to set
 
         Args:
             value (:obj:`object`): value
@@ -2318,7 +2318,7 @@ class ManyToManyRelatedManager(RelatedManager):
         self.related = related
 
     def add(self, value, propagate=True):
-        """ Add value to set 
+        """ Add value to set
 
         Args:
             value (:obj:`object`): value

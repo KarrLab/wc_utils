@@ -29,7 +29,7 @@ class Root(core.Model):
 
 class Leaf(core.Model):
     root = core.ManyToOneAttribute(Root, verbose_name='Root',
-                                   related_name='leaves', verbose_related_name='Leaves', is_none=False)
+                                   related_name='leaves', verbose_related_name='Leaves', none=False)
     id = core.RegexAttribute(verbose_name='ID', min_length=1, max_length=63,
                              pattern=r'^[a-z][a-z0-9_]*$', flags=re.I, primary=True)
     name = core.StringAttribute(verbose_name='Name', max_length=255)
@@ -43,7 +43,7 @@ class Leaf(core.Model):
 class UnrootedLeaf(Leaf):
     name = core.StringAttribute(verbose_name='Name', max_length=10)
 
-    root2 = core.ManyToOneAttribute(Root, is_none=True, verbose_name='Root', related_name='leaves2')
+    root2 = core.ManyToOneAttribute(Root, none=True, verbose_name='Root', related_name='leaves2')
     id2 = core.RegexAttribute(verbose_name='ID', min_length=1, max_length=63,
                               pattern=r'^[a-z][a-z0-9_]*$', flags=re.I)
     name2 = core.StringAttribute(verbose_name='Name', min_length=2, max_length=3)
@@ -66,12 +66,12 @@ class Grandparent(core.Model):
 
 class Parent(core.Model):
     id = core.StringAttribute(max_length=2, primary=True, unique=True)
-    grandparent = core.ManyToOneAttribute(Grandparent, related_name='children', is_none=False)
+    grandparent = core.ManyToOneAttribute(Grandparent, related_name='children', none=False)
 
 
 class Child(core.Model):
     id = core.StringAttribute(primary=True)
-    parent = core.ManyToOneAttribute(Parent, related_name='children', is_none=False)
+    parent = core.ManyToOneAttribute(Parent, related_name='children', none=False)
 
 
 class UniqueRoot(Root):
@@ -85,15 +85,15 @@ class UniqueRoot(Root):
 
 
 class DateRoot(core.Model):
-    date = core.DateAttribute(is_none=True)
-    time = core.TimeAttribute(is_none=True)
-    datetime = core.DateTimeAttribute(is_none=True)
+    date = core.DateAttribute(none=True)
+    time = core.TimeAttribute(none=True)
+    datetime = core.DateTimeAttribute(none=True)
 
 
 class NotNoneDateRoot(core.Model):
-    date = core.DateAttribute(is_none=False)
-    time = core.TimeAttribute(is_none=False)
-    datetime = core.DateTimeAttribute(is_none=False)
+    date = core.DateAttribute(none=False)
+    time = core.TimeAttribute(none=False)
+    datetime = core.DateTimeAttribute(none=False)
 
 
 class OneToOneRoot(core.Model):
@@ -101,7 +101,7 @@ class OneToOneRoot(core.Model):
 
 
 class OneToOneLeaf(core.Model):
-    root = core.OneToOneAttribute(OneToOneRoot, related_name='leaf', is_none=False)
+    root = core.OneToOneAttribute(OneToOneRoot, related_name='leaf', none=False)
 
 
 class ManyToOneRoot(core.Model):
@@ -110,7 +110,7 @@ class ManyToOneRoot(core.Model):
 
 class ManyToOneLeaf(core.Model):
     id = core.SlugAttribute(verbose_name='ID')
-    root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves', is_none=False)
+    root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves', none=False)
 
 
 class OneToManyRoot(core.Model):
@@ -119,7 +119,7 @@ class OneToManyRoot(core.Model):
 
 class OneToManyLeaf(core.Model):
     id = core.SlugAttribute(verbose_name='ID')
-    roots = core.OneToManyAttribute(OneToManyRoot, related_name='leaf', is_none=False)
+    roots = core.OneToManyAttribute(OneToManyRoot, related_name='leaf', related_none=False)
 
 
 class ManyToManyRoot(core.Model):
@@ -668,7 +668,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(leaf.validate(), None)
 
     def test_validate_manytoone_attribute(self):
-        # is_none=False
+        # none=False
         leaf = Leaf()
         self.assertIn('root', [x.attribute.name for x in leaf.validate().attributes])
 
@@ -679,7 +679,7 @@ class TestCore(unittest.TestCase):
         leaf.root = Root()
         self.assertNotIn('root', [x.attribute.name for x in leaf.validate().attributes])
 
-        # is_none=True
+        # none=True
         unrooted_leaf = UnrootedLeaf()
         self.assertNotIn('root2', [x.attribute.name for x in unrooted_leaf.validate().attributes])
 

@@ -111,7 +111,7 @@ class ModelMeta(type):
                         attr.related_class = related_class
 
                 # setup related attributes on related classes
-                if attr.name in cls.__dict__ and attr.related_name and issubclass(attr.related_class, Model):
+                if attr.name in cls.__dict__ and attr.related_name and isinstance(attr.related_class, type) and issubclass(attr.related_class, Model):
                     related_classes = chain([attr.related_class], get_subclasses(attr.related_class))
                     for related_class in related_classes:
                         # check that related class has primary attributes
@@ -224,10 +224,33 @@ class ModelMeta(type):
         if len(set(cls.Meta.unique_together)) < len(cls.Meta.unique_together):
             raise ValueError('`unique_together` cannot contain repeated tuples')
 
+        # tabular orientation
+        if cls.Meta.tabular_orientation == TabularOrientation['inline']:
+            if len(cls.Meta.related_attributes) == 1:
+                attr = cls.Meta.related_attributes.values()[0]
+
+                if not isinstance(attr, (OneToOneAttribute, OneToManyAttribute)):
+                    raise ValueError(
+                        'Inline models must have a single required related one-to-one or one-to-many attribute')
+
+                if not attr.related_none:
+                    raise ValueError(
+                        'Inline models must have a single required related one-to-one or one-to-many attribute')
+
+                if attr in [OneToManyAttribute, OneToManyAttribute]:
+                    raise ValueError('Inline models must define their own serialization/deserialization methods')
+
+                if 'serialize' not in attr.__class__.__dict__ or 'deserialize' not in attr.__class__.__dict__:
+                    raise ValueError('Inline models must define their own serialization/deserialization methods')
+
+            else:
+                raise ValueError('Inline models must have a single required related one-to-one or one-to-many attribute')
+
 
 class TabularOrientation(Enum):
     row = 1
     column = 2
+    inline = 3
 
 
 class Model(with_metaclass(ModelMeta, object)):
@@ -1277,14 +1300,14 @@ class DateAttribute(Attribute):
     """ Date attribute
 
     Attributes:
-        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        none (:obj:`bool`): if true, the attribute is invalid if its value is None
         default (:obj:`date`): default date
     """
 
-    def __init__(self, is_none=True, default=None, verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, none=True, default=None, verbose_name='', help='', primary=False, unique=False):
         """
         Args:
-            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
             default (:obj:`date`, optional): default date
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
@@ -1294,7 +1317,7 @@ class DateAttribute(Attribute):
         super(DateAttribute, self).__init__(default=default,
                                             verbose_name=verbose_name, help=help,
                                             primary=primary, unique=unique)
-        self.is_none = is_none
+        self.none = none
 
     def clean(self, value):
         """ Convert attribute value into the appropriate type
@@ -1354,7 +1377,7 @@ class DateAttribute(Attribute):
             errors = []
 
         if value is None:
-            if not self.is_none:
+            if not self.none:
                 errors.append('Value cannot be `None`')
         elif isinstance(value, date):
             if value.year < 1900 or value.year > 10000:
@@ -1382,14 +1405,14 @@ class TimeAttribute(Attribute):
     """ Time attribute
 
     Attributes:
-        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        none (:obj:`bool`): if true, the attribute is invalid if its value is None
         default (:obj:`time`): defaul time
     """
 
-    def __init__(self, is_none=True, default=None, verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, none=True, default=None, verbose_name='', help='', primary=False, unique=False):
         """
         Args:
-            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
             default (:obj:`time`, optional): default time
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
@@ -1399,7 +1422,7 @@ class TimeAttribute(Attribute):
         super(TimeAttribute, self).__init__(default=default,
                                             verbose_name=verbose_name, help=help,
                                             primary=primary, unique=unique)
-        self.is_none = is_none
+        self.none = none
 
     def clean(self, value):
         """ Convert attribute value into the appropriate type
@@ -1457,7 +1480,7 @@ class TimeAttribute(Attribute):
             errors = []
 
         if value is None:
-            if not self.is_none:
+            if not self.none:
                 errors.append('Value cannot be `None`')
         elif isinstance(value, time):
             if value.microsecond != 0:
@@ -1485,14 +1508,14 @@ class DateTimeAttribute(Attribute):
     """ Datetime attribute
 
     Attributes:
-        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        none (:obj:`bool`): if true, the attribute is invalid if its value is None
         default (:obj:`datetime`): default datetime
     """
 
-    def __init__(self, is_none=True, default=None, verbose_name='', help='', primary=False, unique=False):
+    def __init__(self, none=True, default=None, verbose_name='', help='', primary=False, unique=False):
         """
         Args:
-            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
             default (:obj:`datetime`, optional): default datetime
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
@@ -1502,7 +1525,7 @@ class DateTimeAttribute(Attribute):
         super(DateTimeAttribute, self).__init__(default=default,
                                                 verbose_name=verbose_name, help=help,
                                                 primary=primary, unique=unique)
-        self.is_none = is_none
+        self.none = none
 
     def clean(self, value):
         """ Convert attribute value into the appropriate type
@@ -1565,7 +1588,7 @@ class DateTimeAttribute(Attribute):
             errors = []
 
         if value is None:
-            if not self.is_none:
+            if not self.none:
                 errors.append('Value cannot be `None`')
         elif isinstance(value, datetime):
             if value.year < 1900 or value.year > 10000:
@@ -1683,22 +1706,25 @@ class OneToOneAttribute(RelatedAttribute):
     """ Represents a one-to-one relationship between two types of objects.
 
     Attributes:
-        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        related_none (:obj:`bool`): if true, the related attribute is invalid if its value is `None`
     """
 
-    def __init__(self, related_class, related_name='', is_none=True, verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='', none=True, related_none=True, verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
-            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            none (:obj:`bool`, optional): if true, the attribute is invalid if its value is `None`
+            related_none (:obj:`bool`, optional): if true, the related attribute is invalid if its value is `None`
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
         """
         super(OneToOneAttribute, self).__init__(related_class, related_name=related_name,
                                                 verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
-        self.is_none = is_none
+        self.none = none
+        self.related_none = related_none
         self.related_default = None
 
     def set_value(self, obj, new_value):
@@ -1772,7 +1798,7 @@ class OneToOneAttribute(RelatedAttribute):
             errors = []
 
         if value is None:
-            if not self.is_none:
+            if not self.none:
                 errors.append('Value cannot be `None`')
         elif not isinstance(value, self.related_class):
             errors.append('Value must be an instance of "{:s}" or `None`'.format(self.related_class.__name__))
@@ -1854,23 +1880,23 @@ class ManyToOneAttribute(RelatedAttribute):
     """ Represents a many-to-one relationship between two types of objects. This is analagous to a foreign key relationship in a database.
 
     Attributes:
-        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        none (:obj:`bool`): if true, the attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', is_none=False,
+    def __init__(self, related_class, related_name='', none=True,
                  verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
-            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
         """
         super(ManyToOneAttribute, self).__init__(related_class, related_name=related_name,
                                                  verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
-        self.is_none = is_none
+        self.none = none
         self.related_default = ManyToOneRelatedManager
 
     def get_init_related_value(self, obj):
@@ -1946,7 +1972,7 @@ class ManyToOneAttribute(RelatedAttribute):
             errors = []
 
         if value is None:
-            if not self.is_none:
+            if not self.none:
                 errors.append('Value cannot be `None`')
         elif not isinstance(value, self.related_class):
             errors.append('Value must be an instance of "{:s}" or `None`'.format(self.related_class.__name__))
@@ -2035,23 +2061,23 @@ class OneToManyAttribute(RelatedAttribute):
     """ Represents a one-to-many relationship between two types of objects. This is analagous to a foreign key relationship in a database.
 
     Attributes:
-        is_none (:obj:`bool`): if true, the attribute is invalid if its value is None
+        related_none (:obj:`bool`): if true, the related attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', is_none=False,
+    def __init__(self, related_class, related_name='', related_none=True,
                  verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
-            is_none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
+            related_none (:obj:`bool`, optional): if true, the related attribute is invalid if its value is None
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
         """
         super(OneToManyAttribute, self).__init__(related_class, related_name=related_name,
                                                  verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
-        self.is_none = is_none
+        self.related_none = related_none
         self.default = OneToManyRelatedManager
 
     def get_init_value(self, obj):
@@ -2154,7 +2180,7 @@ class OneToManyAttribute(RelatedAttribute):
 
         if self.related_name:
             if value is None:
-                if not self.is_none:
+                if not self.related_none:
                     errors.append('Value cannot be `None`')
             elif not isinstance(value, self.primary_class):
                 errors.append('Value must be an instance of "{:s}" or `None`'.format(self.primary_class.__name__))

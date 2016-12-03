@@ -61,10 +61,14 @@ class ExcelIo(object):
         unordered_models.sort(key=natsort_keygen(key=lambda model: model.Meta.verbose_name_plural, alg=ns.IGNORECASE))
 
         for model in chain(model_order, unordered_models):
+            if model.Meta.tabular_orientation == TabularOrientation['inline']:
+                continue
+
             if model in grouped_objects:
                 objects = grouped_objects[model]
             else:
                 objects = set()
+
             cls.write_model(workbook, model, objects)
 
         # save workbook

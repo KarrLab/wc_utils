@@ -32,14 +32,47 @@ class Node(core.Model):
         attribute_order = ('id', 'root', 'val1', 'val2', )
 
 
+class OneToManyRowAttribute(core.OneToManyAttribute):
+    pass
+
+
+class OneToManyInlineAttribute(core.OneToManyAttribute):
+
+    def serialize(self, value):
+        return ', '.join([obj.id for obj in value])
+
+    def deserialize(self, value, objects):
+        if value:
+            return (set((OneToManyInline(x) for x in value.split(', '))), None)
+        else:
+            return (set(), None)
+
+
 class Leaf(core.Model):
     id = core.StringAttribute(primary=True)
     nodes = core.ManyToManyAttribute(Node, related_name='leaves')
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()
+    onetomany_rows = OneToManyRowAttribute('OneToManyRow', related_name='leaf')
+    onetomany_inlines = OneToManyInlineAttribute('OneToManyInline', related_name='leaf')
 
     class Meta(core.Model.Meta):
-        attribute_order = ('id', 'nodes', 'val1', 'val2', )
+        attribute_order = ('id', 'nodes', 'val1', 'val2', 'onetomany_rows', 'onetomany_inlines')
+
+
+class OneToManyRow(core.Model):
+    id = core.SlugAttribute(primary=True)
+
+    class Meta(core.Model.Meta):
+        attribute_order = ('id',)
+
+
+class OneToManyInline(core.Model):
+    id = core.SlugAttribute(primary=True)
+
+    class Meta(core.Model.Meta):
+        attribute_order = ('id',)
+        tabular_orientation = core.TabularOrientation['inline']
 
 
 class TestIo(unittest.TestCase):
@@ -66,6 +99,10 @@ class TestIo(unittest.TestCase):
             Leaf(nodes=[nodes[2]], id='leaf-2-0', val1=15, val2=16),
             Leaf(nodes=[nodes[2]], id='leaf-2-1', val1=17, val2=18),
         ]
+        leaves[0].onetomany_rows = [OneToManyRow(id='row_0_0'), OneToManyRow(id='row_0_1')]
+        leaves[1].onetomany_rows = [OneToManyRow(id='row_1_0'), OneToManyRow(id='row_1_1')]
+        leaves[2].onetomany_inlines = [OneToManyInline(id='inline_2_0'), OneToManyInline(id='inline_2_1')]
+        leaves[3].onetomany_inlines = [OneToManyInline(id='inline_3_0'), OneToManyInline(id='inline_3_1')]
 
         objects = set((root, )) | root.get_related()
         objects = utils.group_objects_by_model(objects)

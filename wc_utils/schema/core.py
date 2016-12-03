@@ -115,22 +115,17 @@ class ModelMeta(type):
                     related_classes = chain([attr.related_class], get_subclasses(attr.related_class))
                     for related_class in related_classes:
                         # check that related class has primary attributes
-                        if not related_class.Meta.primary_attribute:
+
+                        if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)) and \
+                                attr.__class__ is not OneToManyAttribute and attr.__class__ is not ManyToManyAttribute and \
+                                'serialize' in attr.__class__.__dict__ and 'deserialize' in attr.__class__.__dict__:
+                            pass
+                        elif not related_class.Meta.primary_attribute:
                             raise ValueError('Related class {} must have a primary attribute'.format(
                                 related_class.__name__))
-
-                        if not related_class.Meta.primary_attribute.unique:
+                        elif not related_class.Meta.primary_attribute.unique:
                             raise ValueError('Primary attribute {} of related class {} must be unique'.format(
                                 related_class.Meta.primary_attribute.name, related_class.__name__))
-
-                        if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
-                            if not isinstance(related_class.Meta.primary_attribute, (SlugAttribute, IntegerAttribute)):
-                                if attr.__class__ is OneToManyAttribute or attr.__class__ is ManyToManyAttribute:
-                                    raise ValueError('Primary attribute {} of related class {} must be a slug or integer attribute'.format(
-                                        related_class.Meta.primary_attribute.name, related_class.__name__))
-                                elif 'serialize' not in attr.__class__.__dict__ or 'deserialize' not in attr.__class__.__dict__:
-                                    raise ValueError('Primary attribute {} of related class {} must be a slug or integer attribute'.format(
-                                        related_class.Meta.primary_attribute.name, related_class.__name__))
 
                         # check that name doesn't conflict with another attribute
                         if attr.related_name in related_class.Meta.attributes:

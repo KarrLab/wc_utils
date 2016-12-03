@@ -113,6 +113,15 @@ class ManyToOneLeaf(core.Model):
     root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves', is_none=False)
 
 
+class OneToManyRoot(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
+
+
+class OneToManyLeaf(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
+    roots = core.OneToManyAttribute(OneToManyRoot, related_name='leaf', is_none=False)
+
+
 class ManyToManyRoot(core.Model):
     id = core.SlugAttribute(verbose_name='ID')
 
@@ -674,6 +683,16 @@ class TestCore(unittest.TestCase):
         unrooted_leaf = UnrootedLeaf()
         self.assertNotIn('root2', [x.attribute.name for x in unrooted_leaf.validate().attributes])
 
+    def test_validate_onetomany_attribute(self):
+        root = OneToManyRoot()
+        leaf = OneToManyLeaf()
+        self.assertNotIn('roots', [x.attribute.name for x in leaf.validate().attributes])
+
+        root.leaf = leaf
+        self.assertEqual(leaf.roots, set((root, )))
+        self.assertNotIn('leaf', [x.attribute.name for x in root.validate().attributes])
+        self.assertNotIn('roots', [x.attribute.name for x in leaf.validate().attributes])
+
     def test_validate_manytomany_attribute(self):
         roots = [
             ManyToManyRoot(id='root_0'),
@@ -766,6 +785,58 @@ class TestCore(unittest.TestCase):
         self.assertEqual(leaves[0].root, roots[1])
         self.assertEqual(leaves[1].root, roots[1])
 
+    def test_onetomany_set_related(self):
+        roots = [
+            OneToManyRoot(),
+            OneToManyRoot(),
+        ]
+        leaves = [
+            OneToManyLeaf(),
+            OneToManyLeaf(),
+        ]
+
+        roots[0].leaf = leaves[0]
+        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+
+        roots[1].leaf = leaves[0]
+        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+
+        roots[0].leaf = None
+        self.assertEqual(leaves[0].roots, set(roots[1:2]))
+
+        leaves[0].roots = set()
+        self.assertEqual(leaves[0].roots, set())
+        self.assertEqual(roots[1].leaf, None)
+
+        leaves[0].roots.add(roots[0])
+        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+        self.assertEqual(roots[0].leaf, leaves[0])
+
+        leaves[0].roots.update(roots[1:2])
+        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+        self.assertEqual(roots[1].leaf, leaves[0])
+
+        leaves[0].roots.remove(roots[0])
+        self.assertEqual(leaves[0].roots, set(roots[1:2]))
+        self.assertEqual(roots[0].leaf, None)
+
+        leaves[0].roots = set()
+        roots[0].leaf = leaves[0]
+        roots[0].leaf = leaves[1]
+        self.assertEqual(leaves[0].roots, set())
+        self.assertEqual(leaves[1].roots, set(roots[0:1]))
+
+        leaves[0].roots = roots[0:1]
+        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+        self.assertEqual(leaves[1].roots, set())
+        self.assertEqual(roots[0].leaf, leaves[0])
+
+        leaves[1].roots = roots[0:2]
+        self.assertEqual(leaves[0].roots, set())
+        self.assertEqual(leaves[1].roots, set(roots[0:2]))
+        self.assertEqual(roots[0].leaf, leaves[1])
+        self.assertEqual(roots[1].leaf, leaves[1])
+
     def test_manytomany_set_related(self):
         roots = [
             ManyToManyRoot(),
@@ -827,6 +898,12 @@ class TestCore(unittest.TestCase):
         self.assertEqual(root.leaves, set((leaf,)))
         self.assertEqual(leaf.root, root)
 
+        # one to many
+        leaf = OneToManyLeaf()
+        root = leaf.roots.create(id='root')
+        self.assertEqual(leaf.roots, set((root,)))
+        self.assertEqual(root.leaf, leaf)
+
         # many to many
         root_0 = ManyToManyRoot(id='root_0')
 
@@ -856,6 +933,24 @@ class TestCore(unittest.TestCase):
         self.assertEqual(root.leaves.get(id='leaf_0'), leaves[0])
         self.assertRaises(ValueError, lambda: root.leaves.get(id='leaf_1'))
         self.assertEqual(root.leaves.get(id='leaf_2'), leaves[3])
+
+        # one to many
+        leaf = OneToManyLeaf()
+        roots = [
+            OneToManyRoot(id='root_0'),
+            OneToManyRoot(id='root_1'),
+            OneToManyRoot(id='root_1'),
+            OneToManyRoot(id='root_2'),
+        ]
+        leaf.roots = roots
+
+        self.assertEqual(leaf.roots.filter(id='root_0'), set(roots[0:1]))
+        self.assertEqual(leaf.roots.filter(id='root_1'), set(roots[1:3]))
+        self.assertEqual(leaf.roots.filter(id='root_2'), set(roots[3:4]))
+
+        self.assertEqual(leaf.roots.get(id='root_0'), roots[0])
+        self.assertRaises(ValueError, lambda: leaf.roots.get(id='root_1'))
+        self.assertEqual(leaf.roots.get(id='root_2'), roots[3])
 
         # many to many
         roots = [

@@ -2351,9 +2351,12 @@ class ManyToOneRelatedManager(RelatedManager):
             value (:obj:`object`): value
             propagate (:obj:`bool`, optional): propagate change to related attribute
         """
+        if value in self:
+            return
+
         super(ManyToOneRelatedManager, self).add(value)
         if propagate:
-            value.__setattr__(self.attribute.name, self.object)
+            value.__setattr__(self.attribute.name, self.object, propagate=True)
 
     def remove(self, value, update_set=True, propagate=True):
         """ Remove value from set
@@ -2362,10 +2365,10 @@ class ManyToOneRelatedManager(RelatedManager):
             value (:obj:`object`): value
             propagate (:obj:`bool`, optional): propagate change to related attribute
         """
-        if update_set and value in self:
+        if update_set:
             super(ManyToOneRelatedManager, self).remove(value)
         if propagate:
-            value.__setattr__(self.attribute.name, None)
+            value.__setattr__(self.attribute.name, None, propagate=False)
 
 
 class ManyToManyRelatedManager(RelatedManager):

@@ -2187,9 +2187,10 @@ class RelatedManager(set):
     Attributes:
         object (:obj:`Model`): model instance
         attribute (:obj:`Attribute`): attribute
+        related (:obj:`bool`): is related attribute
     """
 
-    def __init__(self, object, attribute):
+    def __init__(self, object, attribute, related=True):
         """
         Args:
             object (:obj:`Model`): model instance
@@ -2198,6 +2199,32 @@ class RelatedManager(set):
         super(set, self).__init__()
         self.object = object
         self.attribute = attribute
+        self.related = related
+
+    def create(self, **kwargs):
+        """ Create instance of primary class and add to set 
+
+        Args:
+            kwargs (:obj:`dict` of `str`: `object`): dictionary of attribute name/value pairs
+
+        Returns:
+            :obj:`Model`: created object
+        """
+        if self.related:
+            if self.attribute.name in kwargs:
+                raise TypeError("'{}' is an invalid keyword argument for this function".format(
+                    self.attribute.name))
+            obj = self.attribute.primary_class(**kwargs)
+
+        else:
+            if self.attribute.related_name in kwargs:
+                raise TypeError("'{}' is an invalid keyword argument for this function".format(
+                    self.attribute.related_name))
+            obj = self.attribute.related_class(**kwargs)
+
+        self.add(obj)
+
+        return obj
 
     def discard(self, value):
         """ Remove value from set if value in set
@@ -2265,6 +2292,54 @@ class RelatedManager(set):
             else:
                 self.add(value)
 
+    def get(self, **kwargs):
+        """ Get related objects by attribute/value pairs 
+
+        Args:
+            **kwargs (:obj:`dict` of `str`:`object`): dictionary of attribute name/value pairs to find matching
+                objects
+
+        Returns:
+            :obj:`Model` or `None`: matching instance of `Model`, or `None` if no matching instance
+
+        Raises:
+            :obj:`ValueError`: if multiple matching objects
+        """
+        matches = self.filter(**kwargs)
+
+        if len(matches) == 0:
+            return None
+
+        if len(matches) == 1:
+            return matches.pop()
+
+        if len(matches) > 1:
+            raise ValueError('Multiple objects match the attribute name/value pair(s)')
+
+    def filter(self, **kwargs):
+        """ Get related objects by attribute/value pairs 
+
+        Args:
+            **kwargs (:obj:`dict` of `str`:`object`): dictionary of attribute name/value pairs to find matching
+                objects
+
+        Returns:
+            :obj:`set` of `Model`: matching instances of `Model`
+        """
+        matches = set()
+
+        for obj in self:
+            is_match = True
+            for attr_name, value in kwargs.items():
+                if getattr(obj, attr_name) != value:
+                    is_match = False
+                    break
+
+            if is_match:
+                matches.add(obj)
+
+        return matches
+
 
 class ManyToOneRelatedManager(RelatedManager):
     """ Represent values of related attributes """
@@ -2294,21 +2369,7 @@ class ManyToOneRelatedManager(RelatedManager):
 
 
 class ManyToManyRelatedManager(RelatedManager):
-    """ Represent values and related values of related attributes
-
-    Attributes:
-        related (:obj:`bool`): is related attribute
-    """
-
-    def __init__(self, object, attribute, related=False):
-        """
-        Args:
-            object (:obj:`Model`): model instance
-            attribute (:obj:`Attribute`): attribute
-            related (:obj:`bool`): is related attribute
-        """
-        super(ManyToManyRelatedManager, self).__init__(object, attribute)
-        self.related = related
+    """ Represent values and related values of related attributes """
 
     def add(self, value, propagate=True):
         """ Add value to set

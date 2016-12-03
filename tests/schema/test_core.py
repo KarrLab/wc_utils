@@ -109,6 +109,7 @@ class ManyToOneRoot(core.Model):
 
 
 class ManyToOneLeaf(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
     root = core.ManyToOneAttribute(ManyToOneRoot, related_name='leaves', is_none=False)
 
 
@@ -117,6 +118,7 @@ class ManyToManyRoot(core.Model):
 
 
 class ManyToManyLeaf(core.Model):
+    id = core.SlugAttribute(verbose_name='ID')
     roots = core.ManyToManyAttribute(ManyToManyRoot, related_name='leaves')
 
 
@@ -680,9 +682,9 @@ class TestCore(unittest.TestCase):
             ManyToManyRoot(id='root_3'),
         ]
         leaves = [
-            ManyToManyLeaf(roots=roots[0:2]),
-            ManyToManyLeaf(roots=roots[1:3]),
-            ManyToManyLeaf(roots=roots[2:4]),
+            ManyToManyLeaf(roots=roots[0:2], id='leaf_0'),
+            ManyToManyLeaf(roots=roots[1:3], id='leaf_1'),
+            ManyToManyLeaf(roots=roots[2:4], id='leaf_2'),
         ]
 
         self.assertEqual(roots[0].leaves, set((leaves[0],)))
@@ -817,6 +819,60 @@ class TestCore(unittest.TestCase):
         leaves[1].roots = roots
         self.assertEqual(roots[0].leaves, set(leaves[0:2]))
         self.assertEqual(roots[1].leaves, set(leaves[0:2]))
+
+    def test_related_set_create(self):
+        # many to one
+        root = ManyToOneRoot()
+        leaf = root.leaves.create(id='leaf')
+        self.assertEqual(root.leaves, set((leaf,)))
+        self.assertEqual(leaf.root, root)
+
+        # many to many
+        root_0 = ManyToManyRoot(id='root_0')
+
+        leaf_0 = root_0.leaves.create(id='leaf_0')
+        self.assertEqual(root_0.leaves, set((leaf_0, )))
+        self.assertEqual(leaf_0.roots, set((root_0,)))
+
+        root_1 = leaf_0.roots.create(id='root_1')
+        self.assertEqual(root_1.leaves, set((leaf_0,)))
+        self.assertEqual(leaf_0.roots, set((root_0, root_1)))
+
+    def test_related_set_filter_and_get(self):
+        # many to one
+        root = ManyToOneRoot()
+        leaves = [
+            ManyToOneLeaf(id='leaf_0'),
+            ManyToOneLeaf(id='leaf_1'),
+            ManyToOneLeaf(id='leaf_1'),
+            ManyToOneLeaf(id='leaf_2'),
+        ]
+        root.leaves = leaves
+
+        self.assertEqual(root.leaves.filter(id='leaf_0'), set(leaves[0:1]))
+        self.assertEqual(root.leaves.filter(id='leaf_1'), set(leaves[1:3]))
+        self.assertEqual(root.leaves.filter(id='leaf_2'), set(leaves[3:4]))
+
+        self.assertEqual(root.leaves.get(id='leaf_0'), leaves[0])
+        self.assertRaises(ValueError, lambda: root.leaves.get(id='leaf_1'))
+        self.assertEqual(root.leaves.get(id='leaf_2'), leaves[3])
+
+        # many to many
+        roots = [
+            ManyToManyRoot(id='root_0'),
+            ManyToManyRoot(id='root_1'),
+            ManyToManyRoot(id='root_1'),
+            ManyToManyRoot(id='root_2'),
+        ]
+        leaf = ManyToManyLeaf(roots=roots)
+
+        self.assertEqual(leaf.roots.filter(id='root_0'), set(roots[0:1]))
+        self.assertEqual(leaf.roots.filter(id='root_1'), set(roots[1:3]))
+        self.assertEqual(leaf.roots.filter(id='root_2'), set(roots[3:4]))
+
+        self.assertEqual(leaf.roots.get(id='root_0'), roots[0])
+        self.assertRaises(ValueError, lambda: leaf.roots.get(id='root_1'))
+        self.assertEqual(leaf.roots.get(id='root_2'), roots[3])
 
     def test_validator(self):
         grandparent = Grandparent(id='root')

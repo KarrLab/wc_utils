@@ -194,14 +194,14 @@ class ModelMeta(type):
 
         # `attribute_order` is a tuple of attribute names
         if not isinstance(cls.Meta.attribute_order, tuple):
-            raise ValueError('`attribute_order` must be a tuple of attribute names')
+            raise ValueError('{}.attribute_order must be a tuple of attribute names'.format(cls.__name__))
 
         for attr_name in cls.Meta.attribute_order:
             if not isinstance(attr_name, str):
-                raise ValueError('`attribute_order` must be a tuple of attribute names')
+                raise ValueError('{}.attribute_order must be a tuple of attribute names'.format(cls.__name__))
 
             if attr_name not in cls.Meta.attributes:
-                raise ValueError('`attribute_order` must be a tuple of attribute names')
+                raise ValueError('{}.attribute_order must be a tuple of attribute names'.format(cls.__name__))
 
         # `unique_together` is a tuple of tuple of attribute names
         if not isinstance(cls.Meta.unique_together, tuple):
@@ -233,7 +233,7 @@ class ModelMeta(type):
                     raise ValueError(
                         'Inline models must have a single required related one-to-one or one-to-many attribute')
 
-                if not attr.related_none:
+                if attr.related_none:
                     raise ValueError(
                         'Inline models must have a single required related one-to-one or one-to-many attribute')
 

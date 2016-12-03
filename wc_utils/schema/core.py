@@ -227,7 +227,7 @@ class ModelMeta(type):
         # tabular orientation
         if cls.Meta.tabular_orientation == TabularOrientation['inline']:
             if len(cls.Meta.related_attributes) == 1:
-                attr = cls.Meta.related_attributes.values()[0]
+                attr = list(cls.Meta.related_attributes.values())[0]
 
                 if not isinstance(attr, (OneToOneAttribute, OneToManyAttribute)):
                     raise ValueError(

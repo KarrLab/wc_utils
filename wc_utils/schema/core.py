@@ -1179,7 +1179,7 @@ class StringAttribute(Attribute):
         return value
 
 
-class LongStringAttribute(Attribute):
+class LongStringAttribute(StringAttribute):
     """ Long string attribute """
 
     def __init__(self, min_length=0, max_length=2**32 - 1, default='', verbose_name='', help='',

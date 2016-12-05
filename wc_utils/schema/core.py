@@ -19,6 +19,7 @@ from wc_utils.util.types import get_subclasses, get_superclasses
 import dateutil.parser
 import inflect
 import re
+import warnings
 
 
 class ModelMeta(type):
@@ -121,11 +122,19 @@ class ModelMeta(type):
                                 'serialize' in attr.__class__.__dict__ and 'deserialize' in attr.__class__.__dict__:
                             pass
                         elif not related_class.Meta.primary_attribute:
-                            raise ValueError('Related class {} must have a primary attribute'.format(
-                                related_class.__name__))
+                            if related_class.Meta.tabular_orientation == TabularOrientation['inline']:
+                                warnings.warn('Related class {} must have a primary attribute'.format(
+                                    related_class.__name__))
+                            else:
+                                raise ValueError('Related class {} must have a primary attribute'.format(
+                                    related_class.__name__))
                         elif not related_class.Meta.primary_attribute.unique:
-                            raise ValueError('Primary attribute {} of related class {} must be unique'.format(
-                                related_class.Meta.primary_attribute.name, related_class.__name__))
+                            if related_class.Meta.tabular_orientation == TabularOrientation['inline']:
+                                warnings.warn('Primary attribute {} of related class {} must be unique'.format(
+                                    related_class.Meta.primary_attribute.name, related_class.__name__))
+                            else:
+                                raise ValueError('Primary attribute {} of related class {} must be unique'.format(
+                                    related_class.Meta.primary_attribute.name, related_class.__name__))
 
                         # check that name doesn't conflict with another attribute
                         if attr.related_name in related_class.Meta.attributes:
@@ -219,27 +228,42 @@ class ModelMeta(type):
         if len(set(cls.Meta.unique_together)) < len(cls.Meta.unique_together):
             raise ValueError('`unique_together` cannot contain repeated tuples')
 
+    @staticmethod
+    def validate_related_attributes(cls):
+        """ Validate attribute values """
+
+        for attr_name, attr in cls.Meta.attributes.items():
+            if isinstance(attr, RelatedAttribute) and not (isinstance(attr.related_class, type) and issubclass(attr.related_class, Model)):
+                raise ValueError('Related class {} of {}.{} must be defined'.format(
+                    attr.related_class, attr.primary_class.__name__, attr_name))
+
         # tabular orientation
         if cls.Meta.tabular_orientation == TabularOrientation['inline']:
-            if len(cls.Meta.related_attributes) == 1:
+            for attr in cls.Meta.related_attributes.values():
+                if attr in [OneToManyAttribute, OneToManyAttribute, ManyToOneAttribute, ManyToManyAttribute]:
+                    raise ValueError(
+                        'Inline model "{}" must define their own serialization/deserialization methods'.format(cls.__name__))
+
+                if 'deserialize' not in attr.__class__.__dict__:
+                    raise ValueError(
+                        'Inline model "{}" must define their own serialization/deserialization methods'.format(cls.__name__))
+
+            if len(cls.Meta.related_attributes) == 0:
+                raise ValueError(
+                    'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
+            elif len(cls.Meta.related_attributes) == 1:
                 attr = list(cls.Meta.related_attributes.values())[0]
 
                 if not isinstance(attr, (OneToOneAttribute, OneToManyAttribute)):
-                    raise ValueError(
-                        'Inline models must have a single required related one-to-one or one-to-many attribute')
+                    warnings.warn(
+                        'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
 
-                if attr.related_none:
-                    raise ValueError(
-                        'Inline models must have a single required related one-to-one or one-to-many attribute')
-
-                if attr in [OneToManyAttribute, OneToManyAttribute]:
-                    raise ValueError('Inline models must define their own serialization/deserialization methods')
-
-                if 'serialize' not in attr.__class__.__dict__ or 'deserialize' not in attr.__class__.__dict__:
-                    raise ValueError('Inline models must define their own serialization/deserialization methods')
-
+                elif attr.related_none:
+                    warnings.warn(
+                        'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
             else:
-                raise ValueError('Inline models must have a single required related one-to-one or one-to-many attribute')
+                warnings.warn(
+                    'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
 
 
 class TabularOrientation(Enum):
@@ -283,10 +307,7 @@ class Model(with_metaclass(ModelMeta, object)):
         """
 
         """ check that related classes of attributes are defined """
-        for attr_name, attr in self.Meta.attributes.items():
-            if isinstance(attr, RelatedAttribute) and not issubclass(attr.related_class, Model):
-                raise ValueError('Related class {} of {}.{} must be defined'.format(
-                    attr.related_class, attr.primary_class.__name__, attr_name))
+        self.__class__.validate_related_attributes(self.__class__)
 
         """ initialize attributes """
         # attributes
@@ -300,7 +321,8 @@ class Model(with_metaclass(ModelMeta, object)):
         """ process arguments """
         for attr_name, val in kwargs.items():
             if attr_name not in self.Meta.attributes:
-                raise TypeError("'{:s}' is an invalid keyword argument for this function".format(attr_name))
+                raise TypeError("'{:s}' is an invalid keyword argument for {}.__init__".format(
+                    attr_name, self.__class__.__name__))
             setattr(self, attr_name, val)
 
     def __setattr__(self, attr_name, value, propagate=True):
@@ -384,6 +406,31 @@ class Model(with_metaclass(ModelMeta, object)):
             return getattr(self, self.__class__.Meta.primary_attribute.name)
 
         return None
+
+    def serialize(self):
+        """ Get value of primary attribute
+
+        Returns:
+            :obj:`str`: value of primary attribute
+        """
+        return self.get_primary_attribute()
+
+    @classmethod
+    def deserialize(cls, value, objects):
+        """ Deserialize value
+
+        Args:
+            value (:obj:`str`): String representation
+            objects (:obj:`dict`): dictionary of objects, grouped by model
+
+        Returns:
+            :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
+        """
+        if value in objects[cls]:
+            return (objects[cls][value], None)
+
+        attr = cls.Meta.primary_attribute
+        return (None, InvalidAttribute(attr, ['No object with primary attribute value "{}"'.format(value)]))
 
     def get_related(self, _related_objects=None):
         """ Get all related objects
@@ -563,7 +610,7 @@ class Attribute(object):
         return copy(self.default)
 
     def set_value(self, obj, new_value):
-        """ Get value of attribute of object
+        """ Set value of attribute of object
 
         Args:
             obj (:obj:`Model`): object
@@ -1688,7 +1735,7 @@ class RelatedAttribute(Attribute):
         """ Deserialize value
 
         Args:
-            value (:obj:`object`): String representation
+            value (:obj:`str`): String representation
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
@@ -1847,7 +1894,7 @@ class OneToOneAttribute(RelatedAttribute):
         """ Deserialize value
 
         Args:
-            value (:obj:`object`): String representation
+            value (:obj:`str`): String representation
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
@@ -2028,7 +2075,7 @@ class ManyToOneAttribute(RelatedAttribute):
         """ Deserialize value
 
         Args:
-            value (:obj:`object`): String representation
+            value (:obj:`str`): String representation
             objects (:obj:`dict`): dictionary of objects, grouped by model
 
         Returns:
@@ -2469,14 +2516,14 @@ class RelatedManager(set):
         """
         if self.related:
             if self.attribute.name in kwargs:
-                raise TypeError("'{}' is an invalid keyword argument for this function".format(
-                    self.attribute.name))
+                raise TypeError("'{}' is an invalid keyword argument for {}.create for {}".format(
+                    self.attribute.name, self.__class__.__name__, self.attribute.primary_class.__name__))
             obj = self.attribute.primary_class(**kwargs)
 
         else:
             if self.attribute.related_name in kwargs:
-                raise TypeError("'{}' is an invalid keyword argument for this function".format(
-                    self.attribute.related_name))
+                raise TypeError("'{}' is an invalid keyword argument for {}.create for {}".format(
+                    self.attribute.related_name, self.__class__.__name__, self.attribute.primary_class.__name__))
             obj = self.attribute.related_class(**kwargs)
 
         self.add(obj)
@@ -2601,6 +2648,14 @@ class RelatedManager(set):
 class ManyToOneRelatedManager(RelatedManager):
     """ Represent values of related attributes """
 
+    def __init__(self, object, attribute):
+        """
+        Args:
+            object (:obj:`Model`): model instance
+            attribute (:obj:`Attribute`): attribute
+        """
+        super(ManyToOneRelatedManager, self).__init__(object, attribute, related=True)
+
     def add(self, value, propagate=True):
         """ Add value to set
 
@@ -2630,6 +2685,14 @@ class ManyToOneRelatedManager(RelatedManager):
 
 class OneToManyRelatedManager(RelatedManager):
     """ Represent values of related attributes """
+
+    def __init__(self, object, attribute):
+        """
+        Args:
+            object (:obj:`Model`): model instance
+            attribute (:obj:`Attribute`): attribute
+        """
+        super(OneToManyRelatedManager, self).__init__(object, attribute, related=False)
 
     def add(self, value, propagate=True):
         """ Add value to set

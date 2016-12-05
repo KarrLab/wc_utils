@@ -68,7 +68,7 @@ class OneToManyRow(core.Model):
 
 
 class OneToManyInline(core.Model):
-    id = core.SlugAttribute(primary=True)
+    id = core.SlugAttribute(primary=False)
 
     class Meta(core.Model.Meta):
         attribute_order = ('id',)

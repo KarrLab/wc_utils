@@ -7,7 +7,7 @@
 """
 
 from collections import OrderedDict
-from copy import copy, deepcopy
+from copy import copy as make_copy, deepcopy as make_deepcopy
 from datetime import date, time, datetime
 from enum import Enum
 from itertools import chain
@@ -49,7 +49,7 @@ class ModelMeta(type):
                             Meta.attribute_order.append(attr_name)
             Meta.attribute_order = tuple(Meta.attribute_order)
 
-            Meta.unique_together = deepcopy(bases[0].Meta.unique_together)
+            Meta.unique_together = make_deepcopy(bases[0].Meta.unique_together)
             Meta.tabular_orientation = bases[0].Meta.tabular_orientation
             Meta.frozen_columns = bases[0].Meta.frozen_columns
 
@@ -444,7 +444,9 @@ class Model(with_metaclass(ModelMeta, object)):
         if _related_objects is None:
             _related_objects = set()
 
-        for attr in self.__class__.Meta.attributes.values():
+        cls = self.__class__
+
+        for attr in cls.Meta.attributes.values():
             if isinstance(attr, RelatedAttribute):
                 value = getattr(self, attr.name)
 
@@ -453,12 +455,11 @@ class Model(with_metaclass(ModelMeta, object)):
                         if v not in _related_objects:
                             _related_objects.add(v)
                             v.get_related(_related_objects)
-                else:
-                    if value not in _related_objects:
-                        _related_objects.add(value)
-                        value.get_related(_related_objects)
+                elif value is not None and value not in _related_objects:
+                    _related_objects.add(value)
+                    value.get_related(_related_objects)
 
-        for attr in self.__class__.Meta.related_attributes.values():
+        for attr in cls.Meta.related_attributes.values():
             value = getattr(self, attr.related_name)
 
             if isinstance(value, set):
@@ -466,10 +467,9 @@ class Model(with_metaclass(ModelMeta, object)):
                     if v not in _related_objects:
                         _related_objects.add(v)
                         v.get_related(_related_objects)
-            else:
-                if value not in _related_objects:
-                    _related_objects.add(value)
-                    value.get_related(_related_objects)
+            elif value is not None and value not in _related_objects:
+                _related_objects.add(value)
+                value.get_related(_related_objects)
 
         return _related_objects
 
@@ -572,37 +572,54 @@ class Model(with_metaclass(ModelMeta, object)):
         Returns:
             :obj:`Model`: model copy
         """
-        cls = self.__class__
 
-        # create copy
-        other = cls()
+        # initialize copies of objects
+        objects_and_copies = {}
+        for obj in chain([self], self.get_related()):
+            copy = obj.__class__()
+            objects_and_copies[obj] = copy
+
+        # copy attribute values
+        for obj, copy in objects_and_copies.items():
+            obj._copy_attributes(copy, objects_and_copies)
+
+        # return copy
+        return objects_and_copies[self]
+
+    def _copy_attributes(self, copy, objects_and_copies):
+        """ Copy the attributes from `self` to its new copy, `copy`
+
+        Args:
+            copy (:obj:`Model`): object to copy attribute values to
+            objects_and_copies (:obj:`dict` of `Model`: `Model`): dictionary of pairs of objects and their new copies
+        """
+        # get class
+        cls = self.__class__
 
         # copy attributes
         for attr in cls.Meta.attributes.values():
             val = getattr(self, attr.name)
+
             if isinstance(attr, RelatedAttribute):
                 if val is None:
-                    other_val = val
+                    copy_val = val
                 elif isinstance(val, Model):
-                    other_val = val.copy()
+                    copy_val = objects_and_copies[val]
                 elif isinstance(val, (set, list, tuple)):
-                    other_val = []
+                    copy_val = []
                     for v in val:
-                        other_val.append(v.copy())
+                        copy_val.append(objects_and_copies[v])
                 else:
                     raise ValueError('Invalid related attribute value')
             else:
                 if val is None:
-                    other_val = val
+                    copy_val = val
                 elif isinstance(val, (string_types, bool, integer_types, float, )):
-                    other_val = copy(val)
+                    copy_val = make_copy(val)
                 else:
                     raise ValueError('Invalid related attribute value')
 
-            setattr(other, attr.name, other_val)
-
-        # return
-        return other
+            setattr(copy, attr.name, copy_val)
 
 
 class Attribute(object):
@@ -645,7 +662,7 @@ class Attribute(object):
         Returns:
             :obj:`object`: initial value
         """
-        return copy(self.default)
+        return make_copy(self.default)
 
     def set_value(self, obj, new_value):
         """ Set value of attribute of object
@@ -1741,7 +1758,7 @@ class RelatedAttribute(Attribute):
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
-        return copy(self.related_default)
+        return make_copy(self.related_default)
 
     def set_related_value(self, obj, new_values):
         """ Update the values of the related attributes of the attribute

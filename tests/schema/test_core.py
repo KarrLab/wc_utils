@@ -1060,3 +1060,20 @@ class TestCore(unittest.TestCase):
         errors = set([x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes])
         self.assertNotIn('val0', errors)
         self.assertEqual(len(errors), 1)
+
+    def test_copy(self):
+        g1 = Grandparent(id='root-1')
+        p1 = [
+            Parent(grandparent=g1, id='node-1-0'),
+            Parent(grandparent=g1, id='node-1-1'),
+        ]
+        c1 = [
+            Child(parent=p1[0], id='leaf-1-0-0'),
+            Child(parent=p1[0], id='leaf-1-0-1'),
+            Child(parent=p1[1], id='leaf-1-1-0'),
+            Child(parent=p1[1], id='leaf-1-1-1'),
+        ]
+
+        copy = g1.copy()
+        self.assertFalse(copy is g1)
+        self.assertEqual(copy, g1)

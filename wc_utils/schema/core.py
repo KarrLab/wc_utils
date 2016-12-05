@@ -566,6 +566,44 @@ class Model(with_metaclass(ModelMeta, object)):
             return InvalidModel(cls, errors)
         return None
 
+    def copy(self):
+        """ Create a copy
+
+        Returns:
+            :obj:`Model`: model copy
+        """
+        cls = self.__class__
+
+        # create copy
+        other = cls()
+
+        # copy attributes
+        for attr in cls.Meta.attributes.values():
+            val = getattr(self, attr.name)
+            if isinstance(attr, RelatedAttribute):
+                if val is None:
+                    other_val = val
+                elif isinstance(val, Model):
+                    other_val = val.copy()
+                elif isinstance(val, (set, list, tuple)):
+                    other_val = []
+                    for v in val:
+                        other_val.append(v.copy())
+                else:
+                    raise ValueError('Invalid related attribute value')
+            else:
+                if val is None:
+                    other_val = val
+                elif isinstance(val, (string_types, bool, integer_types, float, )):
+                    other_val = copy(val)
+                else:
+                    raise ValueError('Invalid related attribute value')
+
+            setattr(other, attr.name, other_val)
+
+        # return
+        return other
+
 
 class Attribute(object):
     """ Model attribute

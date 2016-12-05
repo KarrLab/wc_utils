@@ -614,7 +614,7 @@ class Model(with_metaclass(ModelMeta, object)):
             else:
                 if val is None:
                     copy_val = val
-                elif isinstance(val, (string_types, bool, integer_types, float, )):
+                elif isinstance(val, (string_types, bool, integer_types, float, Enum, )):
                     copy_val = make_copy(val)
                 else:
                     raise ValueError('Invalid related attribute value')

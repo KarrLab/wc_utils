@@ -238,9 +238,14 @@ class ExcelIo(object):
             raise ValueError(msg)
 
         # link objects
+        objects_by_primary_attribute = {}
+        for model, objects_model in objects.items():
+            objects_by_primary_attribute[model] = {obj.get_primary_attribute(): obj for obj in objects_model}
+
         errors = {}
-        for model in list(objects.keys()):
-            model_errors = cls.link_model(model, attributes[model], data[model], objects)
+        for model, objects_model in objects.items():
+            model_errors = cls.link_model(model, attributes[model], data[model], objects_model,
+                                          objects_by_primary_attribute)
             if model_errors:
                 errors[model] = model_errors
 
@@ -258,9 +263,14 @@ class ExcelIo(object):
         # convert to sets
         for model in models:
             if model in objects:
-                objects[model] = set(objects[model].values())
+                objects[model] = set(objects[model])
             else:
                 objects[model] = set()
+
+        for model, model_objects in objects_by_primary_attribute.items():
+            if model not in objects:
+                objects[model] = set()
+            objects[model].update(model_objects.values())
 
         # validate
         all_objects = set()
@@ -287,11 +297,11 @@ class ExcelIo(object):
                 `list` of `Attribute`,
                 `list` of `list` of `object`,
                 `list` of `str`,
-                `OrderedDict` of `object` => `Model`,: tuple of
+                `list` of `Model`: tuple of
                 * attribute order of `data`
                 * a two-dimensional nested list of object data
                 * a list of parsing errors
-                * a ordered dictionary of objects
+                * constructed model objects
         """
         if model.Meta.verbose_name_plural not in workbook:
             return ([], [], None, [])
@@ -327,7 +337,7 @@ class ExcelIo(object):
             return ([], [], errors, [])
 
         # read data
-        objects = OrderedDict()
+        objects = []
         errors = []
         for obj_data in data:
             obj = model()
@@ -340,29 +350,30 @@ class ExcelIo(object):
                     else:
                         setattr(obj, attr.name, value)
 
-            objects[obj.get_primary_attribute()] = obj
+            objects.append(obj)
 
         return (attributes, data, errors, objects)
 
     @classmethod
-    def link_model(cls, model, attributes, data, objects):
+    def link_model(cls, model, attributes, data, objects, objects_by_primary_attribute):
         """ Read a set of objects from an Excel worksheet
 
         Args:
             model (:obj:`class`): model
             attributes (:obj:`list` of `Attribute`): attribute order of `data`
             data (:obj:`list` of `list` of `object`): nested list of object data
-            objects (:obj:`dict`): dictionary of model objects grouped by model
+            objects (:obj:`list`): list of model objects in order of `data`
+            objects_by_primary_attribute (:obj:`dict` of `class`: `dict of `object`:`Model`): dictionary of model objects grouped by model
 
         Returns:
             :obj:`list` of `str`: list of parsing errors
         """
 
         errors = []
-        for obj_data, obj in zip(data, objects[model].values()):
+        for obj_data, obj in zip(data, objects):
             for attr, attr_value in zip(attributes, obj_data):
                 if isinstance(attr, RelatedAttribute):
-                    value, error = attr.deserialize(attr_value, objects)
+                    value, error = attr.deserialize(attr_value, objects_by_primary_attribute)
                     if error:
                         errors.append(error)
                     else:

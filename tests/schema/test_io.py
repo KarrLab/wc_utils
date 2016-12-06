@@ -136,10 +136,10 @@ class TestIo(unittest.TestCase):
         ExcelIo.write(self.filename, set((root,)), [Root, Node, Leaf, ])
         objects2 = ExcelIo.read(self.filename, set((Root, Node, Leaf, OneToManyRow)))
 
-        # test objects saved and loaded correctly
-        self.assertEqual(len(objects2), len(objects))
+        # test objects saved and loaded correctly        
         for model in objects.keys():
-            self.assertEqual(len(objects2[model]), len(objects[model]))
+            self.assertEqual(len(objects2[model]), len(objects[model]), msg='Different numbers of "{}" objects'.format(model.__name__))
+        self.assertEqual(len(objects2), len(objects))
 
         root2 = objects2[Root].pop()
         self.assertEqual(set([x.id for x in root2.nodes]), set([x.id for x in root.nodes]))

@@ -43,7 +43,15 @@ class OneToManyInlineAttribute(core.OneToManyAttribute):
 
     def deserialize(self, value, objects):
         if value:
-            return (set((OneToManyInline(x) for x in value.split(', '))), None)
+            objs = []
+            for id in value.split(', '):
+                obj = OneToManyInline(id=id)
+                if OneToManyInline not in objects:
+                    objects[OneToManyInline] = {}
+                objects[OneToManyInline][id] = obj
+                objs.append(obj)
+
+            return (objs, None)
         else:
             return (set(), None)
 
@@ -54,12 +62,12 @@ class Leaf(core.Model):
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()
     onetomany_rows = OneToManyRowAttribute('OneToManyRow', related_name='leaf', related_none=False)
-    #onetomany_inlines = OneToManyInlineAttribute('OneToManyInline', related_name='leaf', related_none=False)
+    onetomany_inlines = OneToManyInlineAttribute('OneToManyInline', related_name='leaf', related_none=False)
 
     class Meta(core.Model.Meta):
         attribute_order = (
             'id', 'nodes', 'val1', 'val2',
-            'onetomany_rows',  # 'onetomany_inlines'
+            'onetomany_rows', 'onetomany_inlines'
         )
 
 
@@ -84,40 +92,37 @@ class TestIo(unittest.TestCase):
         _, self.filename = tempfile.mkstemp(suffix='.xlsx')
 
     def tearDown(self):
-        print(self.filename)
-        #if os.path.isfile(self.filename): todo
-        #    os.remove(self.filename)
+        if os.path.isfile(self.filename):
+            os.remove(self.filename)
 
     def test_write_read(self):
         root = Root(id='root', name=u'\u20ac')
         nodes = [
             Node(root=root, id='node_0', val1=1, val2=2),
-            #Node(root=root, id='node_1', val1=3, val2=4),
-            #Node(root=root, id='node_2', val1=5, val2=6),
+            Node(root=root, id='node_1', val1=3, val2=4),
+            Node(root=root, id='node_2', val1=5, val2=6),
         ]
         leaves = [
             Leaf(nodes=[nodes[0]], id='leaf_0_0', val1=7, val2=8),
-            #Leaf(nodes=[nodes[0]], id='leaf_0_1', val1=9, val2=10),
-            #Leaf(nodes=[nodes[1]], id='leaf_1_0', val1=11, val2=12),
-            #Leaf(nodes=[nodes[1]], id='leaf_1_1', val1=13, val2=14),
-            #Leaf(nodes=[nodes[2]], id='leaf_2_0', val1=15, val2=16),
-            #Leaf(nodes=[nodes[2]], id='leaf_2_1', val1=17, val2=18),
+            Leaf(nodes=[nodes[0]], id='leaf_0_1', val1=9, val2=10),
+            Leaf(nodes=[nodes[1]], id='leaf_1_0', val1=11, val2=12),
+            Leaf(nodes=[nodes[1]], id='leaf_1_1', val1=13, val2=14),
+            Leaf(nodes=[nodes[2]], id='leaf_2_0', val1=15, val2=16),
+            Leaf(nodes=[nodes[2]], id='leaf_2_1', val1=17, val2=18),
         ]
-        leaves[0].onetomany_rows = [OneToManyRow(id='row_0_0')]  # , OneToManyRow(id='row_0_1')]
-        #leaves[1].onetomany_rows = [OneToManyRow(id='row_1_0'), OneToManyRow(id='row_1_1')]
-        #leaves[2].onetomany_rows = [OneToManyRow(id='row_2_0'), OneToManyRow(id='row_2_1')]
-        #leaves[3].onetomany_rows = [OneToManyRow(id='row_3_0'), OneToManyRow(id='row_3_1')]
-        #leaves[4].onetomany_rows = [OneToManyRow(id='row_4_0'), OneToManyRow(id='row_4_1')]
-        #leaves[5].onetomany_rows = [OneToManyRow(id='row_5_0'), OneToManyRow(id='row_5_1')]
+        leaves[0].onetomany_rows = [OneToManyRow(id='row_0_0'), OneToManyRow(id='row_0_1')]
+        leaves[1].onetomany_rows = [OneToManyRow(id='row_1_0'), OneToManyRow(id='row_1_1')]
+        leaves[2].onetomany_rows = [OneToManyRow(id='row_2_0'), OneToManyRow(id='row_2_1')]
+        leaves[3].onetomany_rows = [OneToManyRow(id='row_3_0'), OneToManyRow(id='row_3_1')]
+        leaves[4].onetomany_rows = [OneToManyRow(id='row_4_0'), OneToManyRow(id='row_4_1')]
+        leaves[5].onetomany_rows = [OneToManyRow(id='row_5_0'), OneToManyRow(id='row_5_1')]
 
-        """
         leaves[0].onetomany_inlines = [OneToManyInline(id='inline_0_0'), OneToManyInline(id='inline_0_1')]
         leaves[1].onetomany_inlines = [OneToManyInline(id='inline_1_0'), OneToManyInline(id='inline_1_1')]
         leaves[2].onetomany_inlines = [OneToManyInline(id='inline_2_0'), OneToManyInline(id='inline_2_1')]
         leaves[3].onetomany_inlines = [OneToManyInline(id='inline_3_0'), OneToManyInline(id='inline_3_1')]
         leaves[4].onetomany_inlines = [OneToManyInline(id='inline_4_0'), OneToManyInline(id='inline_4_1')]
         leaves[5].onetomany_inlines = [OneToManyInline(id='inline_5_0'), OneToManyInline(id='inline_5_1')]
-        """
 
         # test integrity of relationships
         for leaf in leaves:

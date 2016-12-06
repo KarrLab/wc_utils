@@ -92,23 +92,23 @@ class TestIo(unittest.TestCase):
         root = Root(id='root', name=u'\u20ac')
         nodes = [
             Node(root=root, id='node_0', val1=1, val2=2),
-            Node(root=root, id='node_1', val1=3, val2=4),
-            Node(root=root, id='node_2', val1=5, val2=6),
+            #Node(root=root, id='node_1', val1=3, val2=4),
+            #Node(root=root, id='node_2', val1=5, val2=6),
         ]
         leaves = [
             Leaf(nodes=[nodes[0]], id='leaf_0_0', val1=7, val2=8),
-            Leaf(nodes=[nodes[0]], id='leaf_0_1', val1=9, val2=10),
-            Leaf(nodes=[nodes[1]], id='leaf_1_0', val1=11, val2=12),
-            Leaf(nodes=[nodes[1]], id='leaf_1_1', val1=13, val2=14),
-            Leaf(nodes=[nodes[2]], id='leaf_2_0', val1=15, val2=16),
-            Leaf(nodes=[nodes[2]], id='leaf_2_1', val1=17, val2=18),
+            #Leaf(nodes=[nodes[0]], id='leaf_0_1', val1=9, val2=10),
+            #Leaf(nodes=[nodes[1]], id='leaf_1_0', val1=11, val2=12),
+            #Leaf(nodes=[nodes[1]], id='leaf_1_1', val1=13, val2=14),
+            #Leaf(nodes=[nodes[2]], id='leaf_2_0', val1=15, val2=16),
+            #Leaf(nodes=[nodes[2]], id='leaf_2_1', val1=17, val2=18),
         ]
-        leaves[0].onetomany_rows = [OneToManyRow(id='row_0_0'), OneToManyRow(id='row_0_1')]
-        leaves[1].onetomany_rows = [OneToManyRow(id='row_1_0'), OneToManyRow(id='row_1_1')]
-        leaves[2].onetomany_rows = [OneToManyRow(id='row_2_0'), OneToManyRow(id='row_2_1')]
-        leaves[3].onetomany_rows = [OneToManyRow(id='row_3_0'), OneToManyRow(id='row_3_1')]
-        leaves[4].onetomany_rows = [OneToManyRow(id='row_4_0'), OneToManyRow(id='row_4_1')]
-        leaves[5].onetomany_rows = [OneToManyRow(id='row_5_0'), OneToManyRow(id='row_5_1')]
+        leaves[0].onetomany_rows = [OneToManyRow(id='row_0_0')]  # , OneToManyRow(id='row_0_1')]
+        #leaves[1].onetomany_rows = [OneToManyRow(id='row_1_0'), OneToManyRow(id='row_1_1')]
+        #leaves[2].onetomany_rows = [OneToManyRow(id='row_2_0'), OneToManyRow(id='row_2_1')]
+        #leaves[3].onetomany_rows = [OneToManyRow(id='row_3_0'), OneToManyRow(id='row_3_1')]
+        #leaves[4].onetomany_rows = [OneToManyRow(id='row_4_0'), OneToManyRow(id='row_4_1')]
+        #leaves[5].onetomany_rows = [OneToManyRow(id='row_5_0'), OneToManyRow(id='row_5_1')]
 
         """
         leaves[0].onetomany_inlines = [OneToManyInline(id='inline_0_0'), OneToManyInline(id='inline_0_1')]
@@ -119,13 +119,22 @@ class TestIo(unittest.TestCase):
         leaves[5].onetomany_inlines = [OneToManyInline(id='inline_5_0'), OneToManyInline(id='inline_5_1')]
         """
 
+        # test integrity of relationships
+        for leaf in leaves:
+            for row in leaf.onetomany_rows:
+                self.assertEqual(row.leaf, leaf)
+
+        # write/read to/from Excel
         objects = set((root, )) | root.get_related()
         objects = utils.group_objects_by_model(objects)
 
-        ExcelIo.write(self.filename, set((root,)), [Root, ])
-        objects2 = ExcelIo.read(self.filename, set((Root, Node, Leaf, )))
+        ExcelIo.write(self.filename, set((root,)), [Root, Node, Leaf, ])
+        objects2 = ExcelIo.read(self.filename, set((Root, Node, Leaf, OneToManyRow)))
 
-        self.assertEqual(len(objects2[Root]), 1)
+        # test objects saved and loaded correctly
+        self.assertEqual(len(objects2), len(objects))
+        for model in objects.keys():
+            self.assertEqual(len(objects2[model]), len(objects[model]))
 
         root2 = objects2[Root].pop()
         self.assertEqual(set([x.id for x in root2.nodes]), set([x.id for x in root.nodes]))

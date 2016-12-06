@@ -208,6 +208,13 @@ class ExcelIo(object):
         # load workbook
         workbook = load_workbook(filename=filename)
 
+        # check that models are defined for each worksheet
+        sheet_names = set(workbook.get_sheet_names())
+        model_names = set((model.Meta.verbose_name_plural for model in models))
+        extra_sheets = sheet_names.difference(model_names)
+        if extra_sheets:
+            raise ValueError('Models must be defined for the following worksheets: {}'.format(', '.join(extra_sheets)))
+
         # read objects
         attributes = {}
         data = {}
@@ -228,7 +235,7 @@ class ExcelIo(object):
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
             for model, model_errors in errors.items():
                 msg += '- {}:\n  - {}\n'.format(model.__name__, '\n  - '.join(model_errors))
-            ValueError(msg)
+            raise ValueError(msg)
 
         # link objects
         errors = {}
@@ -246,7 +253,7 @@ class ExcelIo(object):
                         msg += '  - {}\n'.format(model_error)
                     else:
                         msg += '  - {}\n'.format('  - {}\n'.join(model_error.messages))
-            ValueError(msg)
+            raise ValueError(msg)
 
         # convert to sets
         for model in models:
@@ -262,7 +269,7 @@ class ExcelIo(object):
 
         errors = Validator().run(all_objects)
         if errors:
-            ValueError(str(errors))
+            raise ValueError(str(errors))
 
         # return
         return objects

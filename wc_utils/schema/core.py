@@ -2081,9 +2081,12 @@ class ManyToOneAttribute(RelatedAttribute):
         if not self.related_name:
             raise ValueError('Related property is not defined')
 
+        new_values_copy = list(new_values)
+
         cur_values = getattr(obj, self.related_name)
         cur_values.clear()
-        cur_values.update(new_values)
+        cur_values.update(new_values_copy)
+
         return cur_values
 
     def validate(self, obj, value):
@@ -2235,9 +2238,12 @@ class OneToManyAttribute(RelatedAttribute):
         Returns:
             :obj:`set`: value of the attribute
         """
+        new_values_copy = list(new_values)
+
         cur_values = getattr(obj, self.name)
         cur_values.clear()
-        cur_values.update(new_values)
+        cur_values.update(new_values_copy)
+
         return cur_values
 
     def set_related_value(self, obj, new_value):
@@ -2435,9 +2441,11 @@ class ManyToManyAttribute(RelatedAttribute):
         Returns:
             :obj:`set`: new attribute value
         """
+        new_values_copy = list(new_values)
+
         cur_values = getattr(obj, self.name)
         cur_values.clear()
-        cur_values.update(new_values)
+        cur_values.update(new_values_copy)
 
         return cur_values
 
@@ -2454,9 +2462,12 @@ class ManyToManyAttribute(RelatedAttribute):
         if not self.related_name:
             raise ValueError('Related property is not defined')
 
+        new_values_copy = list(new_values)
+
         cur_values = getattr(obj, self.related_name)
         cur_values.clear()
-        cur_values.update(new_values)
+        cur_values.update(new_values_copy)
+
         return cur_values
 
     def validate(self, obj, value):
@@ -2666,7 +2677,7 @@ class RelatedManager(set):
         Args:
             values (:obj:`set`): values to difference with set
         """
-        for value in values:
+        for value in list(values):
             if value in self:
                 self.remove(value)
 
@@ -2676,15 +2687,13 @@ class RelatedManager(set):
         Args:
             values (:obj:`set`): values to difference with set
         """
-        for value in list(self):
-            if value in values:
-                self.remove(value)
-                values.remove(value)
+        self_copy = set(self)
+        values_copy = set(values)
 
-        for value in list(values):
-            if value in self:
-                self.remove(value)
-                values.remove(value)
+        for value in chain(self_copy, values_copy):
+            if value in self_copy:
+                if value in values_copy:
+                    self.remove(value)
             else:
                 self.add(value)
 

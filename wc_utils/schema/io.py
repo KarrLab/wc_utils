@@ -8,7 +8,7 @@
 
 from collections import OrderedDict
 from itertools import chain
-from natsort import natsort_keygen, ns
+from natsort import natsorted, ns
 from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -59,8 +59,8 @@ class ExcelIo(object):
         workbook.remove_sheet(workbook.active)
 
         # add sheets
-        unordered_models = list(set(grouped_objects.keys()).difference(set(model_order)))
-        unordered_models.sort(key=natsort_keygen(key=lambda model: model.Meta.verbose_name_plural, alg=ns.IGNORECASE))
+        unordered_models = natsorted(set(grouped_objects.keys()).difference(set(model_order)),
+                                     lambda model: model.Meta.verbose_name_plural, alg=ns.IGNORECASE)
 
         for model in chain(model_order, unordered_models):
             if model.Meta.tabular_orientation == TabularOrientation['inline']:
@@ -93,8 +93,7 @@ class ExcelIo(object):
         headings = [[attr.verbose_name for attr in attributes]]
 
         # objects
-        objects = list(objects)
-        objects.sort(key=natsort_keygen(key=lambda obj: obj.get_primary_attribute(), alg=ns.IGNORECASE))
+        objects = natsorted(objects, lambda obj: obj.serialize(), alg=ns.IGNORECASE)
 
         data = []
         for obj in objects:

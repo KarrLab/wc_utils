@@ -239,7 +239,7 @@ class ExcelIo(object):
 
         # link objects
         errors = {}
-        for model in objects.keys():
+        for model in list(objects.keys()):
             model_errors = cls.link_model(model, attributes[model], data[model], objects)
             if model_errors:
                 errors[model] = model_errors

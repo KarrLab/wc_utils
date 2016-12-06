@@ -53,13 +53,13 @@ class Leaf(core.Model):
     nodes = core.ManyToManyAttribute(Node, related_name='leaves')
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()
-    #onetomany_rows = OneToManyRowAttribute('OneToManyRow', related_name='leaf', related_none=False)
+    onetomany_rows = OneToManyRowAttribute('OneToManyRow', related_name='leaf', related_none=False)
     #onetomany_inlines = OneToManyInlineAttribute('OneToManyInline', related_name='leaf', related_none=False)
 
     class Meta(core.Model.Meta):
         attribute_order = (
             'id', 'nodes', 'val1', 'val2',
-            #'onetomany_rows',  # 'onetomany_inlines'
+            'onetomany_rows',  # 'onetomany_inlines'
         )
 
 
@@ -84,8 +84,9 @@ class TestIo(unittest.TestCase):
         _, self.filename = tempfile.mkstemp(suffix='.xlsx')
 
     def tearDown(self):
-        if os.path.isfile(self.filename):
-            os.remove(self.filename)
+        print(self.filename)
+        #if os.path.isfile(self.filename): todo
+        #    os.remove(self.filename)
 
     def test_write_read(self):
         root = Root(id='root', name=u'\u20ac')
@@ -102,14 +103,12 @@ class TestIo(unittest.TestCase):
             Leaf(nodes=[nodes[2]], id='leaf_2_0', val1=15, val2=16),
             Leaf(nodes=[nodes[2]], id='leaf_2_1', val1=17, val2=18),
         ]
-        """
         leaves[0].onetomany_rows = [OneToManyRow(id='row_0_0'), OneToManyRow(id='row_0_1')]
         leaves[1].onetomany_rows = [OneToManyRow(id='row_1_0'), OneToManyRow(id='row_1_1')]
         leaves[2].onetomany_rows = [OneToManyRow(id='row_2_0'), OneToManyRow(id='row_2_1')]
         leaves[3].onetomany_rows = [OneToManyRow(id='row_3_0'), OneToManyRow(id='row_3_1')]
         leaves[4].onetomany_rows = [OneToManyRow(id='row_4_0'), OneToManyRow(id='row_4_1')]
         leaves[5].onetomany_rows = [OneToManyRow(id='row_5_0'), OneToManyRow(id='row_5_1')]
-        """
 
         """
         leaves[0].onetomany_inlines = [OneToManyInline(id='inline_0_0'), OneToManyInline(id='inline_0_1')]
@@ -129,9 +128,8 @@ class TestIo(unittest.TestCase):
         self.assertEqual(len(objects2[Root]), 1)
 
         root2 = objects2[Root].pop()
-        self.assertEqual(root2, root)
-        self.assertEqual(len(root2.nodes), len(root.nodes))
         self.assertEqual(set([x.id for x in root2.nodes]), set([x.id for x in root.nodes]))
+        self.assertEqual(root2, root)
 
         # unicode
         self.assertEqual(root2.name, u'\u20ac')

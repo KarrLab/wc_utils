@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from collections import OrderedDict
 from itertools import chain
 from natsort import natsort_keygen, ns
 from openpyxl import Workbook, load_workbook
@@ -42,7 +43,7 @@ class ExcelIo(object):
         error = Validator().run(all_objects)
 
         if error:
-           raise ValueError(str(error))
+            raise ValueError(str(error))
 
         # group objects by class
         grouped_objects = {}
@@ -208,15 +209,20 @@ class ExcelIo(object):
         workbook = load_workbook(filename=filename)
 
         # read objects
+        attributes = {}
+        data = {}
         errors = {}
         objects = {}
         for model in models:
-            model_objects, model_errors = cls.read_model(workbook, model, objects, set_related=False)
-
-            if model_objects:
-                objects[model] = model_objects
+            model_attributes, model_data, model_errors, model_objects = cls.read_model(workbook, model)
+            if model_attributes:
+                attributes[model] = model_attributes
+            if model_data:
+                data[model] = model_data
             if model_errors:
                 errors[model] = model_errors
+            if model_objects:
+                objects[model] = model_objects
 
         if errors:
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
@@ -226,8 +232,8 @@ class ExcelIo(object):
 
         # link objects
         errors = {}
-        for model in models:
-            _, model_errors = cls.read_model(workbook, model, objects, set_related=True)
+        for model in objects.keys():
+            model_errors = cls.link_model(model, attributes[model], data[model], objects)
             if model_errors:
                 errors[model] = model_errors
 
@@ -262,21 +268,26 @@ class ExcelIo(object):
         return objects
 
     @classmethod
-    def read_model(cls, workbook, model, all_objects, set_related=False):
+    def read_model(cls, workbook, model):
         """ Read a set of objects from an Excel worksheet
 
         Args:
             workbook (:obj:`Workbook`): workbook
             model (:obj:`class`): model
-            all_objects (:obj:`dict`): dictionary of model object grouped by model
-            set_related (:obj:`bool`, optional): if true, set values of `RelatedAttribute`
 
         Returns:
-            :obj:`tuple` of `dict` of `object` => `Model`, `list` of `str`: tuple of a list of objects and 
-                a list of parsing errors
+            :obj:`tuple` of
+                `list` of `Attribute`,
+                `list` of `list` of `object`,
+                `list` of `str`,
+                `OrderedDict` of `object` => `Model`,: tuple of
+                * attribute order of `data`
+                * a two-dimensional nested list of object data
+                * a list of parsing errors
+                * a ordered dictionary of objects
         """
         if model.Meta.verbose_name_plural not in workbook:
-            return ([], None)
+            return ([], [], None, [])
 
         # get worksheet
         if model.Meta.tabular_orientation == TabularOrientation['row']:
@@ -306,24 +317,17 @@ class ExcelIo(object):
                 attributes.append(attr)
 
         if errors:
-            return (None, errors)
+            return ([], [], errors, [])
 
         # read data
-        objects = {}
+        objects = OrderedDict()
         errors = []
         for obj_data in data:
             obj = model()
 
             for attr, attr_value in zip(attributes, obj_data):
-                if not set_related and not isinstance(attr, RelatedAttribute):
+                if not isinstance(attr, RelatedAttribute):
                     value, error = attr.deserialize(attr_value)
-                    if error:
-                        errors.append(error)
-                    else:
-                        setattr(obj, attr.name, value)
-
-                elif set_related and isinstance(attr, RelatedAttribute):
-                    value, error = attr.deserialize(attr_value, all_objects)
                     if error:
                         errors.append(error)
                     else:
@@ -331,7 +335,33 @@ class ExcelIo(object):
 
             objects[obj.get_primary_attribute()] = obj
 
-        return (objects, errors)
+        return (attributes, data, errors, objects)
+
+    @classmethod
+    def link_model(cls, model, attributes, data, objects):
+        """ Read a set of objects from an Excel worksheet
+
+        Args:
+            model (:obj:`class`): model
+            attributes (:obj:`list` of `Attribute`): attribute order of `data`
+            data (:obj:`list` of `list` of `object`): nested list of object data
+            objects (:obj:`dict`): dictionary of model objects grouped by model
+
+        Returns:
+            :obj:`list` of `str`: list of parsing errors
+        """
+
+        errors = []
+        for obj_data, obj in zip(data, objects[model].values()):
+            for attr, attr_value in zip(attributes, obj_data):
+                if isinstance(attr, RelatedAttribute):
+                    value, error = attr.deserialize(attr_value, objects)
+                    if error:
+                        errors.append(error)
+                    else:
+                        setattr(obj, attr.name, value)
+
+        return errors
 
     @staticmethod
     def read_sheet(workbook, sheet_name, num_row_heading_columns=0, num_column_heading_rows=0):

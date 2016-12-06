@@ -352,7 +352,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         Returns:
             :obj:`bool`: `True` if objects are semantically equal, else `False`
-        """        
+        """
 
         if self is other:
             return True
@@ -388,7 +388,7 @@ class Model(with_metaclass(ModelMeta, object)):
                             break
                     if not match:
                         return False
-                        
+
             elif val != other_val:
                 return False
 
@@ -1380,7 +1380,7 @@ class RegexAttribute(StringAttribute):
             errors = []
 
         if not re.match(self.pattern, value, flags=self.flags):
-            errors.append('Value must match pattern: {:s}'.format(self.pattern))
+            errors.append('Value "{}" does not match pattern: {}'.format(value, self.pattern))
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -1417,8 +1417,8 @@ class UrlAttribute(RegexAttribute):
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
-        super(UrlAttribute, self).__init__(pattern=r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)',
-                                           flags=0,
+        super(UrlAttribute, self).__init__(pattern=r'^(?:http|ftp)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?(?:/?|[/?]\S+)$',
+                                           flags=re.I,
                                            min_length=1, max_length=2**16 - 1,
                                            default='', verbose_name=verbose_name, help=help,
                                            primary=primary, unique=unique)
@@ -2598,7 +2598,7 @@ class RelatedManager(set):
         self.related = related
 
     def create(self, **kwargs):
-        """ Create instance of primary class and add to set 
+        """ Create instance of primary class and add to set
 
         Args:
             kwargs (:obj:`dict` of `str`: `object`): dictionary of attribute name/value pairs
@@ -2689,7 +2689,7 @@ class RelatedManager(set):
                 self.add(value)
 
     def get(self, **kwargs):
-        """ Get related objects by attribute/value pairs 
+        """ Get related objects by attribute/value pairs
 
         Args:
             **kwargs (:obj:`dict` of `str`:`object`): dictionary of attribute name/value pairs to find matching
@@ -2713,7 +2713,7 @@ class RelatedManager(set):
             raise ValueError('Multiple objects match the attribute name/value pair(s)')
 
     def filter(self, **kwargs):
-        """ Get related objects by attribute/value pairs 
+        """ Get related objects by attribute/value pairs
 
         Args:
             **kwargs (:obj:`dict` of `str`:`object`): dictionary of attribute name/value pairs to find matching

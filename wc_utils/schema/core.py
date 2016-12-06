@@ -430,12 +430,11 @@ class Model(with_metaclass(ModelMeta, object)):
         """ Get difference between two model objects
 
         Args:
-            self (:obj:`Model`): model object
             other (:obj:`Model`): other model object
             _seen (:obj:`set`, optional): pairs of objects that have already been compared
 
         Returns:
-            :obj:`str`: error message
+            :obj:`str`: difference message
         """
         othr = other
 

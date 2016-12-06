@@ -344,15 +344,21 @@ class Model(with_metaclass(ModelMeta, object)):
 
         super(Model, self).__setattr__(attr_name, value)
 
-    def __eq__(self, other, _checked=None):
+    def __eq__(self, other, _seen=None):
         """ Determine if two objects are semantically equal
 
         Args:
-            other (:obj:`object`): object to compare
+            other (:obj:`Model`): object to compare
+            _seen (:obj:`set`, optional): pairs of objects that have already been compared
 
         Returns:
             :obj:`bool`: `True` if objects are semantically equal, else `False`
         """
+        if _seen is None:
+            _seen = set()
+        if (self, other) in _seen:
+            return True
+        _seen.add((self, other))
 
         if self is other:
             return True
@@ -360,17 +366,12 @@ class Model(with_metaclass(ModelMeta, object)):
         if not self.__class__ is other.__class__:
             return False
 
-        _checked = _checked or set()
-        if (self, other) in _checked:
-            return True
-        _checked.add((self, other))
-
         for attr_name in chain(self.Meta.attributes.keys(), self.Meta.related_attributes.keys()):
             val = getattr(self, attr_name)
             other_val = getattr(other, attr_name)
 
             if isinstance(val, Model):
-                if not val.__eq__(other_val, _checked):
+                if not val.__eq__(other_val, _seen):
                     return False
 
             elif isinstance(val, (set, list)):
@@ -383,7 +384,7 @@ class Model(with_metaclass(ModelMeta, object)):
                 for v in val:
                     match = False
                     for ov in other_val:
-                        if v.__eq__(ov, _checked):
+                        if v.__eq__(ov, _seen):
                             match = True
                             break
                     if not match:
@@ -424,6 +425,100 @@ class Model(with_metaclass(ModelMeta, object)):
             return '<{}.{}: {}>'.format(self.__class__.__module__, self.__class__.__name__, getattr(self, self.__class__.Meta.primary_attribute.name))
 
         return super(Model, self).__str__()
+
+    def diff(self, other, _seen=None):
+        """ Get difference between two model objects
+
+        Args:
+            self (:obj:`Model`): model object
+            other (:obj:`Model`): other model object
+            _seen (:obj:`set`, optional): pairs of objects that have already been compared
+
+        Returns:
+            :obj:`str`: error message
+        """
+        othr = other
+
+        if _seen is None:
+            _seen = set()
+
+        if (self, othr) in _seen:
+            return ''
+        _seen.add((self, othr))
+
+        cls_self = self.__class__
+        cls_othr = othr.__class__
+        if cls_self is not cls_othr:
+            return 'Objects have different types "{}" and "{}"'.format(cls_self, cls_othr)
+
+        cls = cls_othr
+        msgs = []
+
+        attr_names = natsorted(chain(cls.Meta.attributes.keys(), cls.Meta.related_attributes.keys()), alg=ns.IGNORECASE)
+        for attr_name in attr_names:
+            val_self = getattr(self, attr_name)
+            val_othr = getattr(othr, attr_name)
+
+            if isinstance(val_self, Model):
+                msg = val_self.diff(val_othr, _seen)
+
+            elif isinstance(val_self, (set, list)):
+                if not isinstance(val_othr, (set, list)):
+                    msg = 'Class: {} != Class: {}'.format(val_self, val_othr)
+
+                elif len(val_self) != len(val_othr):
+                    msg = 'Length: {} != Length: {}'.format(len(val_self), len(val_othr))
+
+                else:
+                    attr_msgs = []
+                    for v_self in val_self:
+                        serial_self = v_self.serialize()
+
+                        match = None
+                        for v_othr in val_othr:
+                            serial_othr = v_othr.serialize()
+
+                            if serial_self == serial_othr:
+                                attr_msg = v_self.diff(v_othr, _seen)
+                                if serial_self or not attr_msg:
+                                    match = serial_othr
+                                    break
+
+                        if match:
+                            if attr_msg:
+                                attr_msgs.append('element: "{}" != element: "{}"\n  {}'.format(
+                                    serial_self, serial_othr, attr_msg.replace('\n', '\n  ')))
+                        else:
+                            attr_msgs.append('No matching element {}'.format(serial_self))
+
+                    msg = '\n'.join(attr_msgs)
+
+            elif val_self != val_othr:
+                msg = '{} != {}'.format(val_self, val_othr)
+
+            else:
+                msg = ''
+
+            if msg:
+                msgs.append('`{}` are not equal:\n  {}'.format(attr_name, msg.replace('\n', '\n  ')))
+
+        if msgs:
+            id_self = self.serialize() or 'instance: '
+            id_othr = othr.serialize()
+
+            if id_self:
+                id_self = '"' + id_self + '"'
+            else:
+                id_self = 'instance: ' + cls.__name__
+
+            if id_othr:
+                id_othr = '"' + id_othr + '"'
+            else:
+                id_othr = 'instance: ' + cls.__name__
+
+            return 'Objects ({}, {}) have different attribute values:\n  {}'.format(id_self, id_othr, '\n'.join(msgs).replace('\n', '\n  '))
+
+        return ''
 
     def get_primary_attribute(self):
         """ Get values of primary attribute

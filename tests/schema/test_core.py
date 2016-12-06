@@ -62,15 +62,18 @@ class Leaf3(UnrootedLeaf):
 
 class Grandparent(core.Model):
     id = core.StringAttribute(max_length=1, primary=True, unique=True)
+    val = core.StringAttribute()
 
 
 class Parent(core.Model):
     id = core.StringAttribute(max_length=2, primary=True, unique=True)
+    val = core.StringAttribute()
     grandparent = core.ManyToOneAttribute(Grandparent, related_name='children', none=False)
 
 
 class Child(core.Model):
     id = core.StringAttribute(primary=True)
+    val = core.StringAttribute()
     parent = core.ManyToOneAttribute(Parent, related_name='children', none=False)
 
 
@@ -1077,3 +1080,92 @@ class TestCore(unittest.TestCase):
         copy = g1.copy()
         self.assertFalse(copy is g1)
         self.assertEqual(copy, g1)
+
+    def test_diff(self):
+        g = [
+            Grandparent(id='g', val='gparent_0'),
+            Grandparent(id='g', val='gparent_0'),
+        ]
+        p = [
+            Parent(grandparent=g[0], id='p_0', val='parent_0'),
+            Parent(grandparent=g[0], id='p_1', val='parent_1'),
+            Parent(grandparent=g[1], id='p_0', val='parent_0'),
+            Parent(grandparent=g[1], id='p_1', val='parent_1'),
+        ]
+        c = [
+            Child(parent=p[0], id='c_0_0', val='child_0_0'),
+            Child(parent=p[0], id='c_0_1', val='child_0_1'),
+            Child(parent=p[1], id='c_1_0', val='child_1_0'),
+            Child(parent=p[1], id='c_1_1', val='child_1_1'),
+            Child(parent=p[2], id='c_0_0', val='child_0_0'),
+            Child(parent=p[2], id='c_0_1', val='child_0_1'),
+            Child(parent=p[3], id='c_1_0', val='child_1_0'),
+            Child(parent=p[3], id='c_1_1', val='child_1_1'),
+        ]
+
+        self.assertEqual(g[0].diff(g[1]), '')
+
+        g[1].val = 'gparent_1'
+        msg = (
+            'Objects ("g", "g") have different attribute values:\n'
+            '  `val` are not equal:\n'
+            '    gparent_0 != gparent_1'
+        )
+        self.assertEqual(g[0].diff(g[1]), msg)
+
+        g[1].val = 'gparent_1'
+        c[4].val = 'child_3_0'
+        msg = (
+            'Objects ("g", "g") have different attribute values:\n'
+            '  `children` are not equal:\n'
+            '    element: "p_0" != element: "p_0"\n'
+            '      Objects ("p_0", "p_0") have different attribute values:\n'
+            '        `children` are not equal:\n'
+            '          element: "c_0_0" != element: "c_0_0"\n'
+            '            Objects ("c_0_0", "c_0_0") have different attribute values:\n'
+            '              `val` are not equal:\n'
+            '                child_0_0 != child_3_0\n'
+            '  `val` are not equal:\n'
+            '    gparent_0 != gparent_1'
+        )
+        self.assertEqual(g[0].diff(g[1]), msg)
+
+        g[1].val = 'gparent_1'
+        c[4].val = 'child_3_0'
+        c[5].val = 'child_3_1'
+        msg = (
+            'Objects ("g", "g") have different attribute values:\n'
+            '  `children` are not equal:\n'
+            '    element: "p_0" != element: "p_0"\n'
+            '      Objects ("p_0", "p_0") have different attribute values:\n'
+            '        `children` are not equal:\n'
+            '          element: "c_0_0" != element: "c_0_0"\n'
+            '            Objects ("c_0_0", "c_0_0") have different attribute values:\n'
+            '              `val` are not equal:\n'
+            '                child_0_0 != child_3_0\n'
+            '          element: "c_0_1" != element: "c_0_1"\n'
+            '            Objects ("c_0_1", "c_0_1") have different attribute values:\n'
+            '              `val` are not equal:\n'
+            '                child_0_1 != child_3_1\n'
+            '  `val` are not equal:\n'
+            '    gparent_0 != gparent_1'
+        )
+        self.assertEqual(g[0].diff(g[1]), msg)
+
+        g[1].val = 'gparent_1'
+        c[4].val = 'child_3_0'
+        c[4].id = 'c_3_0'
+        c[5].val = 'child_3_1'
+        c[5].id = 'c_3_1'
+        msg = (
+            'Objects ("g", "g") have different attribute values:\n'
+            '  `children` are not equal:\n'
+            '    element: "p_0" != element: "p_0"\n'
+            '      Objects ("p_0", "p_0") have different attribute values:\n'
+            '        `children` are not equal:\n'
+            '          No matching element c_0_0\n'
+            '          No matching element c_0_1\n'
+            '  `val` are not equal:\n'
+            '    gparent_0 != gparent_1'
+        )
+        self.assertEqual(g[0].diff(g[1]), msg)

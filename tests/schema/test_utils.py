@@ -67,10 +67,10 @@ class TestUtils(unittest.TestCase):
         errors = utils.get_related_errors(root)
         self.assertEqual(set((x.object for x in errors.objects)), set((root, )) | set(nodes))
 
-        errors_by_model = utils.group_object_set_errors_by_model(errors)
+        errors_by_model = errors.get_object_errors_by_model()
         self.assertEqual(set((x.__name__ for x in errors_by_model.keys())), set(('Root', 'Node')))
 
         self.assertEqual(len(errors_by_model[Root]), 1)
         self.assertEqual(len(errors_by_model[Node]), 2)
 
-        self.assertIsInstance(utils.get_object_set_error_string(errors), string_types)
+        self.assertIsInstance(str(errors), string_types)

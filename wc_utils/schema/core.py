@@ -12,7 +12,8 @@ from datetime import date, time, datetime
 from enum import Enum
 from itertools import chain
 from math import floor, isnan
-from natsort import natsort_keygen, ns
+from natsort import natsorted, ns
+from operator import attrgetter
 from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
 from wc_utils.util.types import get_subclasses, get_superclasses
@@ -179,8 +180,7 @@ class ModelMeta(type):
                 if isinstance(getattr(base, attr_name), Attribute) and attr_name not in ordered_attributes:
                     unordered_attributes.add(attr_name)
 
-        unordered_attributes = list(unordered_attributes)
-        unordered_attributes.sort(key=natsort_keygen(alg=ns.IGNORECASE))
+        unordered_attributes = natsorted(unordered_attributes, alg=ns.IGNORECASE)
 
         cls.Meta.attribute_order = tuple(ordered_attributes + unordered_attributes)
 
@@ -344,7 +344,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         super(Model, self).__setattr__(attr_name, value)
 
-    def __eq__(self, other):
+    def __eq__(self, other, _checked=None):
         """ Determine if two objects are semantically equal
 
         Args:
@@ -352,15 +352,44 @@ class Model(with_metaclass(ModelMeta, object)):
 
         Returns:
             :obj:`bool`: `True` if objects are semantically equal, else `False`
-        """
+        """        
+
         if self is other:
             return True
 
         if not self.__class__ is other.__class__:
             return False
 
-        for attr_name in self.Meta.attributes.keys():
-            if getattr(self, attr_name) != getattr(other, attr_name):
+        _checked = _checked or set()
+        if (self, other) in _checked:
+            return True
+        _checked.add((self, other))
+
+        for attr_name in chain(self.Meta.attributes.keys(), self.Meta.related_attributes.keys()):
+            val = getattr(self, attr_name)
+            other_val = getattr(other, attr_name)
+
+            if isinstance(val, Model):
+                if not val.__eq__(other_val, _checked):
+                    return False
+
+            elif isinstance(val, (set, list)):
+                if not isinstance(other_val, (set, list)):
+                    return False
+
+                if len(val) != len(other_val):
+                    return False
+
+                for v in val:
+                    match = False
+                    for ov in other_val:
+                        if v.__eq__(ov, _checked):
+                            match = True
+                            break
+                    if not match:
+                        return False
+                        
+            elif val != other_val:
                 return False
 
         return True
@@ -483,11 +512,13 @@ class Model(with_metaclass(ModelMeta, object)):
         errors = []
 
         for attr_name, attr in self.Meta.attributes.items():
-            value, error = attr.clean(getattr(self, attr_name))
+            value = getattr(self, attr_name)
+            clean_value, error = attr.clean(value)
+
             if error:
                 errors.append(error)
             else:
-                setattr(self, attr_name, value)
+                self.__setattr__(attr_name, clean_value)
 
         if errors:
             return InvalidObject(self, errors)
@@ -1007,7 +1038,7 @@ class FloatAttribute(Attribute):
 
         if isinstance(value, float):
             if not self.nan and isnan(value):
-                errors.append('Value cannot be nan')
+                errors.append('Value cannot be `nan`')
 
             if (not isnan(self.min)) and (not isnan(value)) and (value < self.min):
                 errors.append('Value must be at least {:f}'.format(self.min))
@@ -1930,7 +1961,7 @@ class OneToOneAttribute(RelatedAttribute):
                 errors.append('Object must be related value')
 
         if errors:
-            return InvalidAttribute(self, errors)
+            return InvalidAttribute(self, errors, related=True)
         return None
 
     def serialize(self, value):
@@ -1942,6 +1973,9 @@ class OneToOneAttribute(RelatedAttribute):
         Returns:
             :obj:`str`: simple Python representation
         """
+        if value is None:
+            return ''
+
         primary_attr = value.__class__.Meta.primary_attribute
         return primary_attr.serialize(getattr(value, primary_attr.name))
 
@@ -2111,7 +2145,7 @@ class ManyToOneAttribute(RelatedAttribute):
                     errors.append('Object must be related value')
 
         if errors:
-            return InvalidAttribute(self, errors)
+            return InvalidAttribute(self, errors, related=True)
         return None
 
     def serialize(self, value):
@@ -2123,6 +2157,9 @@ class ManyToOneAttribute(RelatedAttribute):
         Returns:
             :obj:`str`: simple Python representation
         """
+        if value is None:
+            return ''
+
         primary_attr = value.__class__.Meta.primary_attribute
         return primary_attr.serialize(getattr(value, primary_attr.name))
 
@@ -2289,7 +2326,7 @@ class OneToManyAttribute(RelatedAttribute):
                     errors.append('Object must be in related values')
 
         if errors:
-            return InvalidAttribute(self, errors)
+            return InvalidAttribute(self, errors, related=True)
         return None
 
     def serialize(self, value):
@@ -2305,7 +2342,7 @@ class OneToManyAttribute(RelatedAttribute):
         serialized_vals = []
         for v in value:
             primary_attr = v.__class__.Meta.primary_attribute
-            serialized_vals.push(primary_attr.serialize(getattr(v, primary_attr.name)))
+            serialized_vals.append(primary_attr.serialize(getattr(v, primary_attr.name)))
 
         return ', '.join(serialized_vals)
 
@@ -2330,14 +2367,14 @@ class OneToManyAttribute(RelatedAttribute):
             related_objs = []
             related_classes = chain([self.related_class], get_subclasses(self.related_class))
             for related_class in related_classes:
-                if issubclass(related_class, Model) and value in objects[related_class]:
+                if issubclass(related_class, Model) and related_class in objects and value in objects[related_class]:
                     related_objs.append(objects[related_class][value])
 
             if len(related_objs) == 1:
                 deserialized_values.add(related_objs[0])
             elif len(related_objs) == 0:
                 errors.append('Unable to find {} with {}={}'.format(
-                    self.related_class.__name__, primary_attr.name, value))
+                    self.related_class.__name__, self.related_class.Meta.primary_attribute.name, value))
             else:
                 errors.append('Multiple matching objects with primary attribute = {}'.format(value))
 
@@ -2483,7 +2520,7 @@ class ManyToManyAttribute(RelatedAttribute):
                     errors.append('Object must be in related values')
 
         if errors:
-            return InvalidAttribute(self, errors)
+            return InvalidAttribute(self, errors, related=True)
         return None
 
     def serialize(self, value):
@@ -2499,7 +2536,7 @@ class ManyToManyAttribute(RelatedAttribute):
         serialized_vals = []
         for v in value:
             primary_attr = v.__class__.Meta.primary_attribute
-            serialized_vals.push(primary_attr.serialize(getattr(v, primary_attr.name)))
+            serialized_vals.append(primary_attr.serialize(getattr(v, primary_attr.name)))
 
         return ', '.join(serialized_vals)
 
@@ -2830,6 +2867,57 @@ class InvalidObjectSet(object):
         self.objects = objects or []
         self.models = models or []
 
+    def get_object_errors_by_model(self):
+        """ Get object errors grouped by models
+
+        Returns:
+            :obj:`dict` of `Model`: `list` of `InvalidObject`: dictionary of object errors, grouped by model
+        """
+
+        obj_by_model = {}
+        for obj in self.objects:
+            if obj.object.__class__ not in obj_by_model:
+                obj_by_model[obj.object.__class__] = []
+            obj_by_model[obj.object.__class__].append(obj)
+
+        return obj_by_model
+
+    def get_model_errors_by_model(self):
+        """ Get object errors grouped by models
+
+        Returns:
+            :obj:`dict` of `Model`: `InvalidModel`: dictionary of model errors, grouped by model
+        """
+        return {model.model: model for model in self.models}
+
+    def __str__(self):
+        """ Get string representation of errors
+
+        Returns:
+            :obj:`str`: string representation of errors
+        """
+        str = ''
+
+        obj_errs = self.get_object_errors_by_model()
+        mdl_errs = self.get_model_errors_by_model()
+
+        models = set(obj_errs.keys())
+        models.update(set(mdl_errs.keys()))
+        models = natsorted(models, attrgetter('__name__'), alg=ns.IGNORECASE)
+
+        for model in models:
+            str += '{}:\n'.format(model.__name__)
+
+            if model in obj_errs:
+                errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
+                for obj_err in errs:
+                    str += '  ' + obj_err.__str__().replace('\n', '\n  ').rstrip(' ')
+
+            if model in mdl_errs:
+                str += mdl_errs[model].__str__().replace('\n', '\n  ').rstrip(' ')
+
+        return str
+
 
 class InvalidModel(object):
     """ Represents an invalid model, such as a model with an attribute that doesn't have unique values
@@ -2847,6 +2935,17 @@ class InvalidModel(object):
         """
         self.model = model
         self.attributes = attributes
+
+    def __str__(self):
+        """ Get string representation of errors
+
+        Returns:
+            :obj:`str`: string representation of errors
+        """
+        str = ''
+        for attr in self.attributes:
+            str += attr.__str__()
+        return str
 
 
 class InvalidObject(object):
@@ -2866,6 +2965,17 @@ class InvalidObject(object):
         self.object = object
         self.attributes = attributes
 
+    def __str__(self):
+        """ Get string representation of errors
+
+        Returns:
+            :obj:`str`: string representation of errors
+        """
+        str = '{}:\n'.format(self.object.get_primary_attribute())
+        for attr in self.attributes:
+            str += '  ' + attr.__str__().replace('\n', '\n  ').rstrip(' ')
+        return str
+
 
 class InvalidAttribute(object):
     """ Represents an invalid attribute and its errors
@@ -2873,16 +2983,35 @@ class InvalidAttribute(object):
     Attributes:
         attribute (:obj:`Attribute`): invalid attribute
         message (:obj:`list` of `str`): list of error message
+        related (:obj:`bool`): indicates if error is about value or related value
     """
 
-    def __init__(self, attribute, messages):
+    def __init__(self, attribute, messages, related=False):
         """
         Args:
             attribute (:obj:`Attribute`): invalid attribute
             message (:obj:`list` of `str`): list of error message
+            related (:obj:`bool`, optional): indicates if error is about value or related value
         """
         self.attribute = attribute
         self.messages = messages
+        self.related = related
+
+    def __str__(self):
+        """ Get string representation of errors
+
+        Returns:
+            :obj:`str`: string representation of errors
+        """
+        if self.related:
+            str = '{}:\n'.format(self.attribute.related_name)
+        else:
+            str = '{}:\n'.format(self.attribute.name)
+
+        for msg in self.messages:
+            str += '  {}\n'.format(msg)
+
+        return str
 
 
 def get_model(name):

@@ -15,7 +15,7 @@ from openpyxl.utils import get_column_letter
 from wc_utils.util.list import transpose
 from wc_utils.schema import utils
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation
-from six import string_types
+from six import integer_types, string_types
 
 
 class ExcelIo(object):
@@ -39,9 +39,10 @@ class ExcelIo(object):
 
         # clean objects
         all_objects = objects | more_objects
-        error = Validator().clean(all_objects)
+        error = Validator().run(all_objects)
+
         if error:
-            raise(error)
+           raise ValueError(str(error))
 
         # group objects by class
         grouped_objects = {}
@@ -175,10 +176,14 @@ class ExcelIo(object):
                     data_type = Cell.TYPE_STRING
                 elif isinstance(value, bool):
                     data_type = Cell.TYPE_BOOL
-                elif isinstance(value, float):
+                elif isinstance(value, (integer_types, float)):
                     data_type = Cell.TYPE_NUMERIC
-                else:
-                    raise ValueError('Cannot save values of type "{}"'.format(value.__class__.__name__))
+                elif value is not None:
+                    raise ValueError('Cannot save values of type "{}" at sheet "{}" row={}, attribute={}'.format(
+                        value.__class__.__name__,
+                        sheet_name,
+                        1 + len(column_headings) + i_row,
+                        column_headings[-1][i_col]))
 
                 if value is not None:
                     cell.set_explicit_value(value=value, data_type=data_type)
@@ -207,6 +212,7 @@ class ExcelIo(object):
         objects = {}
         for model in models:
             model_objects, model_errors = cls.read_model(workbook, model, objects, set_related=False)
+
             if model_objects:
                 objects[model] = model_objects
             if model_errors:
@@ -228,12 +234,20 @@ class ExcelIo(object):
         if errors:
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
             for model, model_errors in errors.items():
-                msg += '- {}:\n  - {}\n'.format(model.__name__, '\n  - '.join(model_errors))
+                msg += '- {}:\n'.format(model.__name__)
+                for model_error in model_errors:
+                    if isinstance(model_error, str):
+                        msg += '  - {}\n'.format(model_error)
+                    else:
+                        msg += '  - {}\n'.format('  - {}\n'.join(model_error.messages))
             ValueError(msg)
 
         # convert to sets
         for model in models:
-            objects[model] = set(objects[model].values())
+            if model in objects:
+                objects[model] = set(objects[model].values())
+            else:
+                objects[model] = set()
 
         # validate
         all_objects = set()
@@ -242,7 +256,7 @@ class ExcelIo(object):
 
         errors = Validator().run(all_objects)
         if errors:
-            ValueError(utils.get_object_set_error_string(errors))
+            ValueError(str(errors))
 
         # return
         return objects

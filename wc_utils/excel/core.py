@@ -523,12 +523,12 @@ class WorkbookDifference(dict):
         Returns:
             :obj:`str`: string representation
         """
-        str = ''
+        diff = ''
 
         for name, sheet in self.items():
-            str += 'Sheet {}:\n  {}'.format(name, str(sheet).replace('\n', '\n  '))
+            diff += 'Sheet {}:\n  {}'.format(name, str(sheet).replace('\n', '\n  '))
 
-        return str
+        return diff
 
 
 class WorksheetDifference(OrderedDict):
@@ -540,12 +540,12 @@ class WorksheetDifference(OrderedDict):
         Returns:
             :obj:`str`: string representation
         """
-        str = ''
+        diff = ''
 
         for i_row, row in self.items():
-            str += 'Row {}:\n  {}'.format(i_row + 1, str(row).replace('\n', '\n  '))
+            diff += 'Row {}:\n  {}'.format(i_row + 1, str(row).replace('\n', '\n  '))
 
-        return str
+        return diff
 
 
 class RowDifference(OrderedDict):
@@ -557,12 +557,12 @@ class RowDifference(OrderedDict):
         Returns:
             :obj:`str`: string representation
         """
-        str = ''
+        diff = ''
 
         for i_col, cell_diff in self.items():
-            str += 'Cell {}: {}\n'.format(get_column_letter(i_col + 1), cell_diff)
+            diff += 'Cell {}: {}\n'.format(get_column_letter(i_col + 1), cell_diff)
 
-        return str[0:-1]
+        return diff[0:-1]
 
 
 class CellDifference(str):

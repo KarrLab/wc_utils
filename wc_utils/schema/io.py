@@ -295,7 +295,7 @@ class ExcelIo(object):
         for model in models:
             all_objects.update(objects[model])
 
-        errors = Validator().run(all_objects)
+        errors = Validator().clean(all_objects)
         if errors:
             raise ValueError(str(errors))
 

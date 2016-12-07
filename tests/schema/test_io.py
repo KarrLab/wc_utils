@@ -136,6 +136,12 @@ class TestIo(unittest.TestCase):
         ExcelIo.write(self.filename, set((root,)), [Root, Node, Leaf, ])
         objects2 = ExcelIo.read(self.filename, [Root, Node, Leaf, OneToManyRow])
 
+        # validate
+        all_objects2 = set()
+        for model, model_objects in objects2.items():
+            all_objects2.update(model_objects)
+        self.assertEqual(core.Validator().run(all_objects2), None)
+
         # test objects saved and loaded correctly
         for model in objects.keys():
             self.assertEqual(len(objects2[model]), len(objects[model]),
@@ -157,3 +163,4 @@ class TestIo(unittest.TestCase):
             Node: set(),
             Leaf: set(),
         })
+        self.assertEqual(core.Validator().run([]), None)

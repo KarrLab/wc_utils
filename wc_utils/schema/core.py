@@ -472,21 +472,21 @@ class Model(with_metaclass(ModelMeta, object)):
                 else:
                     attr_msgs = []
                     for v_self in val_self:
-                        if cls.Meta.primary_attribute:
+                        if v_self.__class__.Meta.primary_attribute:
                             serial_self = v_self.get_primary_attribute()
                         else:
                             serial_self = v_self.serialize()
 
                         match = None
                         for v_othr in val_othr:
-                            if cls.Meta.primary_attribute:
+                            if v_self.__class__.Meta.primary_attribute:
                                 serial_othr = v_othr.get_primary_attribute()
                             else:
                                 serial_othr = v_othr.serialize()
 
                             if serial_self == serial_othr:
                                 attr_msg = v_self.difference(v_othr, _seen)
-                                if cls.Meta.primary_attribute or not attr_msg:
+                                if v_self.__class__.Meta.primary_attribute or not attr_msg:
                                     match = serial_othr
                                     break
 

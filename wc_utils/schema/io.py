@@ -81,7 +81,7 @@ class ExcelIo(object):
 
         # add sheets
         unordered_models = natsorted(set(grouped_objects.keys()).difference(set(models)),
-                                     lambda model: model.Meta.verbose_name_plural, alg=ns.IGNORECASE)
+                                     lambda model: model.Meta.verbose_name, alg=ns.IGNORECASE)
 
         for model in chain(models, unordered_models):
             if model.Meta.tabular_orientation == TabularOrientation['inline']:
@@ -134,7 +134,7 @@ class ExcelIo(object):
                             )
         else:
             cls.write_sheet(workbook,
-                            sheet_name=model.Meta.verbose_name_plural,
+                            sheet_name=model.Meta.verbose_name,
                             data=transpose(data),
                             row_headings=headings,
                             frozen_rows=model.Meta.frozen_columns,
@@ -236,7 +236,12 @@ class ExcelIo(object):
 
         # check that models are defined for each worksheet
         sheet_names = set(workbook.get_sheet_names())
-        model_names = set((model.Meta.verbose_name_plural for model in models))
+        model_names = set()
+        for model in models:
+            if model.Meta.tabular_orientation == TabularOrientation['row']:
+                model_names.add(model.Meta.verbose_name_plural)
+            else:
+                model_names.add(model.Meta.verbose_name)
         extra_sheets = sheet_names.difference(model_names)
         if extra_sheets:
             raise ValueError('Models must be defined for the following worksheets: {}'.format(', '.join(extra_sheets)))
@@ -329,19 +334,24 @@ class ExcelIo(object):
                 * a list of parsing errors
                 * constructed model objects
         """
-        if model.Meta.verbose_name_plural not in workbook:
+        if model.Meta.tabular_orientation==TabularOrientation['row']:
+            sheet_name = model.Meta.verbose_name_plural
+        else:
+            sheet_name = model.Meta.verbose_name
+
+        if sheet_name not in workbook:
             return ([], [], None, [])
 
         # get worksheet
         if model.Meta.tabular_orientation == TabularOrientation['row']:
             data, _, headings = cls.read_sheet(
                 workbook,
-                model.Meta.verbose_name_plural,
+                sheet_name,
                 num_column_heading_rows=1)
         else:
             data, headings, _ = cls.read_sheet(
                 workbook,
-                model.Meta.verbose_name_plural,
+                sheet_name,
                 num_row_heading_columns=1)
             data = transpose(data)
         headings = headings[0]

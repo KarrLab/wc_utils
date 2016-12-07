@@ -23,15 +23,15 @@ from six import integer_types, string_types
 class ExcelIo(object):
 
     @classmethod
-    def write(cls, filename, objects, model_order,
+    def write(cls, filename, objects, models,
               title=None, description=None, keywords=None, version=None, language=None, creator=None):
         """ Write a set of model objects to an Excel workbook with one worksheet for each `Model`
 
         Args:
             filename (:obj:`str`): path to write Excel file
             objects (:obj:`set`): set of objects
-            model_order (:obj:`list`): list of model, in the order that they should
-                appear as worksheets; all models which are not in `model_order` will
+            models (:obj:`list`): list of model, in the order that they should
+                appear as worksheets; all models which are not in `models` will
                 follow in alphabetical order
             title (:obj:`str`, optional): title
             description (:obj:`str`, optional): description
@@ -78,10 +78,10 @@ class ExcelIo(object):
         workbook.remove_sheet(workbook.active)
 
         # add sheets
-        unordered_models = natsorted(set(grouped_objects.keys()).difference(set(model_order)),
+        unordered_models = natsorted(set(grouped_objects.keys()).difference(set(models)),
                                      lambda model: model.Meta.verbose_name_plural, alg=ns.IGNORECASE)
 
-        for model in chain(model_order, unordered_models):
+        for model in chain(models, unordered_models):
             if model.Meta.tabular_orientation == TabularOrientation['inline']:
                 continue
 
@@ -139,8 +139,8 @@ class ExcelIo(object):
                             frozen_columns=1,
                             )
 
-    @staticmethod
-    def write_sheet(workbook, sheet_name, data,
+    @classmethod
+    def write_sheet(cls, workbook, sheet_name, data,
                     row_headings=None, column_headings=None,
                     frozen_rows=0, frozen_columns=0):
         """ Write data to sheet
@@ -218,7 +218,7 @@ class ExcelIo(object):
 
         Args:
             filename (:obj:`str`): path to Excel worksheet
-            models (:obj:`set` of `class`): set of models
+            models (:obj:`list` of `class`): list of models
 
         Returns:
             :obj:`dict`: model objects grouped by `Model`
@@ -399,8 +399,8 @@ class ExcelIo(object):
 
         return errors
 
-    @staticmethod
-    def read_sheet(workbook, sheet_name, num_row_heading_columns=0, num_column_heading_rows=0):
+    @classmethod
+    def read_sheet(cls, workbook, sheet_name, num_row_heading_columns=0, num_column_heading_rows=0):
         """ Read an Excel sheet in to a two-dimensioanl list
 
         Args:
@@ -436,3 +436,24 @@ class ExcelIo(object):
                 data_row.append(ws.cell(row=i_row, column=i_col).value)
 
         return (data, row_headings, column_headings)
+
+    @classmethod
+    def create_template(cls, filename, models, title=None, description=None, keywords=None,
+                        version=None, language=None, creator=None):
+        """ Write a set of model objects to an Excel workbook with one worksheet for each `Model`
+
+        Args:
+            filename (:obj:`str`): path to write Excel file
+            models (:obj:`list`): list of model, in the order that they should
+                appear as worksheets; all models which are not in `models` will
+                follow in alphabetical order
+            title (:obj:`str`, optional): title
+            description (:obj:`str`, optional): description
+            keywords (:obj:`str`, optional): keywords
+            version (:obj:`str`, optional): version
+            language (:obj:`str`, optional): language
+            creator (:obj:`str`, optional): creator
+        """
+        cls.write(filename, set(), models,
+                  title=title, description=description, keywords=keywords,
+                  version=version, language=language, creator=creator)

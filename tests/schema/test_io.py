@@ -134,11 +134,12 @@ class TestIo(unittest.TestCase):
         objects = utils.group_objects_by_model(objects)
 
         ExcelIo.write(self.filename, set((root,)), [Root, Node, Leaf, ])
-        objects2 = ExcelIo.read(self.filename, set((Root, Node, Leaf, OneToManyRow)))
+        objects2 = ExcelIo.read(self.filename, [Root, Node, Leaf, OneToManyRow])
 
-        # test objects saved and loaded correctly        
+        # test objects saved and loaded correctly
         for model in objects.keys():
-            self.assertEqual(len(objects2[model]), len(objects[model]), msg='Different numbers of "{}" objects'.format(model.__name__))
+            self.assertEqual(len(objects2[model]), len(objects[model]),
+                             msg='Different numbers of "{}" objects'.format(model.__name__))
         self.assertEqual(len(objects2), len(objects))
 
         root2 = objects2[Root].pop()
@@ -147,3 +148,12 @@ class TestIo(unittest.TestCase):
 
         # unicode
         self.assertEqual(root2.name, u'\u20ac')
+
+    def test_create_template(self):
+        ExcelIo.create_template(self.filename, [Root, Node, Leaf])
+        objects = ExcelIo.read(self.filename, [Root, Node, Leaf])
+        self.assertEqual(objects, {
+            Root: set(),
+            Node: set(),
+            Leaf: set(),
+        })

@@ -6,6 +6,8 @@
 :License: MIT
 """
 
+from collections import OrderedDict
+from copy import deepcopy
 from os import path
 from wc_utils.excel import core
 from wc_utils.util.types import assert_value_equal
@@ -201,3 +203,38 @@ class TestExcel(unittest.TestCase):
 
         # assert content is the same
         assert_value_equal(wk, self.wk)
+
+    def test_difference(self):
+        wk = deepcopy(self.wk)
+        self.assertEqual(self.wk.difference(wk), {})
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-3'] = core.Worksheet()
+        self.assertEqual(self.wk.difference(wk), {'Ws-3': 'Sheet not in self'})
+        self.assertEqual(wk.difference(self.wk), {'Ws-3': 'Sheet not in other'})
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-2'].rows.append(core.Row())
+        self.assertEqual(self.wk.difference(wk), {'Ws-2': core.WorksheetDifference({4: 'Row not in self'})})
+        self.assertEqual(wk.difference(self.wk), {'Ws-2': core.WorksheetDifference({4: 'Row not in other'})})
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-2'].rows[0].cells.append(core.Cell())
+        self.assertEqual(self.wk.difference(wk),
+                         {'Ws-2': core.WorksheetDifference({0: core.RowDifference({3: 'Cell not in self'})})})
+        self.assertEqual(wk.difference(self.wk),
+                         {'Ws-2': core.WorksheetDifference({0: core.RowDifference({3: 'Cell not in other'})})})
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-1'].rows[1].cells[2].value = 3.5
+        self.assertEqual(self.wk.difference(wk),
+                         {'Ws-1': core.WorksheetDifference({1: core.RowDifference({2: core.CellDifference('2.0 != 3.5')})})})
+        self.assertEqual(wk.difference(self.wk),
+                         {'Ws-1': core.WorksheetDifference({1: core.RowDifference({2: core.CellDifference('3.5 != 2.0')})})})
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-1'].rows[1].cells[2].value = 'test'
+        self.assertEqual(self.wk.difference(wk),
+                         {'Ws-1': core.WorksheetDifference({1: core.RowDifference({2: core.CellDifference('class: float != class: str')})})})
+        self.assertEqual(wk.difference(self.wk),
+                         {'Ws-1': core.WorksheetDifference({1: core.RowDifference({2: core.CellDifference('class: str != class: float')})})})

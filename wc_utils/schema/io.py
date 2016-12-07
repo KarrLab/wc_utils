@@ -14,10 +14,11 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from six import integer_types, string_types
+from warnings import warn
 from wc_utils.util.list import transpose
 from wc_utils.schema import utils
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation
-from six import integer_types, string_types
 
 
 class ExcelIo(object):
@@ -51,7 +52,8 @@ class ExcelIo(object):
         error = Validator().run(all_objects)
 
         if error:
-            raise ValueError(str(error))
+            warnings.warn('Storage may be lossy because the objects are not valid:\n  {}'.format(
+                str(error).replace('\n', '\n  ').rstrip(' ')))
 
         # group objects by class
         grouped_objects = {}
@@ -153,6 +155,9 @@ class ExcelIo(object):
             column_headings (:obj:`list` of `list` of `str`, optional): list of list of column headings
             frozen_rows (:obj:`int`, optional): number of rows to freeze
             frozen_columns (:obj:`int`, optional): number of columns to freeze
+
+        Raises:
+            :obj:`ValueError`: if attribute value cannot be saved to Excel because it is not a string, boolean, integer, `float`, or `NoneType`
         """
         row_headings = row_headings or []
         column_headings = column_headings or []
@@ -222,6 +227,9 @@ class ExcelIo(object):
 
         Returns:
             :obj:`dict`: model objects grouped by `Model`
+
+        Raises:
+            :obj:`ValueError`: if file(s) contains extra sheets that don't correspond to one of `models` or if the data is not valid
         """
         # load workbook
         workbook = load_workbook(filename=filename)

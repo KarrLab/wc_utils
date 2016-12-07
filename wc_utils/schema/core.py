@@ -141,16 +141,17 @@ class ModelMeta(type):
                         if attr.related_name in related_class.Meta.attributes:
                             other_attr = related_class.Meta.attributes[attr.related_name]
                             raise ValueError('Related attribute {}.{} cannot use the same related name as {}.{}'.format(
-                                cls.__name__, attr_name,
+                                cls.__name__, attr.name,
                                 related_class.__name__, attr.related_name,
                             ))
 
                         # check that name doesn't clash with another related attribute from a different model
-                        if attr.related_name in related_class.Meta.related_attributes and related_class.Meta.related_attributes[attr.related_name] is not attr:
+                        if attr.related_name in related_class.Meta.related_attributes and \
+                                related_class.Meta.related_attributes[attr.related_name] is not attr:
                             other_attr = related_class.Meta.related_attributes[attr.related_name]
                             raise ValueError('Attributes {}.{} and {}.{} cannot use the same related attribute name {}.{}'.format(
-                                cls.__name__, attr_name,
-                                other_attr.primary_model.__name__, other_attr.name,
+                                cls.__name__, attr.name,
+                                other_attr.primary_class.__name__, other_attr.name,
                                 related_class.__name__, attr.related_name,
                             ))
 
@@ -471,15 +472,21 @@ class Model(with_metaclass(ModelMeta, object)):
                 else:
                     attr_msgs = []
                     for v_self in val_self:
-                        serial_self = v_self.serialize()
+                        if cls.Meta.primary_attribute:
+                            serial_self = v_self.get_primary_attribute()
+                        else:
+                            serial_self = v_self.serialize()
 
                         match = None
                         for v_othr in val_othr:
-                            serial_othr = v_othr.serialize()
+                            if cls.Meta.primary_attribute:
+                                serial_othr = v_othr.get_primary_attribute()
+                            else:
+                                serial_othr = v_othr.serialize()
 
                             if serial_self == serial_othr:
                                 attr_msg = v_self.difference(v_othr, _seen)
-                                if serial_self or not attr_msg:
+                                if cls.Meta.primary_attribute or not attr_msg:
                                     match = serial_othr
                                     break
 

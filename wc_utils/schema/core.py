@@ -1431,7 +1431,7 @@ class RegexAttribute(StringAttribute):
         flags (:obj:`int`): regular expression flags
     """
 
-    def __init__(self, pattern, flags=None, min_length=0, max_length=None, default='', verbose_name='', help='',
+    def __init__(self, pattern, flags=0, min_length=0, max_length=None, default='', verbose_name='', help='',
                  primary=False, unique=False):
         """
         Args:
@@ -1446,11 +1446,7 @@ class RegexAttribute(StringAttribute):
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
 
-        if flags is not None:
-            unique_case_insensitive = bin(flags)[-2] == '1'
-        else:
-            unique_case_insensitive = False
-
+        unique_case_insensitive = bin(flags)[-2] == '1'
         super(RegexAttribute, self).__init__(min_length=min_length, max_length=max_length,
                                              default=default, verbose_name=verbose_name, help=help,
                                              primary=primary, unique=unique, unique_case_insensitive=unique_case_insensitive)

@@ -22,6 +22,8 @@ import inflect
 import re
 import warnings
 
+# todo: simplify primary attributes, deserialization
+
 
 class ModelMeta(type):
 

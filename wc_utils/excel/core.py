@@ -42,12 +42,12 @@ def read(path):
         raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
 
 
-def write(workbook, path, style=None):
+def write(path, workbook, style=None):
     """ Write data to Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
 
-    Args:
-        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+    Args:        
         path (:obj:`str`): path to file(s)
+        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
         style (:obj:`WorkbookStyle`, optional): workbook style
 
     Raises:
@@ -57,9 +57,9 @@ def write(workbook, path, style=None):
     _, ext = splitext(path)
 
     if ext == '.xlsx':
-        return write_excel(workbook, path, style=style)
+        return write_excel(path, workbook, style=style)
     elif ext in ['.csv', '.tsv']:
-        return write_separated_values(workbook, path)
+        return write_separated_values(path, workbook)
     else:
         raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
 
@@ -89,12 +89,12 @@ def read_excel(filename):
     return workbook
 
 
-def write_excel(workbook, filename, style=None):
+def write_excel(filename, workbook, style=None):
     """ Read data to an Excel workbook
 
-    Args:
-        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+    Args:        
         filename (:obj:`str`): path to Excel file
+        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
         style (:obj:`WorkbookStyle`, optional): workbook style
 
     Raises:
@@ -209,12 +209,12 @@ def read_separated_values(filename_pattern):
     return workbook
 
 
-def write_separated_values(workbook, filename_pattern):
+def write_separated_values(filename_pattern, workbook):
     """ Write data to a set of [tc]sv files
 
-    Args:
-        workbook (:obj:`Workbook`): python representation of data
+    Args:        
         filename_pattern (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
+        workbook (:obj:`Workbook`): python representation of data
 
     Raises:
         :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
@@ -275,7 +275,7 @@ def convert(source, destination, style=None):
 
     # read/write
     workbook = read(source)
-    write(workbook, destination, style=style)
+    write(destination, workbook, style=style)
 
 
 def convert_excel_to_separated_values(filename_excel, filename_pattern_separated_values):

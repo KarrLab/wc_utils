@@ -49,14 +49,14 @@ class TestExcel(unittest.TestCase):
     def test_read_write_excel(self):
         # write to file
         filename = path.join(self.tempdir, 'test.xlsx')
-        core.write_excel(self.wk, filename)
+        core.write_excel(filename, self.wk)
         self.assertTrue(path.isfile(filename))
 
         # write to file with style
         style = core.WorkbookStyle()
         style.worksheets['Ws-0'] = core.WorksheetStyle(head_rows=1, head_columns=1,
                                                        head_row_font_bold=True, head_row_fill_fgcolor='CCCCCC', row_height=15)
-        core.write_excel(self.wk, filename, style)
+        core.write_excel(filename, self.wk, style)
         self.assertTrue(path.isfile(filename))
 
         # read from file
@@ -76,7 +76,7 @@ class TestExcel(unittest.TestCase):
     def test_read_write_csv(self):
         # write to files
         filename_pattern = path.join(self.tempdir, 'test-*.csv')
-        core.write_separated_values(self.wk, filename_pattern)
+        core.write_separated_values(filename_pattern, self.wk)
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-0')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-1')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-2')))
@@ -98,7 +98,7 @@ class TestExcel(unittest.TestCase):
     def test_read_write_tsv(self):
         # write to files
         filename_pattern = path.join(self.tempdir, 'test-*.tsv')
-        core.write_separated_values(self.wk, filename_pattern)
+        core.write_separated_values(filename_pattern, self.wk)
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-0')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-1')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-2')))
@@ -119,18 +119,18 @@ class TestExcel(unittest.TestCase):
 
     def test_write_read(self):
         file = path.join(self.tempdir, 'test.xlsx')
-        core.write(self.wk, file)
+        core.write(file, self.wk)
         wk = core.read(file)
         assert_value_equal(wk, self.wk)
 
         file = path.join(self.tempdir, 'test-*.csv')
-        core.write(self.wk, file)
+        core.write(file, self.wk)
         wk = core.read(file)
         assert_value_equal(wk, self.wk)
 
     def test_convert(self):
         source = path.join(self.tempdir, 'test.xlsx')
-        core.write_excel(self.wk, source)
+        core.write_excel(source, self.wk)
 
         # copy excel->sv
         dest = path.join(self.tempdir, 'test-*.csv')
@@ -174,7 +174,7 @@ class TestExcel(unittest.TestCase):
 
     def test_convert_excel_to_csv(self):
         filename_excel = path.join(self.tempdir, 'test.xlsx')
-        core.write_excel(self.wk, filename_excel)
+        core.write_excel(filename_excel, self.wk)
 
         filename_pattern_separated_values = path.join(self.tempdir, 'test-*.csv')
         core.convert_excel_to_separated_values(filename_excel, filename_pattern_separated_values)
@@ -190,7 +190,7 @@ class TestExcel(unittest.TestCase):
 
     def test_convert_csv_to_excel(self):
         filename_pattern_separated_values = path.join(self.tempdir, 'test-*.csv')
-        core.write_separated_values(self.wk, filename_pattern_separated_values)
+        core.write_separated_values(filename_pattern_separated_values, self.wk)
 
         filename_excel = path.join(self.tempdir, 'test.xlsx')
         core.convert_separated_values_to_excel(filename_pattern_separated_values, filename_excel)

@@ -117,6 +117,50 @@ class TestExcel(unittest.TestCase):
 
         assert_value_equal(wk, self.wk)
 
+    def test_convert(self):
+        source = path.join(self.tempdir, 'test.xlsx')
+        core.write_excel(self.wk, source)
+
+        # copy excel->sv
+        dest = path.join(self.tempdir, 'test-*.csv')
+        core.convert(source, dest)
+        wk = core.read_separated_values(dest)
+        assert_value_equal(wk, self.wk)
+
+        # copy sv->excel
+        source = path.join(self.tempdir, 'test-*.csv')
+        dest = path.join(self.tempdir, 'test2.xlsx')
+        core.convert(source, dest)
+        wk = core.read_excel(dest)
+        assert_value_equal(wk, self.wk)
+
+        # copy same format - excel
+        source = path.join(self.tempdir, 'test.xlsx')
+        dest = path.join(self.tempdir, 'test3.xlsx')
+        core.convert(source, dest)
+        wk = core.read_excel(dest)
+        assert_value_equal(wk, self.wk)
+
+        # copy same format - csv
+        source = path.join(self.tempdir, 'test-*.csv')
+        dest = path.join(self.tempdir, 'test2-*.csv')
+        core.convert(source, dest)
+        wk = core.read_separated_values(dest)
+        assert_value_equal(wk, self.wk)
+
+        # negative examples
+        source = path.join(self.tempdir, 'test.xlsx')
+        dest = path.join(self.tempdir, 'test.xlsx')
+        self.assertRaises(ValueError, lambda: core.convert(source, dest))
+
+        source = path.join(self.tempdir, 'test.xlsx')
+        dest = path.join(self.tempdir, 'test.xlsx2')
+        self.assertRaises(ValueError, lambda: core.convert(source, dest))
+
+        source = path.join(self.tempdir, 'test.xlsx2')
+        dest = path.join(self.tempdir, 'test.xlsx')
+        self.assertRaises(ValueError, lambda: core.convert(source, dest))
+
     def test_convert_excel_to_csv(self):
         filename_excel = path.join(self.tempdir, 'test.xlsx')
         core.write_excel(self.wk, filename_excel)

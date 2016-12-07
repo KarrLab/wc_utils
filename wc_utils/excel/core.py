@@ -13,6 +13,8 @@ from openpyxl import Workbook as XlsWorkbook, load_workbook
 from openpyxl.cell.cell import Cell as CellType
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
+from os.path import basename, dirname, splitext
+from shutil import copyfile
 import pyexcel
 import six
 
@@ -46,9 +48,12 @@ def write_excel(workbook, filename, style=None):
     """ Read data to an Excel workbook
 
     Args:
-        workbook (:obj:`Workbook`): python representation of data
+        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
         filename (:obj:`str`): path to Excel file
-        style (:obj:`WorkbookStyle`): workbook style
+        style (:obj:`WorkbookStyle`, optional): workbook style
+
+    Raises:
+        :obj:`ValueError`: if `workbook` contains values with are not strings, booleans, integers, floats, or None
     """
 
     style = style or WorkbookStyle()
@@ -122,13 +127,19 @@ def read_separated_values(filename_pattern):
 
     Returns:
         :obj:`Workbook`: python representation of data
-    """
 
-    if filename_pattern[-4:] not in ('.csv', '.tsv'):
+    Raises:
+        :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+    """
+    _, ext = splitext(filename_pattern)
+    if ext not in ('.csv', '.tsv'):
         raise ValueError('Extension of `filename_pattern` must match be one of "csv" or "tsv"')
 
-    if filename_pattern.count('*') != 1:
-        raise ValueError('`filename_pattern` must have one glob pattern "*"')
+    if '*' in dirname(filename_pattern):
+        raise ValueError('`filename_pattern` cannot have glob patterns in its dirrectory name')
+
+    if basename(filename_pattern).count('*') != 1:
+        raise ValueError('`filename_pattern` must have one glob pattern "*" in its base name')
 
     workbook = Workbook()
     i_glob = filename_pattern.find('*')
@@ -159,13 +170,19 @@ def write_separated_values(workbook, filename_pattern):
     Args:
         workbook (:obj:`Workbook`): python representation of data
         filename_pattern (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
-    """
 
-    if filename_pattern[-4:] not in ('.csv', '.tsv'):
+    Raises:
+        :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+    """
+    _, ext = splitext(filename_pattern)
+    if ext not in ('.csv', '.tsv'):
         raise ValueError('Extension of `filename_pattern` must match be one of "csv" or "tsv"')
 
-    if filename_pattern.count('*') != 1:
-        raise ValueError('`filename_pattern` must have one glob pattern "*"')
+    if '*' in dirname(filename_pattern):
+        raise ValueError('`filename_pattern` cannot have glob patterns in its dirrectory name')
+
+    if basename(filename_pattern).count('*') != 1:
+        raise ValueError('`filename_pattern` must have one glob pattern "*" in its base name')
 
     for sheet_name, worksheet in workbook.worksheets.items():
         array = []
@@ -175,6 +192,55 @@ def write_separated_values(workbook, filename_pattern):
         pyexcel.save_as(array=array, dest_file_name=filename_pattern.replace('*', '{}').format(sheet_name))
 
 
+def convert(source, destination, style=None):
+    """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv) 
+
+    Args:
+        source (:obj:`str`): path to source file
+        destination (:obj:`str`): path to save converted file
+        style (:obj:`WorkbookStyle`, optional): workbook style for Excel
+
+    Raises:
+        :obj:`ValueError`: if file extensions are not supported or file names are equal
+    """
+    # check source != destination
+    if source == destination:
+        raise ValueError('Source and destination names must be different')
+
+    # check extensions are valid
+    _, ext_src = splitext(source)
+    _, ext_dst = splitext(destination)
+
+    if ext_src not in ['.xlsx', '.csv', '.tsv']:
+        raise ValueError('Source extension must be one of ".xlsx", ".csv", ".tsv"')
+
+    if ext_dst not in ['.xlsx', '.csv', '.tsv']:
+        raise ValueError('Destination extension must be one of ".xlsx", ".csv", ".tsv"')
+
+    # if extensions are the same, copy file(s)
+    if ext_src == ext_dst:
+        if ext_src == '.xlsx':
+            copyfile(source, destination)
+        else:
+            i_glob = source.find('*')
+            dst_format = destination.replace('*', '{}')
+            for filename in glob(source):
+                sheet_name = filename[i_glob:i_glob + len(filename) - len(source) + 1]
+                copyfile(filename, dst_format.format(sheet_name))
+
+    # read
+    if ext_src == '.xlsx':
+        data = read_excel(source)
+    else:
+        data = read_separated_values(source)
+
+    # write
+    if ext_dst == '.xlsx':
+        write_excel(data, destination, style=style)
+    else:
+        write_separated_values(data, destination)
+
+
 def convert_excel_to_separated_values(filename_excel, filename_pattern_separated_values):
     """ Convert an Excel workbook to a set of csv/tsv files
 
@@ -182,8 +248,7 @@ def convert_excel_to_separated_values(filename_excel, filename_pattern_separated
         filename_pattern_separated_values (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
         filename_excel (:obj:`str`): path to Excel file
     """
-    workbook = read_excel(filename_excel)
-    write_separated_values(workbook, filename_pattern_separated_values)
+    convert(filename_excel, filename_pattern_separated_values)
 
 
 def convert_separated_values_to_excel(filename_pattern_separated_values, filename_excel, style=None):
@@ -194,8 +259,7 @@ def convert_separated_values_to_excel(filename_pattern_separated_values, filenam
         filename_excel (:obj:`str`): path to Excel file
         style (:obj:`WorkbookStyle`, optional): workbook style
     """
-    workbook = read_separated_values(filename_pattern_separated_values)
-    write_excel(workbook, filename_excel, style)
+    convert(filename_pattern_separated_values, filename_excel, style=style)
 
 
 class Workbook(object):

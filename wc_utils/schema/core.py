@@ -98,7 +98,12 @@ class ModelMeta(type):
                     attr.primary_class = cls
 
     def init_related_attributes(cls):
-        """ Initialize related attributes """
+        """ Initialize related attributes 
+
+        Raises:
+            :obj:`ValueError`: if related attributes of the class are not valid 
+                (e.g. if a class that is the subject of a relationship does not have a primary attribute)
+        """
         for attr in cls.Meta.attributes.values():
             if isinstance(attr, RelatedAttribute):
 
@@ -159,7 +164,11 @@ class ModelMeta(type):
                         related_class.Meta.related_attributes[attr.related_name] = attr
 
     def init_primary_attribute(cls):
-        """ Initialize the primary attribute of a model """
+        """ Initialize the primary attribute of a model 
+
+        Raises:
+            :obj:`ValueError`: if class has multiple primary attributes
+        """
         primary_attributes = [attr for attr in cls.Meta.attributes.values() if attr.primary]
 
         if len(primary_attributes) == 0:
@@ -195,7 +204,11 @@ class ModelMeta(type):
             cls.Meta.verbose_name_plural = inflect_engine.plural(cls.Meta.verbose_name)
 
     def validate_attributes(cls):
-        """ Validate attribute values """
+        """ Validate attribute values 
+
+        Raises:
+            :obj:`ValueError`: if attributes are not valid
+        """
 
         # `attribute_order` is a tuple of attribute names
         if not isinstance(cls.Meta.attribute_order, tuple):
@@ -231,7 +244,11 @@ class ModelMeta(type):
 
     @staticmethod
     def validate_related_attributes(cls):
-        """ Validate attribute values """
+        """ Validate attribute values 
+        Raises:
+            :obj:`ValueError`: if related attributes are not valid 
+                (e.g. if a class that is the subject of a relationship does not have a primary attribute)
+        """
 
         for attr_name, attr in cls.Meta.attributes.items():
             if isinstance(attr, RelatedAttribute) and not (isinstance(attr.related_class, type) and issubclass(attr.related_class, Model)):
@@ -305,6 +322,9 @@ class Model(with_metaclass(ModelMeta, object)):
         """
         Args:
             **kwargs (:obj:`dict`, optional): dictionary of keyword arguments with keys equal to the names of the model attributes
+
+        Raises:
+            :obj:`TypeError`: if keyword argument is not a defined attribute
         """
 
         """ check that related classes of attributes are defined """
@@ -724,6 +744,10 @@ class Model(with_metaclass(ModelMeta, object)):
         Args:
             copy (:obj:`Model`): object to copy attribute values to
             objects_and_copies (:obj:`dict` of `Model`: `Model`): dictionary of pairs of objects and their new copies
+
+        Raises:
+            :obj:`ValuerError`: if related attribute value is not `None`, a `Model`, or an iterable, 
+                or if a non-related attribute is not an immutable
         """
         # get class
         cls = self.__class__
@@ -897,6 +921,9 @@ class EnumAttribute(Attribute):
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
             unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
+
+        Raises:
+            :obj:`ValueError`: if `enum_class` is not an instance of `Enum` or if `default` is not an instance of `enum_class`
         """
         if not issubclass(enum_class, Enum):
             raise ValueError('`enum_class` must be an subclass of `Enum`')
@@ -988,6 +1015,9 @@ class BooleanAttribute(Attribute):
             default (:obj:`float`, optional): default value
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
+
+        Raises:
+            :obj:`ValueError`: if `default` is not a `bool`
         """
         if default is not None and not isinstance(default, bool):
             raise ValueError('`default` must be None or an instance of `bool`')
@@ -1088,6 +1118,9 @@ class FloatAttribute(Attribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+
+        Raises:
+            :obj:`ValueError`: if `max` is less than `min`
         """
         min = float(min)
         max = float(max)
@@ -1186,6 +1219,9 @@ class IntegerAttribute(Attribute):
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
+
+        Raises:
+            :obj:`ValueError`: if `max` is less than `min`
         """
         if min is not None:
             min = int(min)
@@ -1336,6 +1372,9 @@ class StringAttribute(Attribute):
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
             unique_case_insensitive (:obj:`bool`, optional): if true, conduct case-insensitive test of uniqueness
+
+        Raises:
+            :obj:`ValueError`: if `min_length` is negative, `max_length` is less than `min_length`, or `default` is not a string
         """
 
         if not isinstance(min_length, integer_types) or min_length < 0:
@@ -1883,6 +1922,9 @@ class RelatedAttribute(Attribute):
 
         Returns:
             value (:obj:`object`): initial value
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -1897,6 +1939,9 @@ class RelatedAttribute(Attribute):
 
         Returns:
             :obj:`object`: value of the attribute
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -1961,6 +2006,9 @@ class OneToOneAttribute(RelatedAttribute):
 
         Returns:
             :obj:`Model`: new attribute value
+
+        Raises:
+            :obj:`ValueError`: if related attribute of `new_value` is not `None`
         """
         cur_value = getattr(obj, self.name)
         if cur_value is new_value:
@@ -1987,6 +2035,9 @@ class OneToOneAttribute(RelatedAttribute):
 
         Returns:
             :obj:`Model`: value of the attribute
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined or the attribute of `new_value` is not `None`
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -2135,6 +2186,9 @@ class ManyToOneAttribute(RelatedAttribute):
 
         Returns:
             value (:obj:`object`): initial value
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is undefined')
@@ -2174,6 +2228,9 @@ class ManyToOneAttribute(RelatedAttribute):
 
         Returns:
             :obj:`set`: value of the attribute
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -2352,6 +2409,9 @@ class OneToManyAttribute(RelatedAttribute):
 
         Returns:
             :obj:`Model`: new attribute value
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -2523,6 +2583,9 @@ class ManyToManyAttribute(RelatedAttribute):
 
         Returns:
             value (:obj:`object`): initial value
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -2555,6 +2618,9 @@ class ManyToManyAttribute(RelatedAttribute):
 
         Returns:
             :obj:`set`: value of the attribute
+
+        Raises:
+            :obj:`ValueError`: if related property is not defined
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
@@ -2713,6 +2779,9 @@ class RelatedManager(set):
 
         Returns:
             :obj:`Model`: created object
+
+        Raises:
+            :obj:`ValueError`: if keyword argument is not an attribute of the class
         """
         if self.related:
             if self.attribute.name in kwargs:

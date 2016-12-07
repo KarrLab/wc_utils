@@ -117,6 +117,17 @@ class TestExcel(unittest.TestCase):
 
         assert_value_equal(wk, self.wk)
 
+    def test_write_read(self):
+        file = path.join(self.tempdir, 'test.xlsx')
+        core.write(self.wk, file)
+        wk = core.read(file)
+        assert_value_equal(wk, self.wk)
+
+        file = path.join(self.tempdir, 'test-*.csv')
+        core.write(self.wk, file)
+        wk = core.read(file)
+        assert_value_equal(wk, self.wk)
+
     def test_convert(self):
         source = path.join(self.tempdir, 'test.xlsx')
         core.write_excel(self.wk, source)

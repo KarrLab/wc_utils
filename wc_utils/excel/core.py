@@ -19,6 +19,51 @@ import pyexcel
 import six
 
 
+def read(path):
+    """ Read data from Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
+
+    Args:
+        path (:obj:`str`): path to file(s)
+
+    Returns:
+        :obj:`Workbook`: python representation of data
+
+    Raises:
+        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
+    """
+    # check extensions are valid
+    _, ext = splitext(path)
+
+    if ext == '.xlsx':
+        return read_excel(path)
+    elif ext in ['.csv', '.tsv']:
+        return read_separated_values(path)
+    else:
+        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+
+
+def write(workbook, path, style=None):
+    """ Write data to Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
+
+    Args:
+        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+        path (:obj:`str`): path to file(s)
+        style (:obj:`WorkbookStyle`, optional): workbook style
+
+    Raises:
+        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
+    """
+    # check extensions are valid
+    _, ext = splitext(path)
+
+    if ext == '.xlsx':
+        return write_excel(workbook, path, style=style)
+    elif ext in ['.csv', '.tsv']:
+        return write_separated_values(workbook, path)
+    else:
+        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+
+
 def read_excel(filename):
     """ Read data from Excel workbook
 
@@ -212,10 +257,10 @@ def convert(source, destination, style=None):
     _, ext_dst = splitext(destination)
 
     if ext_src not in ['.xlsx', '.csv', '.tsv']:
-        raise ValueError('Source extension must be one of ".xlsx", ".csv", ".tsv"')
+        raise ValueError('Source extension must be one of ".xlsx", ".csv", or ".tsv"')
 
     if ext_dst not in ['.xlsx', '.csv', '.tsv']:
-        raise ValueError('Destination extension must be one of ".xlsx", ".csv", ".tsv"')
+        raise ValueError('Destination extension must be one of ".xlsx", ".csv", or ".tsv"')
 
     # if extensions are the same, copy file(s)
     if ext_src == ext_dst:
@@ -228,17 +273,9 @@ def convert(source, destination, style=None):
                 sheet_name = filename[i_glob:i_glob + len(filename) - len(source) + 1]
                 copyfile(filename, dst_format.format(sheet_name))
 
-    # read
-    if ext_src == '.xlsx':
-        data = read_excel(source)
-    else:
-        data = read_separated_values(source)
-
-    # write
-    if ext_dst == '.xlsx':
-        write_excel(data, destination, style=style)
-    else:
-        write_separated_values(data, destination)
+    # read/write
+    workbook = read(source)
+    write(workbook, destination, style=style)
 
 
 def convert_excel_to_separated_values(filename_excel, filename_pattern_separated_values):

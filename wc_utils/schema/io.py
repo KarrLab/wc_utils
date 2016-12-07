@@ -7,6 +7,7 @@
 """
 
 from collections import OrderedDict
+from datetime import datetime
 from itertools import chain
 from natsort import natsorted, ns
 from openpyxl import Workbook, load_workbook
@@ -22,7 +23,8 @@ from six import integer_types, string_types
 class ExcelIo(object):
 
     @classmethod
-    def write(cls, filename, objects, model_order):
+    def write(cls, filename, objects, model_order,
+              title=None, description=None, keywords=None, version=None, language=None, creator=None):
         """ Write a set of model objects to an Excel workbook with one worksheet for each `Model`
 
         Args:
@@ -31,6 +33,12 @@ class ExcelIo(object):
             model_order (:obj:`list`): list of model, in the order that they should
                 appear as worksheets; all models which are not in `model_order` will
                 follow in alphabetical order
+            title (:obj:`str`, optional): title
+            description (:obj:`str`, optional): description
+            keywords (:obj:`str`, optional): keywords
+            version (:obj:`str`, optional): version
+            language (:obj:`str`, optional): language
+            creator (:obj:`str`, optional): creator
         """
 
         # get related objects
@@ -54,6 +62,17 @@ class ExcelIo(object):
 
         # create workbook
         workbook = Workbook()
+
+        # set properties
+        props = workbook.properties
+        props.title = title
+        props.description = description
+        props.keywords = keywords
+        props.version = version
+        props.language = language
+        props.creator = creator
+        props.created = datetime.now()
+        props.modified = props.created
 
         # remove default sheet
         workbook.remove_sheet(workbook.active)

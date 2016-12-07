@@ -1103,7 +1103,7 @@ class TestCore(unittest.TestCase):
             Child(parent=p[3], id='c_1_1', val='child_1_1'),
         ]
 
-        self.assertEqual(g[0].diff(g[1]), '')
+        self.assertEqual(g[0].difference(g[1]), '')
 
         g[1].val = 'gparent_1'
         msg = (
@@ -1111,7 +1111,7 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
-        self.assertEqual(g[0].diff(g[1]), msg)
+        self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_1'
         c[4].val = 'child_3_0'
@@ -1128,7 +1128,7 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
-        self.assertEqual(g[0].diff(g[1]), msg)
+        self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_1'
         c[4].val = 'child_3_0'
@@ -1150,7 +1150,7 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
-        self.assertEqual(g[0].diff(g[1]), msg)
+        self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_1'
         c[4].val = 'child_3_0'
@@ -1168,4 +1168,4 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
-        self.assertEqual(g[0].diff(g[1]), msg)
+        self.assertEqual(g[0].difference(g[1]), msg)

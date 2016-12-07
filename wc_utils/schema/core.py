@@ -426,7 +426,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         return super(Model, self).__str__()
 
-    def diff(self, other, _seen=None):
+    def difference(self, other, _seen=None):
         """ Get difference between two model objects
 
         Args:
@@ -459,7 +459,7 @@ class Model(with_metaclass(ModelMeta, object)):
             val_othr = getattr(othr, attr_name)
 
             if isinstance(val_self, Model):
-                msg = val_self.diff(val_othr, _seen)
+                msg = val_self.difference(val_othr, _seen)
 
             elif isinstance(val_self, (set, list)):
                 if not isinstance(val_othr, (set, list)):
@@ -478,7 +478,7 @@ class Model(with_metaclass(ModelMeta, object)):
                             serial_othr = v_othr.serialize()
 
                             if serial_self == serial_othr:
-                                attr_msg = v_self.diff(v_othr, _seen)
+                                attr_msg = v_self.difference(v_othr, _seen)
                                 if serial_self or not attr_msg:
                                     match = serial_othr
                                     break

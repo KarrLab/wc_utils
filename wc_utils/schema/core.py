@@ -130,14 +130,14 @@ class ModelMeta(type):
                                 'serialize' in attr.__class__.__dict__ and 'deserialize' in attr.__class__.__dict__:
                             pass
                         elif not related_class.Meta.primary_attribute:
-                            if related_class.Meta.tabular_orientation == TabularOrientation['inline']:
+                            if related_class.Meta.tabular_orientation == TabularOrientation.inline:
                                 warnings.warn('Related class {} must have a primary attribute'.format(
                                     related_class.__name__))
                             else:
                                 raise ValueError('Related class {} must have a primary attribute'.format(
                                     related_class.__name__))
                         elif not related_class.Meta.primary_attribute.unique:
-                            if related_class.Meta.tabular_orientation == TabularOrientation['inline']:
+                            if related_class.Meta.tabular_orientation == TabularOrientation.inline:
                                 warnings.warn('Primary attribute {} of related class {} must be unique'.format(
                                     related_class.Meta.primary_attribute.name, related_class.__name__))
                             else:
@@ -258,7 +258,7 @@ class ModelMeta(type):
                     attr.related_class, attr.primary_class.__name__, attr_name))
 
         # tabular orientation
-        if cls.Meta.tabular_orientation == TabularOrientation['inline']:
+        if cls.Meta.tabular_orientation == TabularOrientation.inline:
             for attr in cls.Meta.related_attributes.values():
                 if attr in [OneToManyAttribute, OneToManyAttribute, ManyToOneAttribute, ManyToManyAttribute]:
                     raise ValueError(
@@ -316,7 +316,7 @@ class Model(with_metaclass(ModelMeta, object)):
         attribute_order = ()
         verbose_name = ''
         verbose_name_plural = ''
-        tabular_orientation = TabularOrientation['row']
+        tabular_orientation = TabularOrientation.row
         frozen_columns = 1
         inheritance = None
 

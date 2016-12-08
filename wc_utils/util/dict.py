@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from six import iteritems
 
 class DictUtil(object):
     """ Dictionary utility methods """
@@ -99,3 +100,24 @@ class DictUtil(object):
             return '{}'
         else:
             return '{' + ', '.join('{!r}: {!r}'.format(key, d[key]) for key in sorted(d)) + '}'
+
+    @staticmethod
+    def filtered_dict(d, filter_keys):
+        '''Create a new dict from `d`, with keys filtered by `filter_keys`.
+
+        Returns:
+            dict: a new dict containing the entries in `d` whose keys are in `filter_keys`.
+        '''
+        return {k:v for (k,v) in iteritems(d) if k in filter_keys}
+
+    @staticmethod
+    def filtered_iteritems(d, filter_keys):
+        '''A generator that filters a dict's iteritems to keys in `filter_keys`.
+
+        Yields:
+            tuple: (key, value) tuples from `d` whose keys are in `filter_keys`.
+        '''
+        for key, val in iteritems(d):
+            if key not in filter_keys:
+                continue
+            yield key, val

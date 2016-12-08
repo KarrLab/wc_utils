@@ -1,4 +1,8 @@
-""" Io
+""" Reading/writing schema objects to/from files
+
+* Comma separated values (.csv)
+* Excel (.xlsx)
+* Tab separated values (.tsv)
 
 :Author: Jonathan Karr <karr@mssm.edu>
 :Date: 2016-11-23

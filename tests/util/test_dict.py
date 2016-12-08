@@ -83,3 +83,13 @@ class DictUtilTest(unittest.TestCase):
         expected = deepcopy(dict)
         expected['e']['g'] = new_val
         self.assertEqual(DictUtil.nested_set(deepcopy(dict), 'e.g', new_val), expected)
+
+    def test_dict_filtering(self):
+        d={'a':1, 'b':2, 'c':3}
+        self.assertEqual(DictUtil.filtered_dict(d, []), {})
+        self.assertEqual(DictUtil.filtered_dict(d, ['a']), {'a':1})
+        self.assertEqual(DictUtil.filtered_dict(d, ['a','d','a','b','c']), d)
+
+        self.assertEqual({(k,v) for k,v in DictUtil.filtered_iteritems(d, ['a','b','d'])},
+            {('a', 1), ('b', 2)})
+

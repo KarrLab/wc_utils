@@ -6,7 +6,7 @@
 :License: MIT
 """
 from wc_utils.schema import core, utils
-from wc_utils.schema.io import ExcelIo
+from wc_utils.schema.io import Reader, Writer, create_template
 import os
 import sys
 import tempfile
@@ -19,7 +19,7 @@ class Root(core.Model):
 
     class Meta(core.Model.Meta):
         attribute_order = ('id', 'name', )
-        tabular_orientation = core.TabularOrientation['column']
+        tabular_orientation = core.TabularOrientation.column
 
 
 class Node(core.Model):
@@ -83,7 +83,7 @@ class OneToManyInline(core.Model):
 
     class Meta(core.Model.Meta):
         attribute_order = ('id',)
-        tabular_orientation = core.TabularOrientation['inline']
+        tabular_orientation = core.TabularOrientation.inline
 
 
 class TestIo(unittest.TestCase):
@@ -133,8 +133,8 @@ class TestIo(unittest.TestCase):
         objects = set((root, )) | root.get_related()
         objects = utils.group_objects_by_model(objects)
 
-        ExcelIo.write(self.filename, set((root,)), [Root, Node, Leaf, ])
-        objects2 = ExcelIo.read(self.filename, [Root, Node, Leaf, OneToManyRow])
+        Writer().run(self.filename, set((root,)), [Root, Node, Leaf, ])
+        objects2 = Reader().run(self.filename, [Root, Node, Leaf, OneToManyRow])
 
         # validate
         all_objects2 = set()
@@ -156,8 +156,8 @@ class TestIo(unittest.TestCase):
         self.assertEqual(root2.name, u'\u20ac')
 
     def test_create_template(self):
-        ExcelIo.create_template(self.filename, [Root, Node, Leaf])
-        objects = ExcelIo.read(self.filename, [Root, Node, Leaf])
+        create_template(self.filename, [Root, Node, Leaf])
+        objects = Reader().run(self.filename, [Root, Node, Leaf])
         self.assertEqual(objects, {
             Root: set(),
             Node: set(),

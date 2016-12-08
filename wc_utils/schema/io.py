@@ -6,30 +6,26 @@
 :License: MIT
 """
 
-from collections import OrderedDict
-from datetime import datetime
 from itertools import chain
 from natsort import natsorted, ns
-from openpyxl import Workbook, load_workbook
-from openpyxl.cell.cell import Cell
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-from six import integer_types, string_types
+from os.path import basename, dirname, splitext
 from warnings import warn
-from wc_utils.util.list import transpose
 from wc_utils.schema import utils
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation
+from wc_utils.util.list import transpose
+from wc_utils.workbook.io import get_writer, get_reader, WorksheetStyle, Writer as BaseWriter, Reader as BaseReader
 
 
-class ExcelIo(object):
+class Writer(object):
+    """ Write model objects to file(s) """
 
-    @classmethod
-    def write(cls, filename, objects, models,
-              title=None, description=None, keywords=None, version=None, language=None, creator=None):
-        """ Write a set of model objects to an Excel workbook with one worksheet for each `Model`
+    def run(self, path, objects, models,
+            title=None, description=None, keywords=None, version=None, language=None, creator=None):
+        """ Write a set of model objects to an Excel file, with one worksheet for each model, or to
+        a or set of .csv or .tsv files, with one file for each model
 
         Args:
-            filename (:obj:`str`): path to write Excel file
+            path (:obj:`str`): path to write file(s)
             objects (:obj:`set`): set of objects
             models (:obj:`list`): list of model, in the order that they should
                 appear as worksheets; all models which are not in `models` will
@@ -62,29 +58,20 @@ class ExcelIo(object):
                 grouped_objects[obj.__class__] = set()
             grouped_objects[obj.__class__].add(obj)
 
-        # create workbook
-        workbook = Workbook()
-
-        # set properties
-        props = workbook.properties
-        props.title = title
-        props.description = description
-        props.keywords = keywords
-        props.version = version
-        props.language = language
-        props.creator = creator
-        props.created = datetime.now()
-        props.modified = props.created
-
-        # remove default sheet
-        workbook.remove_sheet(workbook.active)
-
-        # add sheets
+        # get neglected models
         unordered_models = natsorted(set(grouped_objects.keys()).difference(set(models)),
                                      lambda model: model.Meta.verbose_name, alg=ns.IGNORECASE)
 
+        # add sheets
+        _, ext = splitext(path)
+        writer_cls = get_writer(ext)
+        writer = writer_cls(path,
+                            title=title, description=description, keywords=keywords,
+                            version=version, language=language, creator=creator)
+        writer.initialize_workbook()
+
         for model in chain(models, unordered_models):
-            if model.Meta.tabular_orientation == TabularOrientation['inline']:
+            if model.Meta.tabular_orientation == TabularOrientation.inline:
                 continue
 
             if model in grouped_objects:
@@ -92,19 +79,17 @@ class ExcelIo(object):
             else:
                 objects = set()
 
-            cls.write_model(workbook, model, objects)
+            self.write_model(writer, model, objects)
 
-        # save workbook
-        workbook.save(filename)
+        writer.finalize_workbook()
 
-    @classmethod
-    def write_model(cls, workbook, model, objects):
-        """ Write a set of model objects to an Excel worksheet
+    def write_model(self, writer, model, objects):
+        """ Write a set of model objects to a file
 
         Args:
-            workbook (:obj:`Workbook`): workbook
+            writer (:obj:`BaseWriter`): io writer
             model (:obj:`class`): model
-            objects (:obj:`set` of `Model`): set of instances of `model`
+            objects (:obj:`set` of `Model`): set of instances of `model`            
         """
 
         # attribute order
@@ -124,105 +109,76 @@ class ExcelIo(object):
             data.append(obj_data)
 
         # transpose data for column orientation
-        if model.Meta.tabular_orientation == TabularOrientation['row']:
-            cls.write_sheet(workbook,
-                            sheet_name=model.Meta.verbose_name_plural,
-                            data=data,
-                            column_headings=headings,
-                            frozen_rows=1,
-                            frozen_columns=model.Meta.frozen_columns,
-                            )
+        if model.Meta.tabular_orientation == TabularOrientation.row:
+            self.write_sheet(writer,
+                             sheet_name=model.Meta.verbose_name_plural,
+                             data=data,
+                             column_headings=headings,
+                             frozen_rows=1,
+                             frozen_columns=model.Meta.frozen_columns,
+                             )
         else:
-            cls.write_sheet(workbook,
-                            sheet_name=model.Meta.verbose_name,
-                            data=transpose(data),
-                            row_headings=headings,
-                            frozen_rows=model.Meta.frozen_columns,
-                            frozen_columns=1,
-                            )
+            self.write_sheet(writer,
+                             sheet_name=model.Meta.verbose_name,
+                             data=transpose(data),
+                             row_headings=headings,
+                             frozen_rows=model.Meta.frozen_columns,
+                             frozen_columns=1,
+                             )
 
-    @classmethod
-    def write_sheet(cls, workbook, sheet_name, data,
-                    row_headings=None, column_headings=None,
-                    frozen_rows=0, frozen_columns=0):
+    def write_sheet(self, writer, sheet_name, data, row_headings=None, column_headings=None, frozen_rows=0, frozen_columns=0):
         """ Write data to sheet
 
         Args:
-            workbook (:obj:`Workbook`): workbook
+            writer (:obj:`BaseWriter`): io writer
             sheet_name (:obj:`str`): sheet name
             data (:obj:`list` of `list` of `object`): list of list of cell values
             row_headings (:obj:`list` of `list` of `str`, optional): list of list of row headings
             column_headings (:obj:`list` of `list` of `str`, optional): list of list of column headings
             frozen_rows (:obj:`int`, optional): number of rows to freeze
             frozen_columns (:obj:`int`, optional): number of columns to freeze
-
-        Raises:
-            :obj:`ValueError`: if attribute value cannot be saved to Excel because it is not a string, boolean, integer, `float`, or `NoneType`
         """
         row_headings = row_headings or []
         column_headings = column_headings or []
 
-        # create sheet
-        ws = workbook.create_sheet(sheet_name)
+        style = WorksheetStyle(
+            head_rows=frozen_rows,
+            head_columns=frozen_columns,
+            head_row_font_bold=True,
+            head_row_fill_pattern='solid',
+            head_row_fill_fgcolor='CCCCCC',
+            row_height=15,
+        )
 
-        # initialize styling
-        ws.freeze_panes = ws.cell(row=frozen_rows + 1, column=frozen_columns + 1)
+        # merge data, headings
+        for i_row, row_heading in enumerate(transpose(row_headings)):
+            if i_row < len(data):
+                row = data[i_row]
+            else:
+                row = []
+                data.append(row)
 
-        alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
-        fill = PatternFill("solid", fgColor='CCCCCC')
-        font = Font(bold=True)
-        height = 15
+            for val in row_heading:
+                row.insert(0, val)
 
-        # row headings
-        for i_col, row_headings_col in enumerate(row_headings):
-            for i_row, heading in enumerate(row_headings_col):
-                cell = ws.cell(row=1 + len(column_headings) + i_row, column=1 + i_col)
-                cell.value = heading
-                cell.alignment = alignment
-                cell.fill = fill
-                cell.font = font
+        for i_row in range(len(row_headings)):
+            for column_heading in column_headings:
+                column_heading.insert(0, None)
 
-        # column headings
-        for i_row, column_headings_row in enumerate(column_headings):
-            for i_col, heading in enumerate(column_headings_row):
-                cell = ws.cell(row=1 + i_row, column=1 + len(row_headings) + i_col)
-                cell.value = heading
-                cell.alignment = alignment
-                cell.fill = fill
-                cell.font = font
+        content = column_headings + data
 
-        # data
-        for i_row, data_row in enumerate(data):
-            for i_col, value in enumerate(data_row):
-                cell = ws.cell(row=1 + len(column_headings) + i_row, column=1 + len(row_headings) + i_col)
+        # write content to worksheet
+        writer.write_worksheet(sheet_name, content, style=style)
 
-                if isinstance(value, string_types):
-                    data_type = Cell.TYPE_STRING
-                elif isinstance(value, bool):
-                    data_type = Cell.TYPE_BOOL
-                elif isinstance(value, (integer_types, float)):
-                    data_type = Cell.TYPE_NUMERIC
-                elif value is not None:
-                    raise ValueError('Cannot save values of type "{}" at sheet "{}" row={}, attribute={}'.format(
-                        value.__class__.__name__,
-                        sheet_name,
-                        1 + len(column_headings) + i_row,
-                        column_headings[-1][i_col]))
 
-                if value is not None:
-                    cell.set_explicit_value(value=value, data_type=data_type)
-                cell.alignment = alignment
+class Reader(object):
+    """ Read model objects from file(s) """
 
-        # row heights
-        for i_row in range(1, ws.max_row + 1):
-            ws.row_dimensions[i_row].height = height
-
-    @classmethod
-    def read(cls, filename, models):
-        """ Read a set of model objects from an Excel workbook
+    def run(self, path, models):
+        """ Read a set of model objects from file(s)
 
         Args:
-            filename (:obj:`str`): path to Excel worksheet
+            path (:obj:`str`): path to file(s)
             models (:obj:`list` of `class`): list of models
 
         Returns:
@@ -231,14 +187,18 @@ class ExcelIo(object):
         Raises:
             :obj:`ValueError`: if file(s) contains extra sheets that don't correspond to one of `models` or if the data is not valid
         """
-        # load workbook
-        workbook = load_workbook(filename=filename)
+        _, ext = splitext(path)
+        reader_cls = get_reader(ext)
+        reader = reader_cls(path)
+
+        # initialize reading
+        workbook = reader.initialize_workbook()
 
         # check that models are defined for each worksheet
-        sheet_names = set(workbook.get_sheet_names())
+        sheet_names = set(reader.get_sheet_names())
         model_names = set()
         for model in models:
-            if model.Meta.tabular_orientation == TabularOrientation['row']:
+            if model.Meta.tabular_orientation == TabularOrientation.row:
                 model_names.add(model.Meta.verbose_name_plural)
             else:
                 model_names.add(model.Meta.verbose_name)
@@ -252,7 +212,7 @@ class ExcelIo(object):
         errors = {}
         objects = {}
         for model in models:
-            model_attributes, model_data, model_errors, model_objects = cls.read_model(workbook, model)
+            model_attributes, model_data, model_errors, model_objects = self.read_model(reader, model)
             if model_attributes:
                 attributes[model] = model_attributes
             if model_data:
@@ -275,8 +235,8 @@ class ExcelIo(object):
 
         errors = {}
         for model, objects_model in objects.items():
-            model_errors = cls.link_model(model, attributes[model], data[model], objects_model,
-                                          objects_by_primary_attribute)
+            model_errors = self.link_model(model, attributes[model], data[model], objects_model,
+                                           objects_by_primary_attribute)
             if model_errors:
                 errors[model] = model_errors
 
@@ -315,12 +275,11 @@ class ExcelIo(object):
         # return
         return objects
 
-    @classmethod
-    def read_model(cls, workbook, model):
-        """ Read a set of objects from an Excel worksheet
+    def read_model(self, reader, model):
+        """ Read a set of objects from a file
 
         Args:
-            workbook (:obj:`Workbook`): workbook
+            reader (:obj:`BaseReader`): reader
             model (:obj:`class`): model
 
         Returns:
@@ -334,25 +293,19 @@ class ExcelIo(object):
                 * a list of parsing errors
                 * constructed model objects
         """
-        if model.Meta.tabular_orientation==TabularOrientation['row']:
+        if model.Meta.tabular_orientation == TabularOrientation.row:
             sheet_name = model.Meta.verbose_name_plural
         else:
             sheet_name = model.Meta.verbose_name
 
-        if sheet_name not in workbook:
+        if sheet_name not in reader.get_sheet_names():
             return ([], [], None, [])
 
         # get worksheet
-        if model.Meta.tabular_orientation == TabularOrientation['row']:
-            data, _, headings = cls.read_sheet(
-                workbook,
-                sheet_name,
-                num_column_heading_rows=1)
+        if model.Meta.tabular_orientation == TabularOrientation.row:
+            data, _, headings = self.read_sheet(reader, sheet_name, num_column_heading_rows=1)
         else:
-            data, headings, _ = cls.read_sheet(
-                workbook,
-                sheet_name,
-                num_row_heading_columns=1)
+            data, headings, _ = self.read_sheet(reader, sheet_name, num_row_heading_columns=1)
             data = transpose(data)
         headings = headings[0]
 
@@ -390,9 +343,44 @@ class ExcelIo(object):
 
         return (attributes, data, errors, objects)
 
-    @classmethod
-    def link_model(cls, model, attributes, data, objects, objects_by_primary_attribute):
-        """ Read a set of objects from an Excel worksheet
+    def read_sheet(self, reader, sheet_name, num_row_heading_columns=0, num_column_heading_rows=0):
+        """ Read file into a two-dimensional list
+
+        Args:
+            reader (:obj:`BaseReader`): reader
+            sheet_name (:obj:`str`): worksheet name
+            num_row_heading_columns (:obj:`int`, optional): number of columns of row headings
+            num_column_heading_rows (:obj:`int`, optional): number of rows of column headings
+
+        Returns:
+            :obj:`tuple`: 
+                * `list` of `list`: two-dimensional list of table values
+                * `list` of `list`: row headings
+                * `list` of `list`: column_headings
+
+        """
+        data = reader.read_worksheet(sheet_name)
+
+        # separate header rows
+        column_headings = []
+        for i_row in range(num_column_heading_rows):
+            column_headings.append(data.pop(0))
+
+        # separate header columns
+        row_headings = []
+        for i_col in range(num_row_heading_columns):
+            row_heading = []
+            row_headings.append(row_heading)
+            for row in data:
+                row_heading.append(row.pop(0))
+
+            for column_heading in column_headings:
+                column_headings.pop(0)
+
+        return (data, row_headings, column_headings)
+
+    def link_model(self, model, attributes, data, objects, objects_by_primary_attribute):
+        """ Construct object graph
 
         Args:
             model (:obj:`class`): model
@@ -417,61 +405,23 @@ class ExcelIo(object):
 
         return errors
 
-    @classmethod
-    def read_sheet(cls, workbook, sheet_name, num_row_heading_columns=0, num_column_heading_rows=0):
-        """ Read an Excel sheet in to a two-dimensioanl list
 
-        Args:
-            workbook (:obj:`Workbook`): workbook
-            sheet_name (:obj:`str`): worksheet name
-            num_row_heading_columns (:obj:`int`, optional): number of columns of row headings
-            num_column_heading_rows (:obj:`int`, optional): number of rows of column headings
+def create_template(path, models, title=None, description=None, keywords=None,
+                    version=None, language=None, creator=None):
+    """ Create a template for a model
 
-        Returns:
-            :obj:`list` of `list`: two-dimensional list of table values
-        """
-        ws = workbook[sheet_name]
-
-        row_headings = []
-        for i_col in range(1, num_row_heading_columns + 1):
-            row_headings_col = []
-            row_headings.append(row_headings_col)
-            for i_row in range(1 + num_column_heading_rows, ws.max_row + 1):
-                row_headings_col.append(ws.cell(row=i_row, column=i_col).value)
-
-        column_headings = []
-        for i_row in range(1, num_column_heading_rows + 1):
-            column_headings_row = []
-            column_headings.append(column_headings_row)
-            for i_col in range(1 + num_row_heading_columns, ws.max_column + 1):
-                column_headings_row.append(ws.cell(row=i_row, column=i_col).value)
-
-        data = []
-        for i_row in range(1 + num_column_heading_rows, ws.max_row + 1):
-            data_row = []
-            data.append(data_row)
-            for i_col in range(1 + num_row_heading_columns, ws.max_column + 1):
-                data_row.append(ws.cell(row=i_row, column=i_col).value)
-
-        return (data, row_headings, column_headings)
-
-    @classmethod
-    def create_template(cls, filename, models, title=None, description=None, keywords=None,
-                        version=None, language=None, creator=None):
-        """ Write a set of model objects to an Excel workbook with one worksheet for each `Model`
-
-        Args:
-            filename (:obj:`str`): path to write Excel file
-            models (:obj:`list`): list of model, in the order that they should
-                appear as worksheets; all models which are not in `models` will
-                follow in alphabetical order
-            title (:obj:`str`, optional): title
-            description (:obj:`str`, optional): description
-            keywords (:obj:`str`, optional): keywords
-            version (:obj:`str`, optional): version
-            language (:obj:`str`, optional): language
-            creator (:obj:`str`, optional): creator
-        """
-        cls.write(filename, set(), models,
-                  title=title, description=description, keywords=keywords,
-                  version=version, language=language, creator=creator)
+    Args:
+        path (:obj:`str`): path to write file(s)
+        models (:obj:`list`): list of model, in the order that they should
+            appear as worksheets; all models which are not in `models` will
+            follow in alphabetical order
+        title (:obj:`str`, optional): title
+        description (:obj:`str`, optional): description
+        keywords (:obj:`str`, optional): keywords
+        version (:obj:`str`, optional): version
+        language (:obj:`str`, optional): language
+        creator (:obj:`str`, optional): creator
+    """
+    Writer().run(path, set(), models,
+                 title=title, description=description, keywords=keywords,
+                 version=version, language=language, creator=creator)

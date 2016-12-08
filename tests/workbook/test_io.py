@@ -11,7 +11,7 @@ from shutil import rmtree
 from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
-from wc_utils.workbook.core import Workbook, Worksheet, Row, Cell
+from wc_utils.workbook.core import Workbook, Worksheet, Row
 import unittest
 
 
@@ -21,23 +21,23 @@ class TestIo(unittest.TestCase):
         # test data set
         wk = self.wk = Workbook()
 
-        ws0 = wk.worksheets['Ws-0'] = Worksheet()
-        ws0.rows.append(Row([Cell('Id'), Cell('Val-1'), Cell('Val-2'), Cell('Val-3')]))
-        ws0.rows.append(Row([Cell('a0\taa0\naaa0'), Cell(1), Cell(2.), Cell(True)]))
-        ws0.rows.append(Row([Cell(u'b0\u20ac'), Cell(3), Cell(4.), Cell(False)]))
-        ws0.rows.append(Row([Cell('c0'), Cell(5), Cell(6.), Cell(None)]))
+        ws0 = wk['Ws-0'] = Worksheet()
+        ws0.append(Row(['Id', 'Val-1', 'Val-2', 'Val-3']))
+        ws0.append(Row(['a0\taa0\naaa0', 1, 2., True]))
+        ws0.append(Row([u'b0\u20ac', 3, 4., False]))
+        ws0.append(Row(['c0', 5, 6., None]))
 
-        ws1 = wk.worksheets['Ws-1'] = Worksheet()
-        ws1.rows.append(Row([Cell('Id'), Cell('Val-1'), Cell('Val-2')]))
-        ws1.rows.append(Row([Cell('a1'), Cell(1), Cell(2.)]))
-        ws1.rows.append(Row([Cell('b1'), Cell(3), Cell(4.)]))
-        ws1.rows.append(Row([Cell('c1'), Cell(5), Cell(6.)]))
+        ws1 = wk['Ws-1'] = Worksheet()
+        ws1.append(Row(['Id', 'Val-1', 'Val-2']))
+        ws1.append(Row(['a1', 1, 2.]))
+        ws1.append(Row(['b1', 3, 4.]))
+        ws1.append(Row(['c1', 5, 6.]))
 
-        ws2 = wk.worksheets['Ws-2'] = Worksheet()
-        ws2.rows.append(Row([Cell('Id'), Cell('Val-1'), Cell('Val-2')]))
-        ws2.rows.append(Row([Cell('a2'), Cell(1), Cell(2.)]))
-        ws2.rows.append(Row([Cell('b2'), Cell(3), Cell(4.)]))
-        ws2.rows.append(Row([Cell('c2'), Cell(5), Cell(6.)]))
+        ws2 = wk['Ws-2'] = Worksheet()
+        ws2.append(Row(['Id', 'Val-1', 'Val-2']))
+        ws2.append(Row(['a2', 1, 2.]))
+        ws2.append(Row(['b2', 3, 4.]))
+        ws2.append(Row(['c2', 5, 6.]))
 
         # create temp directory
         self.tempdir = mkdtemp()
@@ -54,8 +54,8 @@ class TestIo(unittest.TestCase):
 
         # write to file with style
         style = io.WorkbookStyle()
-        style.worksheets['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
-                                                     head_row_font_bold=True, head_row_fill_fgcolor='CCCCCC', row_height=15)
+        style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
+                                          head_row_font_bold=True, head_row_fill_fgcolor='CCCCCC', row_height=15)
         io.ExcelWriter(filename).run(self.wk, style=style)
         self.assertTrue(path.isfile(filename))
 
@@ -63,13 +63,13 @@ class TestIo(unittest.TestCase):
         wk = io.ExcelReader(filename).run()
 
         # assert content is the same
-        ws = wk.worksheets['Ws-0']
-        self.assertIsInstance(ws.rows[1].cells[0].value, string_types)
-        self.assertIsInstance(ws.rows[1].cells[1].value, integer_types)
-        self.assertIsInstance(ws.rows[1].cells[2].value, integer_types)
-        self.assertIsInstance(ws.rows[1].cells[3].value, bool)
-        self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
-        self.assertEqual(ws.rows[3].cells[3].value, None)
+        ws = wk['Ws-0']
+        self.assertIsInstance(ws[1][0], string_types)
+        self.assertIsInstance(ws[1][1], integer_types)
+        self.assertIsInstance(ws[1][2], integer_types)
+        self.assertIsInstance(ws[1][3], bool)
+        self.assertEqual(ws[2][0], u'b0\u20ac')
+        self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
 
@@ -85,13 +85,13 @@ class TestIo(unittest.TestCase):
         wk = io.SeparatedValuesReader(filename_pattern).run()
 
         # assert content is the same
-        ws = wk.worksheets['Ws-0']
-        self.assertIsInstance(ws.rows[1].cells[0].value, string_types)
-        self.assertIsInstance(ws.rows[1].cells[1].value, integer_types)
-        self.assertIsInstance(ws.rows[1].cells[2].value, float)
-        self.assertIsInstance(ws.rows[1].cells[3].value, bool)
-        self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
-        self.assertEqual(ws.rows[3].cells[3].value, None)
+        ws = wk['Ws-0']
+        self.assertIsInstance(ws[1][0], string_types)
+        self.assertIsInstance(ws[1][1], integer_types)
+        self.assertIsInstance(ws[1][2], float)
+        self.assertIsInstance(ws[1][3], bool)
+        self.assertEqual(ws[2][0], u'b0\u20ac')
+        self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
 
@@ -107,13 +107,13 @@ class TestIo(unittest.TestCase):
         wk = io.SeparatedValuesReader(filename_pattern).run()
 
         # assert content is the same
-        ws = wk.worksheets['Ws-0']
-        self.assertIsInstance(ws.rows[1].cells[0].value, string_types)
-        self.assertIsInstance(ws.rows[1].cells[1].value, integer_types)
-        self.assertIsInstance(ws.rows[1].cells[2].value, float)
-        self.assertIsInstance(ws.rows[1].cells[3].value, bool)
-        self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
-        self.assertEqual(ws.rows[3].cells[3].value, None)
+        ws = wk['Ws-0']
+        self.assertIsInstance(ws[1][0], string_types)
+        self.assertIsInstance(ws[1][1], integer_types)
+        self.assertIsInstance(ws[1][2], float)
+        self.assertIsInstance(ws[1][3], bool)
+        self.assertEqual(ws[2][0], u'b0\u20ac')
+        self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
 

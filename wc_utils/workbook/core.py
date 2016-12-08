@@ -10,19 +10,8 @@ from collections import OrderedDict
 from openpyxl.utils import get_column_letter
 
 
-class Workbook(object):
-    """ Represents an Excel workbook
-
-    Attributes:
-        worksheets (:obj:`OrderedDict`): dictionary of component worksheets
-    """
-
-    def __init__(self, worksheets=None):
-        """
-        Args:
-            worksheets (:obj:`OrderedDict`, optional): dictionary of component worksheets
-        """
-        self.worksheets = worksheets or OrderedDict()
+class Workbook(OrderedDict):
+    """ Represents an Excel workbook """
 
     def __eq__(self, other):
         """ Compare two workbooks
@@ -36,11 +25,11 @@ class Workbook(object):
         if other.__class__ is not self.__class__:
             return False
 
-        if set(self.worksheets.keys()) != set(other.worksheets.keys()):
+        if set(self.keys()) != set(other.keys()):
             return False
 
-        for name, sheet in self.worksheets.items():
-            if not sheet.__eq__(other.worksheets[name]):
+        for name, sheet in self.items():
+            if not sheet.__eq__(other[name]):
                 return False
 
         return True
@@ -73,34 +62,23 @@ class Workbook(object):
             raise ValueError('`other` must be an instance of `Workbook`')
 
         diff = WorkbookDifference()
-        for name, sheet in self.worksheets.items():
-            if name in other.worksheets:
-                sheet_diff = sheet.difference(other.worksheets[name])
+        for name, sheet in self.items():
+            if name in other:
+                sheet_diff = sheet.difference(other[name])
                 if sheet_diff:
                     diff[name] = sheet_diff
             else:
                 diff[name] = 'Sheet not in other'
 
-        for name in other.worksheets.keys():
-            if name not in self.worksheets:
+        for name in other.keys():
+            if name not in self:
                 diff[name] = 'Sheet not in self'
 
         return diff
 
 
-class Worksheet(object):
-    """ Represents an Excel worksheet
-
-    Attributes:
-        rows (:obj: `list` of `Row`): list of rows
-    """
-
-    def __init__(self, rows=None):
-        """
-        Args:
-            rows (:obj:`list` of `Row`, optional): list of rows
-        """
-        self.rows = rows or []
+class Worksheet(list):
+    """ Represents an Excel worksheet """
 
     def __eq__(self, other):
         """ Compare two worksheets
@@ -114,10 +92,10 @@ class Worksheet(object):
         if other.__class__ is not self.__class__:
             return False
 
-        if len(self.rows) != len(other.rows):
+        if len(self) != len(other):
             return False
 
-        for row_self, row_other in zip(self.rows, other.rows):
+        for row_self, row_other in zip(self, other):
             if not row_self.__eq__(row_other):
                 return False
 
@@ -151,33 +129,22 @@ class Worksheet(object):
 
         diff = WorksheetDifference()
 
-        for i_row, row_self in enumerate(self.rows):
-            if i_row < len(other.rows):
-                diff_row = row_self.difference(other.rows[i_row])
+        for i_row, row_self in enumerate(self):
+            if i_row < len(other):
+                diff_row = row_self.difference(other[i_row])
                 if diff_row:
                     diff[i_row] = diff_row
             else:
                 diff[i_row] = 'Row not in other'
 
-        for i_row in range(len(self.rows), len(other.rows)):
+        for i_row in range(len(self), len(other)):
             diff[i_row] = 'Row not in self'
 
         return diff
 
 
-class Row(object):
-    """ Represents a row of an Excel worksheet
-
-    Attributes:
-        cells (:obj: `list` of `Cell`): list of cells
-    """
-
-    def __init__(self, cells=None):
-        """
-        Args:
-            cells (:obj:`list` of `Cell`, optional): list of cells
-        """
-        self.cells = cells or []
+class Row(list):
+    """ Represents a row of an Excel worksheet """
 
     def __eq__(self, other):
         """ Compare rows
@@ -191,11 +158,11 @@ class Row(object):
         if other.__class__ is not self.__class__:
             return False
 
-        if len(self.cells) != len(other.cells):
+        if len(self) != len(other):
             return False
 
-        for cell_self, cell_other in zip(self.cells, other.cells):
-            if not cell_self.__eq__(cell_other):
+        for c_self, c_other in zip(self, other):
+            if not (c_self == c_other or (c_self is None and c_other == '') or (c_self == '' and c_other is None)):
                 return False
 
         return True
@@ -230,80 +197,33 @@ class Row(object):
 
         diff = RowDifference()
 
-        for i_cell, cell_self in enumerate(self.cells):
-            if i_cell < len(other.cells):
-                diff_cell = cell_self.difference(other.cells[i_cell])
+        for i_cell, cell_self in enumerate(self):
+            if i_cell < len(other):
+                diff_cell = self.cell_difference(cell_self, other[i_cell])
                 if diff_cell:
                     diff[i_cell] = diff_cell
             else:
                 diff[i_cell] = 'Cell not in other'
 
-        for i_cell in range(len(self.cells), len(other.cells)):
+        for i_cell in range(len(self), len(other)):
             diff[i_cell] = 'Cell not in self'
 
         return diff
 
-
-class Cell(object):
-    """ Represents a cell of an Excel worksheet
-
-    Attributes:
-        value (:obj: `object`): value
-    """
-
-    def __init__(self, value=None):
-        """
-        Args:
-            value (:obj:`object`, optional): value
-        """
-        self.value = value
-
-    def __eq__(self, other):
-        """ Compare cells
+    def cell_difference(self, cell_self, cell_other):
+        """ Get difference between cells
 
         Args:
-            other (:obj:`Cell`): other cell
-
-        Returns:
-            :obj:`bool`: True if cells are semantically equal
-        """
-        if other.__class__ is not self.__class__:
-            return False
-
-        return self.value == other.value
-
-    def __ne__(self, other):
-        """ Compare cells
-
-        Args:
-            other (:obj:`Cell`): other cell
-
-        Returns:
-            :obj:`bool`: True if cells are semantically unequal
-        """
-        return not self.__eq__(other)
-
-    def difference(self, other):
-        """ Get difference with another cell
-
-        Args:
-            other (:obj:`Cell`): other cell
+            cell_self (:obj:`object`): self cell
+            cell_other (:obj:`object`): other cell
 
         Returns:
             :obj:`CellDifference`: difference
-
-        Raises:
-            :obj:`ValueError`: if other is not an instance of `Cell`
         """
-        if other.__class__ is not self.__class__:
-            raise ValueError('`other` must be an instance of `Cell`')
-
-        if self.value == other.value:
+        if cell_self == cell_other or (cell_self is None and cell_other == '') or (cell_self == '' and cell_other is None):
             return CellDifference()
-        elif self.value.__class__ is not other.value.__class__:
-            return CellDifference('class: {} != class: {}'.format(self.value.__class__.__name__, other.value.__class__.__name__))
         else:
-            return CellDifference('{} != {}'.format(self.value, other.value))
+            return CellDifference('{} != {}'.format(cell_self, cell_other))
 
 
 class WorkbookDifference(dict):

@@ -17,7 +17,7 @@ from openpyxl.styles.colors import Color
 from os.path import basename, dirname, splitext
 from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
-from wc_utils.workbook.core import Workbook, Worksheet, Row, Cell
+from wc_utils.workbook.core import Workbook, Worksheet, Row
 import pyexcel
 
 
@@ -57,8 +57,8 @@ class Writer(with_metaclass(ABCMeta, object)):
         self.initialize_workbook()
 
         style = style or WorkbookStyle()
-        for sheet_name, data_worksheet in data.worksheets.items():
-            style_worksheet = style.worksheets.get(sheet_name, None)
+        for sheet_name, data_worksheet in data.items():
+            style_worksheet = style.get(sheet_name, None)
             self.write_worksheet(sheet_name, data_worksheet, style=style_worksheet)
 
         self.finalize_workbook()
@@ -112,7 +112,7 @@ class Reader(with_metaclass(ABCMeta, object)):
 
         names = self.get_sheet_names()
         for name in names:
-            workbook.worksheets[name] = self.read_worksheet(name)
+            workbook[name] = self.read_worksheet(name)
 
         return workbook
 
@@ -218,11 +218,11 @@ class ExcelWriter(Writer):
             kwargs['fgColor'] = style.head_row_fill_fgcolor
         head_fill = PatternFill(**kwargs)
 
-        for i_row, row in enumerate(data.rows):
-            for i_col, cell in enumerate(row.cells):
+        for i_row, row in enumerate(data):
+            for i_col, cell in enumerate(row):
                 xls_cell = xls_worksheet.cell(row=i_row + 1, column=i_col + 1)
 
-                value = cell.value
+                value = cell
                 if value is None:
                     pass
                 elif isinstance(value, string_types):
@@ -313,10 +313,10 @@ class ExcelReader(Reader):
 
         for i_row in range(1, xls_worksheet.max_row + 1):
             row = Row()
-            worksheet.rows.append(row)
+            worksheet.append(row)
             for i_col in range(1, xls_worksheet.max_column + 1):
-                cell = Cell(xls_worksheet.cell(row=i_row, column=i_col).value)
-                row.cells.append(cell)
+                cell = xls_worksheet.cell(row=i_row, column=i_col).value
+                row.append(cell)
 
         return worksheet
 
@@ -364,11 +364,7 @@ class SeparatedValuesWriter(Writer):
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
         """
-        array = []
-        for row in data.rows:
-            array.append([cell.value for cell in row.cells])
-
-        pyexcel.save_as(array=array, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
+        pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -432,7 +428,7 @@ class SeparatedValuesReader(Reader):
 
         for sv_row in sv_worksheet.row:
             row = Row()
-            worksheet.rows.append(row)
+            worksheet.append(row)
             for sv_cell in sv_row:
                 if sv_cell == '':
                     sv_cell = None
@@ -441,7 +437,7 @@ class SeparatedValuesReader(Reader):
                 elif sv_cell == 'False':
                     sv_cell = False
 
-                row.cells.append(Cell(sv_cell))
+                row.append(sv_cell)
 
         return worksheet
 
@@ -569,18 +565,13 @@ def convert(source, destination, style=None):
     write(destination, workbook, style=style)
 
 
-class WorkbookStyle(object):
-
-    def __init__(self, worksheets=None):
-        """
-        Args:
-            worksheets (:obj:`dict`, optional): dictionary of worksheet styles
-        """
-        self.worksheets = worksheets or {}
+class WorkbookStyle(dict):
+    """ Workbook style: dictionary of worksheet styles """
+    pass
 
 
 class WorksheetStyle(object):
-    """ Represents an Excel worksheet
+    """ Worksheet style
 
     Attributes:
         head_rows (:obj: `int`): number of head rows

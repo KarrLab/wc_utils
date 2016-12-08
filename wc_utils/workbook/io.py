@@ -446,6 +446,46 @@ class SeparatedValuesReader(Reader):
         return worksheet
 
 
+def get_writer(extension):
+    """ Get writer
+
+    Args:
+        extension (:obj:`str`): extension
+
+    Returns:
+        :obj:`class`: writer class
+
+    Raises:
+        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
+    """
+    if extension == '.xlsx':
+        return ExcelWriter
+    elif extension in ['.csv', '.tsv']:
+        return SeparatedValuesWriter
+    else:
+        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+
+
+def get_reader(extension):
+    """ Get reader
+
+    Args:
+        extension (:obj:`str`): extension
+
+    Returns:
+        :obj:`class`: reader class
+
+    Raises:
+        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
+    """
+    if extension == '.xlsx':
+        return ExcelReader
+    elif extension in ['.csv', '.tsv']:
+        return SeparatedValuesReader
+    else:
+        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+
+
 def write(path, workbook,
           title=None, description=None, keywords=None, version=None, language=None, creator=None,
           style=None):
@@ -461,18 +501,10 @@ def write(path, workbook,
         language (:obj:`str`, optional): language
         creator (:obj:`str`, optional): creator
         style (:obj:`WorkbookStyle`, optional): workbook style
-
-    Raises:
-        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
     """
     # check extensions are valid
     _, ext = splitext(path)
-    if ext == '.xlsx':
-        writer_cls = ExcelWriter
-    elif ext in ['.csv', '.tsv']:
-        writer_cls = SeparatedValuesWriter
-    else:
-        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+    writer_cls = get_writer(ext)
 
     writer = writer_cls(path,
                         title=title, description=description, keywords=keywords,
@@ -487,21 +519,11 @@ def read(path):
         path (:obj:`str`): path to file(s)
 
     Returns:
-        :obj:`Workbook`: python representation of data
-
-    Raises:
-        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
+        :obj:`Workbook`: python representation of data    
     """
     # check extensions are valid
     _, ext = splitext(path)
-
-    if ext == '.xlsx':
-        reader_cls = ExcelReader
-    elif ext in ['.csv', '.tsv']:
-        reader_cls = SeparatedValuesReader
-    else:
-        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
-
+    reader_cls = get_reader(ext)
     reader = reader_cls(path)
     return reader.run()
 

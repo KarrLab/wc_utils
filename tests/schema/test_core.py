@@ -143,6 +143,12 @@ class UniqueTogetherRoot(core.Model):
         unique_together = (('val1', 'val2'),)
 
 
+class InlineRoot(core.Model):
+
+    class Meta(core.Model.Meta):
+        tabular_orientation = core.TabularOrientation.inline
+
+
 class TestCore(unittest.TestCase):
 
     def test_get_models(self):
@@ -150,10 +156,14 @@ class TestCore(unittest.TestCase):
             Root, Leaf, UnrootedLeaf, Leaf3, Grandparent, Parent, Child,
             UniqueRoot, DateRoot, NotNoneDateRoot, OneToOneRoot, OneToOneLeaf,
             ManyToOneRoot, ManyToOneLeaf, OneToManyRoot, OneToManyLeaf, ManyToManyRoot, ManyToManyLeaf,
-            UniqueTogetherRoot
+            UniqueTogetherRoot, InlineRoot
         ))
         self.assertEqual(set(core.get_models(module=sys.modules[__name__])), models)
         self.assertEqual(models.difference(core.get_models()), set())
+
+        models.remove(InlineRoot)
+        self.assertEqual(set(core.get_models(module=sys.modules[__name__], inline=False)), models)
+        self.assertEqual(models.difference(core.get_models(inline=False)), set())
 
     def test_get_model(self):
         self.assertEqual(core.get_model('Root'), None)

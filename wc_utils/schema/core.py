@@ -3191,11 +3191,12 @@ class InvalidAttribute(object):
         return str
 
 
-def get_models(module=None):
+def get_models(module=None, inline=True):
     """ Get models
 
     Args:
         module (:obj:`module`, optional): module
+        inline (:obj:`bool`, optional): if true, return inline models
 
     Returns:
         :obj:`list` of `class`: list of model classes
@@ -3206,10 +3207,16 @@ def get_models(module=None):
             attr = getattr(module, attr_name)
             if isinstance(attr, type) and issubclass(attr, Model) and attr is not Model:
                 models.append(attr)
-        return models
 
     else:
-        return get_subclasses(Model)
+        models = get_subclasses(Model)
+
+    if not inline:
+        for model in list(models):
+            if model.Meta.tabular_orientation == TabularOrientation.inline:
+                models.remove(model)
+
+    return models
 
 
 def get_model(name, module=None):

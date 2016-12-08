@@ -145,8 +145,19 @@ class UniqueTogetherRoot(core.Model):
 
 class TestCore(unittest.TestCase):
 
+    def test_get_models(self):
+        models = set((
+            Root, Leaf, UnrootedLeaf, Leaf3, Grandparent, Parent, Child,
+            UniqueRoot, DateRoot, NotNoneDateRoot, OneToOneRoot, OneToOneLeaf,
+            ManyToOneRoot, ManyToOneLeaf, OneToManyRoot, OneToManyLeaf, ManyToManyRoot, ManyToManyLeaf,
+            UniqueTogetherRoot
+        ))
+        self.assertEqual(set(core.get_models(module=sys.modules[__name__])), models)
+        self.assertEqual(models.difference(core.get_models()), set())
+
     def test_get_model(self):
         self.assertEqual(core.get_model('Root'), None)
+        self.assertEqual(core.get_model('Root', module=sys.modules[__name__]), Root)
         self.assertEqual(core.get_model(Root.__module__ + '.Root'), Root)
 
     def test_verbose_name(self):

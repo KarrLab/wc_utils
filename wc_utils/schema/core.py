@@ -3191,17 +3191,40 @@ class InvalidAttribute(object):
         return str
 
 
-def get_model(name):
+def get_models(module=None):
+    """ Get models
+
+    Args:
+        module (:obj:`module`, optional): module
+
+    Returns:
+        :obj:`list` of `class`: list of model classes
+    """
+    if module:
+        models = []
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if isinstance(attr, type) and issubclass(attr, Model) and attr is not Model:
+                models.append(attr)
+        return models
+
+    else:
+        return get_subclasses(Model)
+
+
+def get_model(name, module=None):
     """ Get model with name `name`
 
     Args:
         name (:obj:`str`): name
+        module (:obj:`module`, optional): module
 
     Returns:
         :obj:`class`: model class
     """
     for model in get_subclasses(Model):
-        if name == model.__module__ + '.' + model.__name__:
+        if name == model.__module__ + '.' + model.__name__ or \
+                module is not None and module.__name__ == model.__module__ and name == model.__name__:
             return model
 
     return None

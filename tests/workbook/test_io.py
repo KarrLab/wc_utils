@@ -58,7 +58,7 @@ class TestCore(unittest.TestCase):
         style = io.WorkbookStyle()
         style.worksheets['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
                                                      head_row_font_bold=True, head_row_fill_fgcolor='CCCCCC', row_height=15)
-        io.write_excel(filename, self.wk, style)
+        io.write_excel(filename, self.wk, style=style)
         self.assertTrue(path.isfile(filename))
 
         # read from file

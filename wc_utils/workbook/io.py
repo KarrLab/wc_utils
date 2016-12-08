@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from datetime import datetime
 from glob import glob
 from math import isnan
 from openpyxl import Workbook as XlsWorkbook, load_workbook
@@ -42,12 +43,20 @@ def read(path):
         raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
 
 
-def write(path, workbook, style=None):
+def write(path, workbook,
+          title=None, description=None, keywords=None, version=None, language=None, creator=None,
+          style=None):
     """ Write data to Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
 
     Args:        
         path (:obj:`str`): path to file(s)
         workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+        title (:obj:`str`, optional): title
+        description (:obj:`str`, optional): description
+        keywords (:obj:`str`, optional): keywords
+        version (:obj:`str`, optional): version
+        language (:obj:`str`, optional): language
+        creator (:obj:`str`, optional): creator
         style (:obj:`WorkbookStyle`, optional): workbook style
 
     Raises:
@@ -57,7 +66,10 @@ def write(path, workbook, style=None):
     _, ext = splitext(path)
 
     if ext == '.xlsx':
-        return write_excel(path, workbook, style=style)
+        return write_excel(path, workbook, 
+            title=title, description=description, keywords=keywords, 
+            version=version, language=language, creator=creator,
+            style=style)
     elif ext in ['.csv', '.tsv']:
         return write_separated_values(path, workbook)
     else:
@@ -89,12 +101,20 @@ def read_excel(filename):
     return workbook
 
 
-def write_excel(filename, workbook, style=None):
+def write_excel(filename, workbook,
+                title=None, description=None, keywords=None, version=None, language=None, creator=None,
+                style=None):
     """ Read data to an Excel workbook
 
     Args:        
         filename (:obj:`str`): path to Excel file
         workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+        title (:obj:`str`, optional): title
+        description (:obj:`str`, optional): description
+        keywords (:obj:`str`, optional): keywords
+        version (:obj:`str`, optional): version
+        language (:obj:`str`, optional): language
+        creator (:obj:`str`, optional): creator
         style (:obj:`WorkbookStyle`, optional): workbook style
 
     Raises:
@@ -105,6 +125,16 @@ def write_excel(filename, workbook, style=None):
 
     xls_workbook = XlsWorkbook()
     xls_workbook.remove_sheet(xls_workbook.active)
+
+    props = xls_workbook.properties
+    props.title = title
+    props.description = description
+    props.keywords = keywords
+    props.version = version
+    props.language = language
+    props.creator = creator
+    props.created = datetime.now()
+    props.modified = props.created
 
     for sheet_name, worksheet in workbook.worksheets.items():
         xls_worksheet = xls_workbook.create_sheet(sheet_name)

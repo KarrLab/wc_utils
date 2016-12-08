@@ -242,7 +242,7 @@ class ExcelWriter(Writer):
 
                 xls_cell.alignment = alignment
 
-                if i_row < frozen_rows:
+                if i_row < frozen_rows or i_col < frozen_columns:
                     if head_font:
                         xls_cell.font = head_font
                     if head_fill:

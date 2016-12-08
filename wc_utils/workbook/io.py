@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from glob import glob
 from math import isnan
@@ -15,148 +16,209 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
 from os.path import basename, dirname, splitext
 from shutil import copyfile
-from six import integer_types, string_types
+from six import integer_types, string_types, with_metaclass
 from wc_utils.workbook.core import Workbook, Worksheet, Row, Cell
 import pyexcel
 
 
-def read(path):
-    """ Read data from Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
+class Writer(with_metaclass(ABCMeta, object)):
+    """ Write data to file(s)
 
-    Args:
+    Attributes:
         path (:obj:`str`): path to file(s)
-
-    Returns:
-        :obj:`Workbook`: python representation of data
-
-    Raises:
-        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
     """
-    # check extensions are valid
-    _, ext = splitext(path)
 
-    if ext == '.xlsx':
-        return read_excel(path)
-    elif ext in ['.csv', '.tsv']:
-        return read_separated_values(path)
-    else:
-        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+    def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None, creator=None):
+        """
+        Args:
+            path (:obj:`str`): path to file(s)
+            title (:obj:`str`, optional): title
+            description (:obj:`str`, optional): description
+            keywords (:obj:`str`, optional): keywords
+            version (:obj:`str`, optional): version
+            language (:obj:`str`, optional): language
+            creator (:obj:`str`, optional): creator
+        """
+        self.path = path
+        self.title = title
+        self.description = description
+        self.keywords = keywords
+        self.version = version
+        self.language = language
+        self.creator = creator
+
+    def run(self, data, style=None):
+        """ Write workbook to file(s)
+
+        Args:
+            data (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            style (:obj:`WorkbookStyle`, optional): workbook style
+        """
+        self.initialize_workbook()
+
+        style = style or WorkbookStyle()
+        for sheet_name, data_worksheet in data.worksheets.items():
+            style_worksheet = style.worksheets.get(sheet_name, None)
+            self.write_worksheet(sheet_name, data_worksheet, style=style_worksheet)
+
+        self.finalize_workbook()
+
+    @abstractmethod
+    def initialize_workbook(self):
+        """ Initialize workbook """
+        pass
+
+    @abstractmethod
+    def write_worksheet(self, sheet_name, data, style=None):
+        """ Write worksheet to file
+
+        Args:
+            sheet_name (:obj:`str`): sheet name
+            data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            style (:obj:`WorksheetStyle`, optional): worksheet style
+        """
+        pass
+
+    @abstractmethod
+    def finalize_workbook(self):
+        """ Finalize workbook """
+        pass
 
 
-def write(path, workbook,
-          title=None, description=None, keywords=None, version=None, language=None, creator=None,
-          style=None):
-    """ Write data to Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
+class Reader(with_metaclass(ABCMeta, object)):
+    """ Read data from file(s) 
 
-    Args:        
+    Attributes:
         path (:obj:`str`): path to file(s)
-        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
-        title (:obj:`str`, optional): title
-        description (:obj:`str`, optional): description
-        keywords (:obj:`str`, optional): keywords
-        version (:obj:`str`, optional): version
-        language (:obj:`str`, optional): language
-        creator (:obj:`str`, optional): creator
-        style (:obj:`WorkbookStyle`, optional): workbook style
-
-    Raises:
-        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
-    """
-    # check extensions are valid
-    _, ext = splitext(path)
-
-    if ext == '.xlsx':
-        return write_excel(path, workbook, 
-            title=title, description=description, keywords=keywords, 
-            version=version, language=language, creator=creator,
-            style=style)
-    elif ext in ['.csv', '.tsv']:
-        return write_separated_values(path, workbook)
-    else:
-        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
-
-
-def read_excel(filename):
-    """ Read data from Excel workbook
-
-    Args:
-        filename (:obj:`str`): path to Excel file
-
-    Returns:
-        :obj:`Workbook`: python representation of data
-    """
-    workbook = Workbook()
-    xls_workbook = load_workbook(filename=filename)
-    for sheet_name in xls_workbook.get_sheet_names():
-        xls_worksheet = xls_workbook[sheet_name]
-        worksheet = workbook.worksheets[sheet_name] = Worksheet()
-
-        for i_row in range(1, xls_worksheet.max_row + 1):
-            row = Row()
-            worksheet.rows.append(row)
-            for i_col in range(1, xls_worksheet.max_column + 1):
-                cell = Cell(xls_worksheet.cell(row=i_row, column=i_col).value)
-                row.cells.append(cell)
-
-    return workbook
-
-
-def write_excel(filename, workbook,
-                title=None, description=None, keywords=None, version=None, language=None, creator=None,
-                style=None):
-    """ Read data to an Excel workbook
-
-    Args:        
-        filename (:obj:`str`): path to Excel file
-        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
-        title (:obj:`str`, optional): title
-        description (:obj:`str`, optional): description
-        keywords (:obj:`str`, optional): keywords
-        version (:obj:`str`, optional): version
-        language (:obj:`str`, optional): language
-        creator (:obj:`str`, optional): creator
-        style (:obj:`WorkbookStyle`, optional): workbook style
-
-    Raises:
-        :obj:`ValueError`: if `workbook` contains values with are not strings, booleans, integers, floats, or None
     """
 
-    style = style or WorkbookStyle()
+    def __init__(self, path):
+        """
+        Args:
+            path (:obj:`str`): path to file(s)
+        """
+        self.path = path
 
-    xls_workbook = XlsWorkbook()
-    xls_workbook.remove_sheet(xls_workbook.active)
+    def run(self):
+        """ Read data from file(s)
 
-    props = xls_workbook.properties
-    props.title = title
-    props.description = description
-    props.keywords = keywords
-    props.version = version
-    props.language = language
-    props.creator = creator
-    props.created = datetime.now()
-    props.modified = props.created
+        Args:
+            path (:obj:`str`): path to file(s)
 
-    for sheet_name, worksheet in workbook.worksheets.items():
-        xls_worksheet = xls_workbook.create_sheet(sheet_name)
+        Returns:
+            :obj:`Workbook`: python representation of data
+        """
+        workbook = self.initialize_workbook()
 
+        names = self.get_sheet_names()
+        for name in names:
+            workbook.worksheets[name] = self.read_worksheet(name)
+
+        return workbook
+
+    @abstractmethod
+    def initialize_workbook(self):
+        """ Initialize workbook 
+
+        Returns:
+            :obj:`Workbook`: data
+        """
+        pass
+
+    @abstractmethod
+    def get_sheet_names(self):
+        """ Get names of sheets contained within path
+
+        Returns:
+            obj:`list` of `str`: list of sheet names
+        """
+        pass
+
+    @abstractmethod
+    def read_worksheet(self, sheet_name):
+        """ Read data from file 
+
+        Args:
+            sheet_name (:obj:`str`): sheet name
+
+        Returns:
+            :obj:`Worksheet`: data
+        """
+        pass
+
+
+class ExcelWriter(Writer):
+    """ Write data to Excel file
+
+    Attributes:
+        xls_workbook (:obj:`XlsWorkbook`): Excel workbook
+    """
+
+    def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None, creator=None):
+        """
+        Args:
+            path (:obj:`str`): path to file(s)
+            title (:obj:`str`, optional): title
+            description (:obj:`str`, optional): description
+            keywords (:obj:`str`, optional): keywords
+            version (:obj:`str`, optional): version
+            language (:obj:`str`, optional): language
+            creator (:obj:`str`, optional): creator
+
+        Raises:
+            :obj:`ValueError`: if file extension is not '.xlsx'
+        """
+        _, ext = splitext(path)
+        if ext != '.xlsx':
+            raise ValueError('Extension of `path` must one of ".xlsx"')
+
+        super(ExcelWriter, self).__init__(path,
+                                          title=title, description=description,
+                                          keywords=keywords, version=version, language=language, creator=creator)
+        self.xls_workbook = None
+
+    def initialize_workbook(self):
+        """ Initialize workbook """
+        # Initialize workbook
+        self.xls_workbook = xls_workbook = XlsWorkbook()
+        xls_workbook.remove_sheet(xls_workbook.active)
+
+        # set metadata
+        props = xls_workbook.properties
+        props.title = self.title
+        props.description = self.description
+        props.keywords = self.keywords
+        props.version = self.version
+        props.language = self.language
+        props.creator = self.creator
+        props.created = datetime.now()
+        props.modified = props.created
+
+    def write_worksheet(self, sheet_name, data, style=None):
+        """ Write worksheet to file
+
+        Args:
+            sheet_name (:obj:`str`): sheet name
+            data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            style (:obj:`WorksheetStyle`, optional): worksheet style
+        """
+        xls_worksheet = self.xls_workbook.create_sheet(sheet_name)
+
+        style = style or WorksheetStyle()
         alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
-        if sheet_name in style.worksheets:
-            sheet_style = style.worksheets[sheet_name]
-        else:
-            sheet_style = WorksheetStyle()
 
-        frozen_rows = sheet_style.head_rows
-        frozen_columns = sheet_style.head_columns
-        row_height = sheet_style.row_height
-        head_font = Font(bold=sheet_style.head_row_font_bold)
+        frozen_rows = style.head_rows
+        frozen_columns = style.head_columns
+        row_height = style.row_height
+        head_font = Font(bold=style.head_row_font_bold)
         kwargs = {}
-        if sheet_style.head_row_fill_pattern:
-            kwargs['patternType'] = sheet_style.head_row_fill_pattern
-        if sheet_style.head_row_fill_fgcolor:
-            kwargs['fgColor'] = sheet_style.head_row_fill_fgcolor
+        if style.head_row_fill_pattern:
+            kwargs['patternType'] = style.head_row_fill_pattern
+        if style.head_row_fill_fgcolor:
+            kwargs['fgColor'] = style.head_row_fill_fgcolor
         head_fill = PatternFill(**kwargs)
 
-        for i_row, row in enumerate(worksheet.rows):
+        for i_row, row in enumerate(data.rows):
             for i_col, cell in enumerate(row.cells):
                 xls_cell = xls_worksheet.cell(row=i_row + 1, column=i_col + 1)
 
@@ -191,37 +253,182 @@ def write_excel(filename, workbook,
 
         xls_worksheet.freeze_panes = xls_worksheet.cell(row=frozen_rows + 1, column=frozen_columns + 1)
 
-    xls_workbook.save(filename)
+    def finalize_workbook(self):
+        """ Finalize workbook """
+        self.xls_workbook.save(self.path)
 
 
-def read_separated_values(filename_pattern):
-    """ Read data from a set of [tc]sv files
+class ExcelReader(Reader):
+    """ Read data from Excel file
 
-    Args:
-        filename_pattern (:obj:`str`): pattern for file paths e.g. 'workbook-*.csv'
-
-    Returns:
-        :obj:`Workbook`: python representation of data
-
-    Raises:
-        :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+    Attributes:
+        xls_workbook (:obj:`XlsWorkbook`): Excel workbook
     """
-    _, ext = splitext(filename_pattern)
-    if ext not in ('.csv', '.tsv'):
-        raise ValueError('Extension of `filename_pattern` must match be one of "csv" or "tsv"')
 
-    if '*' in dirname(filename_pattern):
-        raise ValueError('`filename_pattern` cannot have glob patterns in its dirrectory name')
+    def __init__(self, path):
+        """
+        Args:
+            path (:obj:`str`): path to file(s)
 
-    if basename(filename_pattern).count('*') != 1:
-        raise ValueError('`filename_pattern` must have one glob pattern "*" in its base name')
+        Raises:
+            :obj:`ValueError`: if file extension is not '.xlsx'
+        """
+        _, ext = splitext(path)
+        if ext != '.xlsx':
+            raise ValueError('Extension of `path` must one of ".xlsx"')
+        super(ExcelReader, self).__init__(path)
+        self.xls_workbook = None
 
-    workbook = Workbook()
-    i_glob = filename_pattern.find('*')
-    for filename in glob(filename_pattern):
-        sheet_name = filename[i_glob:i_glob + len(filename) - len(filename_pattern) + 1]
-        worksheet = workbook.worksheets[sheet_name] = Worksheet()
-        sv_worksheet = pyexcel.get_sheet(file_name=filename)
+    def initialize_workbook(self):
+        """ Initialize workbook 
+
+        Returns:
+            :obj:`Workbook`: data
+        """
+        self.xls_workbook = load_workbook(filename=self.path)
+        return Workbook()
+
+    def get_sheet_names(self):
+        """ Get names of sheets contained within path
+
+        Args:
+            path (:obj:`str`): path to file(s)
+
+        Returns:
+            obj:`list` of `str`: list of sheet names
+        """
+        return self.xls_workbook.get_sheet_names()
+
+    def read_worksheet(self, sheet_name):
+        """ Read data from file 
+
+        Args:
+            sheet_name (:obj:`str`): sheet name
+
+        Returns:
+            :obj:`Worksheet`: data
+        """
+        xls_worksheet = self.xls_workbook[sheet_name]
+        worksheet = Worksheet()
+
+        for i_row in range(1, xls_worksheet.max_row + 1):
+            row = Row()
+            worksheet.rows.append(row)
+            for i_col in range(1, xls_worksheet.max_column + 1):
+                cell = Cell(xls_worksheet.cell(row=i_row, column=i_col).value)
+                row.cells.append(cell)
+
+        return worksheet
+
+
+class SeparatedValuesWriter(Writer):
+    """ Write data to csv/tsv file(s) """
+
+    def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None, creator=None):
+        """
+        Args:
+            path (:obj:`str`): path to file(s)
+            title (:obj:`str`, optional): title
+            description (:obj:`str`, optional): description
+            keywords (:obj:`str`, optional): keywords
+            version (:obj:`str`, optional): version
+            language (:obj:`str`, optional): language
+            creator (:obj:`str`, optional): creator
+
+        Raises:
+            :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+        """
+        _, ext = splitext(path)
+        if ext not in ('.csv', '.tsv'):
+            raise ValueError('Extension of `path` must match be one of ".csv" or ".tsv"')
+
+        if '*' in dirname(path):
+            raise ValueError('`path` cannot have glob patterns in its dirrectory name')
+
+        if basename(path).count('*') != 1:
+            raise ValueError('`path` must have one glob pattern "*" in its base name')
+
+        super(SeparatedValuesWriter, self).__init__(path,
+                                                    title=title, description=description,
+                                                    keywords=keywords, version=version, language=language, creator=creator)
+
+    def initialize_workbook(self):
+        """ Initialize workbook """
+        pass
+
+    def write_worksheet(self, sheet_name, data, style=None):
+        """ Write worksheet to file
+
+        Args:
+            sheet_name (:obj:`str`): sheet name
+            data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            style (:obj:`WorksheetStyle`, optional): worksheet style
+        """
+        array = []
+        for row in data.rows:
+            array.append([cell.value for cell in row.cells])
+
+        pyexcel.save_as(array=array, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
+
+    def finalize_workbook(self):
+        """ Finalize workbook """
+        pass
+
+
+class SeparatedValuesReader(Reader):
+    """ Read data from csv/tsv file(s) """
+
+    def __init__(self, path):
+        """
+        Args:
+            path (:obj:`str`): path to file(s)
+
+        Raises:
+            :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+        """
+        _, ext = splitext(path)
+        if ext not in ('.csv', '.tsv'):
+            raise ValueError('Extension of `path` must match be one of ".csv" or ".tsv"')
+
+        if '*' in dirname(path):
+            raise ValueError('`path` cannot have glob patterns in its dirrectory name')
+
+        if basename(path).count('*') != 1:
+            raise ValueError('`path` must have one glob pattern "*" in its base name')
+
+        super(SeparatedValuesReader, self).__init__(path)
+
+    def initialize_workbook(self):
+        """ Initialize workbook 
+
+        Returns:
+            :obj:`Workbook`: data
+        """
+        return Workbook()
+
+    def get_sheet_names(self):
+        """ Get names of sheets contained within path
+
+        Returns:
+            obj:`list` of `str`: list of sheet names
+        """
+        i_glob = self.path.find('*')
+        names = []
+        for filename in glob(self.path):
+            names.append(filename[i_glob:i_glob + len(filename) - len(self.path) + 1])
+        return names
+
+    def read_worksheet(self, sheet_name):
+        """ Read data from file 
+
+        Args:
+            sheet_name (:obj:`str`): sheet name
+
+        Returns:
+            :obj:`Worksheet`: data
+        """
+        worksheet = Worksheet()
+        sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name))
 
         for sv_row in sv_worksheet.row:
             row = Row()
@@ -236,39 +443,71 @@ def read_separated_values(filename_pattern):
 
                 row.cells.append(Cell(sv_cell))
 
-    return workbook
+        return worksheet
 
 
-def write_separated_values(filename_pattern, workbook):
-    """ Write data to a set of [tc]sv files
+def write(path, workbook,
+          title=None, description=None, keywords=None, version=None, language=None, creator=None,
+          style=None):
+    """ Write data to Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
 
-    Args:        
-        filename_pattern (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
-        workbook (:obj:`Workbook`): python representation of data
+    Args:
+        path (:obj:`str`): path to file(s)
+        workbook (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+        title (:obj:`str`, optional): title
+        description (:obj:`str`, optional): description
+        keywords (:obj:`str`, optional): keywords
+        version (:obj:`str`, optional): version
+        language (:obj:`str`, optional): language
+        creator (:obj:`str`, optional): creator
+        style (:obj:`WorkbookStyle`, optional): workbook style
 
     Raises:
-        :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
     """
-    _, ext = splitext(filename_pattern)
-    if ext not in ('.csv', '.tsv'):
-        raise ValueError('Extension of `filename_pattern` must match be one of "csv" or "tsv"')
+    # check extensions are valid
+    _, ext = splitext(path)
+    if ext == '.xlsx':
+        writer_cls = ExcelWriter
+    elif ext in ['.csv', '.tsv']:
+        writer_cls = SeparatedValuesWriter
+    else:
+        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
 
-    if '*' in dirname(filename_pattern):
-        raise ValueError('`filename_pattern` cannot have glob patterns in its dirrectory name')
+    writer = writer_cls(path,
+                        title=title, description=description, keywords=keywords,
+                        version=version, language=language, creator=creator)
+    writer.run(workbook, style=style)
 
-    if basename(filename_pattern).count('*') != 1:
-        raise ValueError('`filename_pattern` must have one glob pattern "*" in its base name')
 
-    for sheet_name, worksheet in workbook.worksheets.items():
-        array = []
-        for row in worksheet.rows:
-            array.append([cell.value for cell in row.cells])
+def read(path):
+    """ Read data from Excel (.xlsx) file or collection of comma separated (.csv) or tab separated (.tsv) file(s)
 
-        pyexcel.save_as(array=array, dest_file_name=filename_pattern.replace('*', '{}').format(sheet_name))
+    Args:
+        path (:obj:`str`): path to file(s)
+
+    Returns:
+        :obj:`Workbook`: python representation of data
+
+    Raises:
+        :obj:`ValueError`: if extension is not one of ".xlsx", ".csv", or ".tsv"
+    """
+    # check extensions are valid
+    _, ext = splitext(path)
+
+    if ext == '.xlsx':
+        reader_cls = ExcelReader
+    elif ext in ['.csv', '.tsv']:
+        reader_cls = SeparatedValuesReader
+    else:
+        raise ValueError('Extension must be one of ".xlsx", ".csv", or ".tsv"')
+
+    reader = reader_cls(path)
+    return reader.run()
 
 
 def convert(source, destination, style=None):
-    """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv) 
+    """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv)
 
     Args:
         source (:obj:`str`): path to source file
@@ -306,27 +545,6 @@ def convert(source, destination, style=None):
     # read/write
     workbook = read(source)
     write(destination, workbook, style=style)
-
-
-def convert_excel_to_separated_values(filename_excel, filename_pattern_separated_values):
-    """ Convert an Excel workbook to a set of csv/tsv files
-
-    Args:
-        filename_pattern_separated_values (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
-        filename_excel (:obj:`str`): path to Excel file
-    """
-    convert(filename_excel, filename_pattern_separated_values)
-
-
-def convert_separated_values_to_excel(filename_pattern_separated_values, filename_excel, style=None):
-    """ Convert a set of csv/tsv files to an Excel workbook
-
-    Args:
-        filename_pattern_separated_values (:obj:`str`): template for file paths, e.g. 'workbook-*.csv'
-        filename_excel (:obj:`str`): path to Excel file
-        style (:obj:`WorkbookStyle`, optional): workbook style
-    """
-    convert(filename_pattern_separated_values, filename_excel, style=style)
 
 
 class WorkbookStyle(object):

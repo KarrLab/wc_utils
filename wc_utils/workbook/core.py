@@ -24,6 +24,38 @@ class Workbook(object):
         """
         self.worksheets = worksheets or OrderedDict()
 
+    def __eq__(self, other):
+        """ Compare two workbooks
+
+        Args:
+            other (:obj:`Workbook`): other workbook
+
+        Returns:
+            :obj:`bool`: true if workbooks are semantically equal
+        """
+        if other.__class__ is not self.__class__:
+            return False
+
+        if set(self.worksheets.keys()) != set(other.worksheets.keys()):
+            return False
+
+        for name, sheet in self.worksheets.items():
+            if not sheet.__eq__(other.worksheets[name]):
+                return False
+
+        return True
+
+    def __ne__(self, other):
+        """ Compare two workbooks
+
+        Args:
+            other (:obj:`Workbook`): other workbook
+
+        Returns:
+            :obj:`bool`: true if workbooks are semantically unequal
+        """
+        return not self.__eq__(other)
+
     def difference(self, other):
         """ Get difference with another workbook
 
@@ -70,6 +102,38 @@ class Worksheet(object):
         """
         self.rows = rows or []
 
+    def __eq__(self, other):
+        """ Compare two worksheets
+
+        Args:
+            other (:obj:`Worksheet`): other worksheet
+
+        Returns:
+            :obj:`bool`: True if worksheets are semantically equal
+        """
+        if other.__class__ is not self.__class__:
+            return False
+
+        if len(self.rows) != len(other.rows):
+            return False
+
+        for row_self, row_other in zip(self.rows, other.rows):
+            if not row_self.__eq__(row_other):
+                return False
+
+        return True
+
+    def __ne__(self, other):
+        """ Compare two worksheets
+
+        Args:
+            other (:obj:`Worksheet`): other worksheet
+
+        Returns:
+            :obj:`bool`: True if worksheets are semantically unequal
+        """
+        return not self.__eq__(other)
+
     def difference(self, other):
         """ Get difference with another worksheet
 
@@ -114,6 +178,39 @@ class Row(object):
             cells (:obj:`list` of `Cell`, optional): list of cells
         """
         self.cells = cells or []
+
+    def __eq__(self, other):
+        """ Compare rows
+
+        Args:
+            other (:obj:`Row`): other row
+
+        Returns:
+            :obj:`bool`: True if rows are semantically equal
+        """
+        if other.__class__ is not self.__class__:
+            return False
+
+        if len(self.cells) != len(other.cells):
+            return False
+
+        for cell_self, cell_other in zip(self.cells, other.cells):
+            if not cell_self.__eq__(cell_other):
+                return False
+
+        return True
+
+    def __ne__(self, other):
+        """ Compare rows
+
+        Args:
+            other (:obj:`Row`): other row
+
+        Returns:
+            :obj:`bool`: True if rows are semantically unequal
+        """
+        if other.__class__ is not self.__class__:
+            return False
 
     def difference(self, other):
         """ Get difference with another row
@@ -160,6 +257,31 @@ class Cell(object):
             value (:obj:`object`, optional): value
         """
         self.value = value
+
+    def __eq__(self, other):
+        """ Compare cells
+
+        Args:
+            other (:obj:`Cell`): other cell
+
+        Returns:
+            :obj:`bool`: True if cells are semantically equal
+        """
+        if other.__class__ is not self.__class__:
+            return False
+
+        return self.value == other.value
+
+    def __ne__(self, other):
+        """ Compare cells
+
+        Args:
+            other (:obj:`Cell`): other cell
+
+        Returns:
+            :obj:`bool`: True if cells are semantically unequal
+        """
+        return not self.__eq__(other)
 
     def difference(self, other):
         """ Get difference with another cell

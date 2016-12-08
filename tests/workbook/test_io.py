@@ -6,18 +6,16 @@
 :License: MIT
 """
 
-from copy import deepcopy
 from os import path
 from shutil import rmtree
 from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
 from wc_utils.workbook.core import Workbook, Worksheet, Row, Cell
-from wc_utils.util.types import assert_value_equal
 import unittest
 
 
-class TestCore(unittest.TestCase):
+class TestIo(unittest.TestCase):
 
     def setUp(self):
         # test data set
@@ -51,18 +49,18 @@ class TestCore(unittest.TestCase):
     def test_read_write_excel(self):
         # write to file
         filename = path.join(self.tempdir, 'test.xlsx')
-        io.write_excel(filename, self.wk)
+        io.ExcelWriter(filename).run(self.wk)
         self.assertTrue(path.isfile(filename))
 
         # write to file with style
         style = io.WorkbookStyle()
         style.worksheets['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
                                                      head_row_font_bold=True, head_row_fill_fgcolor='CCCCCC', row_height=15)
-        io.write_excel(filename, self.wk, style=style)
+        io.ExcelWriter(filename).run(self.wk, style=style)
         self.assertTrue(path.isfile(filename))
 
         # read from file
-        wk = io.read_excel(filename)
+        wk = io.ExcelReader(filename).run()
 
         # assert content is the same
         ws = wk.worksheets['Ws-0']
@@ -73,18 +71,18 @@ class TestCore(unittest.TestCase):
         self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
         self.assertEqual(ws.rows[3].cells[3].value, None)
 
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)
 
     def test_read_write_csv(self):
         # write to files
         filename_pattern = path.join(self.tempdir, 'test-*.csv')
-        io.write_separated_values(filename_pattern, self.wk)
+        io.SeparatedValuesWriter(filename_pattern).run(self.wk)
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-0')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-1')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-2')))
 
         # read from files
-        wk = io.read_separated_values(filename_pattern)
+        wk = io.SeparatedValuesReader(filename_pattern).run()
 
         # assert content is the same
         ws = wk.worksheets['Ws-0']
@@ -95,18 +93,18 @@ class TestCore(unittest.TestCase):
         self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
         self.assertEqual(ws.rows[3].cells[3].value, None)
 
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)
 
     def test_read_write_tsv(self):
         # write to files
         filename_pattern = path.join(self.tempdir, 'test-*.tsv')
-        io.write_separated_values(filename_pattern, self.wk)
+        io.SeparatedValuesWriter(filename_pattern).run(self.wk)
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-0')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-1')))
         self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-2')))
 
         # read from files
-        wk = io.read_separated_values(filename_pattern)
+        wk = io.SeparatedValuesReader(filename_pattern).run()
 
         # assert content is the same
         ws = wk.worksheets['Ws-0']
@@ -117,49 +115,49 @@ class TestCore(unittest.TestCase):
         self.assertEqual(ws.rows[2].cells[0].value, u'b0\u20ac')
         self.assertEqual(ws.rows[3].cells[3].value, None)
 
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)
 
     def test_write_read(self):
         file = path.join(self.tempdir, 'test.xlsx')
         io.write(file, self.wk)
         wk = io.read(file)
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)
 
         file = path.join(self.tempdir, 'test-*.csv')
         io.write(file, self.wk)
         wk = io.read(file)
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)
 
     def test_convert(self):
         source = path.join(self.tempdir, 'test.xlsx')
-        io.write_excel(source, self.wk)
+        io.ExcelWriter(source).run(self.wk)
 
         # copy excel->sv
         dest = path.join(self.tempdir, 'test-*.csv')
         io.convert(source, dest)
-        wk = io.read_separated_values(dest)
-        assert_value_equal(wk, self.wk)
+        wk = io.SeparatedValuesReader(dest).run()
+        self.assertEqual(wk, self.wk)
 
         # copy sv->excel
         source = path.join(self.tempdir, 'test-*.csv')
         dest = path.join(self.tempdir, 'test2.xlsx')
         io.convert(source, dest)
-        wk = io.read_excel(dest)
-        assert_value_equal(wk, self.wk)
+        wk = io.ExcelReader(dest).run()
+        self.assertEqual(wk, self.wk)
 
         # copy same format - excel
         source = path.join(self.tempdir, 'test.xlsx')
         dest = path.join(self.tempdir, 'test3.xlsx')
         io.convert(source, dest)
-        wk = io.read_excel(dest)
-        assert_value_equal(wk, self.wk)
+        wk = io.ExcelReader(dest).run()
+        self.assertEqual(wk, self.wk)
 
         # copy same format - csv
         source = path.join(self.tempdir, 'test-*.csv')
         dest = path.join(self.tempdir, 'test2-*.csv')
         io.convert(source, dest)
-        wk = io.read_separated_values(dest)
-        assert_value_equal(wk, self.wk)
+        wk = io.SeparatedValuesReader(dest).run()
+        self.assertEqual(wk, self.wk)
 
         # negative examples
         source = path.join(self.tempdir, 'test.xlsx')
@@ -176,30 +174,30 @@ class TestCore(unittest.TestCase):
 
     def test_convert_excel_to_csv(self):
         filename_excel = path.join(self.tempdir, 'test.xlsx')
-        io.write_excel(filename_excel, self.wk)
+        io.ExcelWriter(filename_excel).run(self.wk)
 
         filename_pattern_separated_values = path.join(self.tempdir, 'test-*.csv')
-        io.convert_excel_to_separated_values(filename_excel, filename_pattern_separated_values)
+        io.convert(filename_excel, filename_pattern_separated_values)
         self.assertTrue(path.isfile(filename_pattern_separated_values.replace('*', '{}').format('Ws-0')))
         self.assertTrue(path.isfile(filename_pattern_separated_values.replace('*', '{}').format('Ws-1')))
         self.assertTrue(path.isfile(filename_pattern_separated_values.replace('*', '{}').format('Ws-2')))
 
         # read from files
-        wk = io.read_separated_values(filename_pattern_separated_values)
+        wk = io.SeparatedValuesReader(filename_pattern_separated_values).run()
 
         # assert content is the same
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)
 
     def test_convert_csv_to_excel(self):
         filename_pattern_separated_values = path.join(self.tempdir, 'test-*.csv')
-        io.write_separated_values(filename_pattern_separated_values, self.wk)
+        io.SeparatedValuesWriter(filename_pattern_separated_values).run(self.wk)
 
         filename_excel = path.join(self.tempdir, 'test.xlsx')
-        io.convert_separated_values_to_excel(filename_pattern_separated_values, filename_excel)
+        io.convert(filename_pattern_separated_values, filename_excel)
         self.assertTrue(path.isfile(filename_excel))
 
         # read from files
-        wk = io.read_excel(filename_excel)
+        wk = io.ExcelReader(filename_excel).run()
 
         # assert content is the same
-        assert_value_equal(wk, self.wk)
+        self.assertEqual(wk, self.wk)

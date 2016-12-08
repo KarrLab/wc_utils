@@ -35,6 +35,64 @@ class TestCore(unittest.TestCase):
         ws2.rows.append(Row([Cell('b2'), Cell(3), Cell(4.)]))
         ws2.rows.append(Row([Cell('c2'), Cell(5), Cell(6.)]))
 
+    def test_eq(self):
+        wk = deepcopy(self.wk)
+        self.assertEqual(self.wk == wk, True)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-3'] = Worksheet()
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-2'].rows.append(Row())
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-2'].rows[0].cells.append(Cell())
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-1'].rows[1].cells[2].value = 3.5
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-1'].rows[1].cells[2].value = 'test'
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)
+
+    def test_ne(self):
+        wk = deepcopy(self.wk)
+        self.assertEqual(self.wk != wk, False)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-3'] = Worksheet()
+        self.assertEqual(self.wk != wk, True)
+        self.assertEqual(wk != self.wk, True)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-2'].rows.append(Row())
+        self.assertEqual(self.wk != wk, True)
+        self.assertEqual(wk != self.wk, True)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-2'].rows[0].cells.append(Cell())
+        self.assertEqual(self.wk != wk, True)
+        self.assertEqual(wk != self.wk, True)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-1'].rows[1].cells[2].value = 3.5
+        self.assertEqual(self.wk != wk, True)
+        self.assertEqual(wk != self.wk, True)
+
+        wk = deepcopy(self.wk)
+        wk.worksheets['Ws-1'].rows[1].cells[2].value = 'test'
+        self.assertEqual(self.wk != wk, True)
+        self.assertEqual(wk != self.wk, True)
+
     def test_difference(self):
         wk = deepcopy(self.wk)
         self.assertEqual(self.wk.difference(wk), {})

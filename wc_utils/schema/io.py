@@ -15,7 +15,7 @@ from natsort import natsorted, ns
 from os.path import basename, dirname, splitext
 from warnings import warn
 from wc_utils.schema import utils
-from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation
+from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation, InvalidObject
 from wc_utils.util.list import transpose
 from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
                                   Writer as BaseWriter, Reader as BaseReader,
@@ -244,10 +244,11 @@ class Reader(object):
                 objects[model] = model_objects
 
         if errors:
-            msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
+            msg = 'The model cannot be loaded because the spreadsheet contains error(s):'
             for model, model_errors in errors.items():
-                msg += '  {}:\n    {}\n'.format(model.__name__,
-                                                '\n    '.join([str(error).replace('\n', '\n    ') for error in model_errors]))
+                msg += '\n  {}:'.format(model.__name__)
+                for model_error in model_errors:
+                    msg += '\n    {}'.format(str(model_error).replace('\n', '\n    '))
             raise ValueError(msg)
 
         # link objects
@@ -263,14 +264,11 @@ class Reader(object):
                 errors[model] = model_errors
 
         if errors:
-            msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
+            msg = 'The model cannot be loaded because the spreadsheet contains error(s):'
             for model, model_errors in errors.items():
-                msg += '  {}:\n'.format(model.__name__)
+                msg += '\n  {}:'.format(model.__name__)
                 for model_error in model_errors:
-                    if isinstance(model_error, str):
-                        msg += '    {}\n'.format(model_error)
-                    else:
-                        msg += '    {}\n'.format('    {}\n'.join(model_error.messages))
+                    msg += '\n    {}'.format(str(model_error).replace('\n', '\n    '))
             raise ValueError(msg)
 
         # convert to sets
@@ -353,13 +351,17 @@ class Reader(object):
         for obj_data in data:
             obj = model()
 
+            obj_errors = []
             for attr, attr_value in zip(attributes, obj_data):
                 if not isinstance(attr, RelatedAttribute):
                     value, error = attr.deserialize(attr_value)
                     if error:
-                        errors.append(error)
+                        obj_errors.append(error)
                     else:
                         setattr(obj, attr.name, value)
+
+            if obj_errors:
+                errors.append(InvalidObject(obj, obj_errors))
 
             objects.append(obj)
 

@@ -3145,7 +3145,7 @@ class InvalidObject(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        str = '{}:\n'.format(self.object.get_primary_attribute())
+        str = '{}:\n'.format(self.object.serialize())
         for attr in self.attributes:
             str += '  ' + attr.__str__().replace('\n', '\n  ')
         return str

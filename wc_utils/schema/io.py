@@ -17,7 +17,9 @@ from warnings import warn
 from wc_utils.schema import utils
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation
 from wc_utils.util.list import transpose
-from wc_utils.workbook.io import get_writer, get_reader, WorksheetStyle, Writer as BaseWriter, Reader as BaseReader
+from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
+                                  Writer as BaseWriter, Reader as BaseReader,
+                                  convert as base_convert)
 
 
 class Writer(object):
@@ -113,24 +115,23 @@ class Writer(object):
             data.append(obj_data)
 
         # transpose data for column orientation
+        style = self.create_worksheet_style(model)
         if model.Meta.tabular_orientation == TabularOrientation.row:
             self.write_sheet(writer,
                              sheet_name=model.Meta.verbose_name_plural,
                              data=data,
                              column_headings=headings,
-                             frozen_rows=1,
-                             frozen_columns=model.Meta.frozen_columns,
+                             style=style,
                              )
         else:
             self.write_sheet(writer,
                              sheet_name=model.Meta.verbose_name,
                              data=transpose(data),
                              row_headings=headings,
-                             frozen_rows=model.Meta.frozen_columns,
-                             frozen_columns=1,
+                             style=style,
                              )
 
-    def write_sheet(self, writer, sheet_name, data, row_headings=None, column_headings=None, frozen_rows=0, frozen_columns=0):
+    def write_sheet(self, writer, sheet_name, data, row_headings=None, column_headings=None, style=None):
         """ Write data to sheet
 
         Args:
@@ -139,20 +140,10 @@ class Writer(object):
             data (:obj:`list` of `list` of `object`): list of list of cell values
             row_headings (:obj:`list` of `list` of `str`, optional): list of list of row headings
             column_headings (:obj:`list` of `list` of `str`, optional): list of list of column headings
-            frozen_rows (:obj:`int`, optional): number of rows to freeze
-            frozen_columns (:obj:`int`, optional): number of columns to freeze
+            style (:obj:`WorksheetStyle`, optional): worksheet style
         """
         row_headings = row_headings or []
         column_headings = column_headings or []
-
-        style = WorksheetStyle(
-            head_rows=frozen_rows,
-            head_columns=frozen_columns,
-            head_row_font_bold=True,
-            head_row_fill_pattern='solid',
-            head_row_fill_fgcolor='CCCCCC',
-            row_height=15,
-        )
 
         # merge data, headings
         for i_row, row_heading in enumerate(transpose(row_headings)):
@@ -173,6 +164,32 @@ class Writer(object):
 
         # write content to worksheet
         writer.write_worksheet(sheet_name, content, style=style)
+
+    @staticmethod
+    def create_worksheet_style(model):
+        """ Create worksheet style for model
+
+        Args:
+            model (:obj:`class`): model class
+
+        Returns:
+            :obj:`WorksheetStyle`: worksheet style
+        """
+        style = WorksheetStyle(
+            head_row_font_bold=True,
+            head_row_fill_pattern='solid',
+            head_row_fill_fgcolor='CCCCCC',
+            row_height=15,
+        )
+
+        if model.Meta.tabular_orientation == TabularOrientation.row:
+            style.head_rows = 1
+            style.head_columns = model.Meta.frozen_columns
+        else:
+            style.head_rows = model.Meta.frozen_columns
+            style.head_columns = 1
+
+        return style
 
 
 class Reader(object):
@@ -408,6 +425,30 @@ class Reader(object):
                         setattr(obj, attr.name, value)
 
         return errors
+
+
+def convert(source, destination, models=None):
+    """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv)
+
+    Args:
+        source (:obj:`str`): path to source file
+        destination (:obj:`str`): path to save converted file
+        models (:obj:`list` of `class`, optional): list of models
+    """
+    models = models or []
+
+    worksheet_order = []
+    style = WorkbookStyle()
+    for model in models:
+        if model.Meta.tabular_orientation == TabularOrientation.row:
+            name = model.Meta.verbose_name_plural
+        else:
+            name = model.Meta.verbose_name
+
+        worksheet_order.append(name)
+        style[name] = Writer.create_worksheet_style(model)
+
+    base_convert(source, destination, worksheet_order=worksheet_order, style=style)
 
 
 def create_template(path, models, title=None, description=None, keywords=None,

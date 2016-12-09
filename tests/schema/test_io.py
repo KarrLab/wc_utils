@@ -6,8 +6,10 @@
 :License: MIT
 """
 from wc_utils.schema import core, utils
-from wc_utils.schema.io import Reader, Writer, create_template
+from wc_utils.schema.io import Reader, Writer, convert, create_template
+from wc_utils.workbook.io import WorksheetStyle
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -89,20 +91,13 @@ class OneToManyInline(core.Model):
 class TestIo(unittest.TestCase):
 
     def setUp(self):
-        _, self.filename = tempfile.mkstemp(suffix='.xlsx')
-
-    def tearDown(self):
-        if os.path.isfile(self.filename):
-            os.remove(self.filename)
-
-    def test_write_read(self):
-        root = Root(id='root', name=u'\u20ac')
+        self.root = root = Root(id='root', name=u'\u20ac')
         nodes = [
             Node(root=root, id='node_0', val1=1, val2=2),
             Node(root=root, id='node_1', val1=3, val2=4),
             Node(root=root, id='node_2', val1=5, val2=6),
         ]
-        leaves = [
+        self.leaves = leaves = [
             Leaf(nodes=[nodes[0]], id='leaf_0_0', val1=7, val2=8),
             Leaf(nodes=[nodes[0]], id='leaf_0_1', val1=9, val2=10),
             Leaf(nodes=[nodes[1]], id='leaf_1_0', val1=11, val2=12),
@@ -124,17 +119,25 @@ class TestIo(unittest.TestCase):
         leaves[4].onetomany_inlines = [OneToManyInline(id='inline_4_0'), OneToManyInline(id='inline_4_1')]
         leaves[5].onetomany_inlines = [OneToManyInline(id='inline_5_0'), OneToManyInline(id='inline_5_1')]
 
+        self.dirname = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dirname)
+
+    def test_write_read(self):
         # test integrity of relationships
-        for leaf in leaves:
+        for leaf in self.leaves:
             for row in leaf.onetomany_rows:
                 self.assertEqual(row.leaf, leaf)
 
         # write/read to/from Excel
+        root = self.root
         objects = set((root, )) | root.get_related()
         objects = utils.group_objects_by_model(objects)
 
-        Writer().run(self.filename, set((root,)), [Root, Node, Leaf, ])
-        objects2 = Reader().run(self.filename, [Root, Node, Leaf, OneToManyRow])
+        filename = os.path.join(self.dirname, 'test.xlsx')
+        Writer().run(filename, set((root,)), [Root, Node, Leaf, ])
+        objects2 = Reader().run(filename, [Root, Node, Leaf, OneToManyRow])
 
         # validate
         all_objects2 = set()
@@ -155,9 +158,24 @@ class TestIo(unittest.TestCase):
         # unicode
         self.assertEqual(root2.name, u'\u20ac')
 
+    def test_create_worksheet_style(self):
+        self.assertIsInstance(Writer.create_worksheet_style(Root), WorksheetStyle)
+
+    def test_convert(self):
+        filename_xls1 = os.path.join(self.dirname, 'test1.xlsx')
+        filename_xls2 = os.path.join(self.dirname, 'test2.xlsx')
+        filename_csv = os.path.join(self.dirname, 'test-*.csv')
+
+        models = [Root, Node, Leaf, ]
+        Writer().run(filename_xls1, set((self.root,)), models)
+
+        convert(filename_xls1, filename_csv, models)
+        convert(filename_csv, filename_xls2, models)
+
     def test_create_template(self):
-        create_template(self.filename, [Root, Node, Leaf])
-        objects = Reader().run(self.filename, [Root, Node, Leaf])
+        filename = os.path.join(self.dirname, 'test.xlsx')
+        create_template(filename, [Root, Node, Leaf])
+        objects = Reader().run(filename, [Root, Node, Leaf])
         self.assertEqual(objects, {
             Root: set(),
             Node: set(),

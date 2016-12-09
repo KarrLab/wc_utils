@@ -9,6 +9,7 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from glob import glob
+from itertools import chain
 from math import isnan
 from openpyxl import Workbook as XlsWorkbook, load_workbook
 from openpyxl.cell.cell import Cell as CellType
@@ -524,12 +525,13 @@ def read(path):
     return reader.run()
 
 
-def convert(source, destination, style=None):
+def convert(source, destination, worksheet_order=None, style=None):
     """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv)
 
     Args:
         source (:obj:`str`): path to source file
         destination (:obj:`str`): path to save converted file
+        worksheet_order (:obj:`list` of `str`): worksheet order
         style (:obj:`WorkbookStyle`, optional): workbook style for Excel
 
     Raises:
@@ -562,7 +564,13 @@ def convert(source, destination, style=None):
 
     # read/write
     workbook = read(source)
-    write(destination, workbook, style=style)
+
+    ordered_workbook = Workbook()
+    worksheet_order = worksheet_order or []
+    for worksheet in chain(worksheet_order, workbook.keys()):
+        ordered_workbook[worksheet] = workbook[worksheet]
+
+    write(destination, ordered_workbook, style=style)
 
 
 class WorkbookStyle(dict):

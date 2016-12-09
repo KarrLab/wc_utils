@@ -544,7 +544,7 @@ class Model(with_metaclass(ModelMeta, object)):
             else:
                 id_othr = 'instance: ' + cls.__name__
 
-            return 'Objects ({}, {}) have different attribute values:\n  {}'.format(id_self, id_othr, '\n'.join(msgs).replace('\n', '\n  '))
+            return 'Objects ({}, {}) have different attribute values:\n  {}'.format(id_self, id_othr, '\n  '.join([msg.replace('\n', '\n  ') for msg in msgs]))
 
         return ''
 
@@ -711,7 +711,7 @@ class Model(with_metaclass(ModelMeta, object)):
                 msg = 'Combinations of ({}) must be unique. The following combinations are repeated:'.format(
                     ', '.join(unique_together))
                 for rep_val in rep_vals:
-                    msg += '\n- {}'.format(', '.join(rep_val))
+                    msg += '\n  {}'.format(', '.join(rep_val))
                 attr = cls.Meta.attributes[list(unique_together)[0]]
                 errors.append(InvalidAttribute(attr, [msg]))
 
@@ -879,7 +879,7 @@ class Attribute(object):
                 unq_vals.add(val)
 
         if rep_vals:
-            message = 'Values must be unique. The following values are repeated:\n- ' + '\n- '.join(rep_vals)
+            message = 'Values must be unique. The following values are repeated:\n  ' + '\n  '.join(rep_vals)
             return InvalidAttribute(self, [message])
 
     def serialize(self, value):
@@ -1060,7 +1060,7 @@ class BooleanAttribute(Attribute):
 
         if (value is None) or isinstance(value, bool):
             return (value, None)
-        return (None, InvalidAttribute(attr, ['Value must be a `bool` or `None`']))
+        return (None, InvalidAttribute(self, ['Value must be a `bool` or `None`']))
 
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
@@ -3088,10 +3088,10 @@ class InvalidObjectSet(object):
             if model in obj_errs:
                 errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
                 for obj_err in errs:
-                    str += '  ' + obj_err.__str__().replace('\n', '\n  ').rstrip(' ')
+                    str += '  ' + obj_err.__str__().replace('\n', '\n  ')
 
             if model in mdl_errs:
-                str += mdl_errs[model].__str__().replace('\n', '\n  ').rstrip(' ')
+                str += mdl_errs[model].__str__().replace('\n', '\n  ')
 
         return str
 
@@ -3119,10 +3119,7 @@ class InvalidModel(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        str = ''
-        for attr in self.attributes:
-            str += attr.__str__()
-        return str
+        return '\n'.join([attr.__str__() for attr in self.attributes])
 
 
 class InvalidObject(object):
@@ -3150,7 +3147,7 @@ class InvalidObject(object):
         """
         str = '{}:\n'.format(self.object.get_primary_attribute())
         for attr in self.attributes:
-            str += '  ' + attr.__str__().replace('\n', '\n  ').rstrip(' ')
+            str += '  ' + attr.__str__().replace('\n', '\n  ')
         return str
 
 
@@ -3186,7 +3183,7 @@ class InvalidAttribute(object):
             str = '{}:\n'.format(self.attribute.name)
 
         for msg in self.messages:
-            str += '  {}\n'.format(msg)
+            str += '  {}'.format(msg.rstrip().replace('\n', '\n  '))
 
         return str
 

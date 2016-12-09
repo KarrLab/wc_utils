@@ -6,14 +6,27 @@
 :License: MIT
 """
 
-from enum import Enum, EnumMeta
+from enum import Enum, EnumMeta, _EnumDict
 from six import with_metaclass
+
+
+class _CaseInsensitiveEnumDict(_EnumDict):
+
+    def __setitem__(self, key, value):
+        super(_CaseInsensitiveEnumDict, self).__setitem__(key.lower(), value)
 
 
 class CaseInsensitiveEnumMeta(EnumMeta):
 
+    @classmethod
+    def __prepare__(metacls, cls, bases):
+        return _CaseInsensitiveEnumDict()
+
     def __new__(metacls, cls, bases, classdict):
-        lower_classdict = {key.lower(): val for key, val in classdict.items()}
+        if isinstance(classdict, _CaseInsensitiveEnumDict):
+            lower_classdict = classdict
+        else:
+            lower_classdict = {key.lower(): val for key, val in dict(classdict).items()}
         return super(CaseInsensitiveEnumMeta, metacls).__new__(metacls, cls, bases, lower_classdict)
 
     def __getattr__(cls, name):

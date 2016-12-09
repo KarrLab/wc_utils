@@ -258,7 +258,7 @@ class ExcelWriter(Writer):
         if style.auto_filter:
             xls_worksheet.auto_filter.ref = '{}{}:{}{}'.format(
                 get_column_letter(1), frozen_rows,
-                get_column_letter(xls_worksheet.max_column), xls_worksheet.max_row)
+                get_column_letter(max(len(row) for row in data)), len(data))
 
     def finalize_workbook(self):
         """ Finalize workbook """

@@ -15,6 +15,7 @@ from openpyxl import Workbook as XlsWorkbook, load_workbook
 from openpyxl.cell.cell import Cell as CellType
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
+from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
@@ -253,6 +254,11 @@ class ExcelWriter(Writer):
                 xls_worksheet.row_dimensions[i_row + 1].height = row_height
 
         xls_worksheet.freeze_panes = xls_worksheet.cell(row=frozen_rows + 1, column=frozen_columns + 1)
+
+        if style.auto_filter:
+            xls_worksheet.auto_filter.ref = '{}{}:{}{}'.format(
+                get_column_letter(1), frozen_rows,
+                get_column_letter(xls_worksheet.max_column), xls_worksheet.max_row)
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -588,9 +594,13 @@ class WorksheetStyle(object):
         head_row_fill_pattern (:obj:`str`): head row fill pattern
         head_row_fill_fgcolor (:obj:`str`): head row background color
         row_height (:obj:`float`): row height
+        auto_filter (:obj:`bool`): whether or not to activate auto filters for row
     """
 
-    def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False, head_row_fill_pattern='solid', head_row_fill_fgcolor='', row_height=float('nan')):
+    def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
+                 head_row_fill_pattern='solid', head_row_fill_fgcolor='',
+                 row_height=float('nan'),
+                 auto_filter=True):
         """
         Args:
             head_rows (:obj: `int`, optional): number of head rows
@@ -599,6 +609,7 @@ class WorksheetStyle(object):
             head_row_fill_pattern (:obj:`str`, optional): head row fill pattern
             head_row_fill_fgcolor (:obj:`str`, optional): head row background color
             row_height (:obj:`float`, optional): row height
+            auto_filter (:obj:`bool`, optional): whether or not to activate auto filters for row
         """
         self.head_rows = head_rows
         self.head_columns = head_columns
@@ -606,3 +617,4 @@ class WorksheetStyle(object):
         self.head_row_fill_pattern = head_row_fill_pattern
         self.head_row_fill_fgcolor = head_row_fill_fgcolor
         self.row_height = row_height
+        self.auto_filter = auto_filter

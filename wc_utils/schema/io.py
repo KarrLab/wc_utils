@@ -55,7 +55,7 @@ class Writer(object):
 
         if error:
             warnings.warn('Storage may be lossy because the objects are not valid:\n  {}'.format(
-                str(error).replace('\n', '\n  ').rstrip(' ')))
+                str(error).replace('\n', '\n  ').rstrip()))
 
         # group objects by class
         grouped_objects = {}
@@ -246,7 +246,8 @@ class Reader(object):
         if errors:
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
             for model, model_errors in errors.items():
-                msg += '- {}:\n  - {}\n'.format(model.__name__, '\n  - '.join(model_errors))
+                msg += '  {}:\n    {}\n'.format(model.__name__,
+                                                '\n    '.join([str(error).replace('\n', '\n    ') for error in model_errors]))
             raise ValueError(msg)
 
         # link objects
@@ -264,12 +265,12 @@ class Reader(object):
         if errors:
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):\n'
             for model, model_errors in errors.items():
-                msg += '- {}:\n'.format(model.__name__)
+                msg += '  {}:\n'.format(model.__name__)
                 for model_error in model_errors:
                     if isinstance(model_error, str):
-                        msg += '  - {}\n'.format(model_error)
+                        msg += '    {}\n'.format(model_error)
                     else:
-                        msg += '  - {}\n'.format('  - {}\n'.join(model_error.messages))
+                        msg += '    {}\n'.format('    {}\n'.join(model_error.messages))
             raise ValueError(msg)
 
         # convert to sets

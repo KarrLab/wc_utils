@@ -950,16 +950,16 @@ class EnumAttribute(Attribute):
         error = None
 
         if isinstance(value, string_types):
-            if value in self.enum_class.__members__:
+            try:
                 value = self.enum_class[value]
-            else:
-                error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
+            except KeyError:
+                error = 'Value "{}" is not convertible to an instance of {}'.format(value, self.enum_class.__name__)
 
         elif isinstance(value, (integer_types, float)):
             try:
                 value = self.enum_class(value)
             except ValueError:
-                error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
+                error = 'Value "{}" is not convertible to an instance of {}'.format(value, self.enum_class.__name__)
 
         elif not isinstance(value, self.enum_class):
             error = 'Value must be an instance of `{}`'.format(self.enum_class.__name__)

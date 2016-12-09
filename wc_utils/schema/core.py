@@ -2342,6 +2342,7 @@ class ManyToOneAttribute(RelatedAttribute):
                 related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
+            primary_attr = self.related_class.Meta.primary_attribute
             return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
 
         if len(related_objs) == 1:
@@ -2743,6 +2744,7 @@ class ManyToManyAttribute(RelatedAttribute):
             if len(related_objs) == 1:
                 deserialized_values.add(related_objs[0])
             elif len(related_objs) == 0:
+                primary_attr = self.related_class.Meta.primary_attribute
                 errors.append('Unable to find {} with {}={}'.format(
                     self.related_class.__name__, primary_attr.name, value))
             else:

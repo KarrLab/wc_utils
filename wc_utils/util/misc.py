@@ -47,7 +47,7 @@ def isclass_by_name(cls_name, cls_info):
 
     return False
 
-def get_most_qual_cls_name(obj):
+def most_qual_cls_name(obj):
     """Obtain the most qualified class name available for `obj`.
 
     Since references to classes cannot be sent in messages that leave an address space,

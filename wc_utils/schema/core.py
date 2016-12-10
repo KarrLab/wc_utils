@@ -1547,17 +1547,24 @@ class SlugAttribute(RegexAttribute):
 class UrlAttribute(RegexAttribute):
     """ URL attribute to be used for URLs """
 
-    def __init__(self, verbose_name='URL', help='Enter a valid URL', primary=False, unique=False):
+    def __init__(self, min_length=0, verbose_name='URL', help='Enter a valid URL', primary=False, unique=False):
         """
         Args:
+            min_length (:obj:`int`, optional): minimum length
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
-        super(UrlAttribute, self).__init__(pattern=r'^(?:http|ftp)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?(?:/?|[/?]\S+)$',
+        core_pattern = '(?:http|ftp)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?(?:/?|[/?]\S+)'
+        if min_length == 0:
+            pattern = '^(|{})$'.format(core_pattern)
+        else:
+            pattern = '^{}$'.format(core_pattern)
+
+        super(UrlAttribute, self).__init__(pattern=pattern,
                                            flags=re.I,
-                                           min_length=1, max_length=2**16 - 1,
+                                           min_length=min_length, max_length=2**16 - 1,
                                            default='', verbose_name=verbose_name, help=help,
                                            primary=primary, unique=unique)
 
@@ -3180,12 +3187,12 @@ class InvalidAttribute(object):
             :obj:`str`: string representation of errors
         """
         if self.related:
-            str = '{}:\n'.format(self.attribute.related_name)
+            str = '{}:'.format(self.attribute.related_name)
         else:
-            str = '{}:\n'.format(self.attribute.name)
+            str = '{}:'.format(self.attribute.name)
 
         for msg in self.messages:
-            str += '  {}'.format(msg.rstrip().replace('\n', '\n  '))
+            str += '\n  {}'.format(msg.rstrip().replace('\n', '\n  '))
 
         return str
 

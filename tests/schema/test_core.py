@@ -381,7 +381,7 @@ class TestCore(unittest.TestCase):
         self.assertIn('label', [x.attribute.name for x in root.validate().attributes])
 
         root.label = 'root_0'
-        self.assertNotIn('label', [x.attribute.name for x in root.validate().attributes])
+        self.assertEqual(root.validate(), None)
 
     def test_validate_url_attribute(self):
         root = UniqueRoot(url='root-0')

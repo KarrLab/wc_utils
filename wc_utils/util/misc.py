@@ -7,13 +7,15 @@
 :License: MIT
 """
 
+import sys
 
 def isclass(cls, cls_info):
     """Compares a class with classes in `cls_info`.
 
     Args:
         cls (:obj:`str`): class
-        cls_info (:obj:`class`, :obj:`type`, or :obj:`tuple` of classes and types): class, type, or tuple of classes and types
+        cls_info (:obj:`class`, :obj:`type`, or :obj:`tuple` of classes and types): class, type, or
+            tuple of classes and types
 
     Returns:
         :obj:`bool`: True if one of the classes in `cls_info` is `cls`.
@@ -26,7 +28,8 @@ def isclass_by_name(cls_name, cls_info):
 
     Args:
         cls_name (:obj:`str`): class name
-        cls_info (:obj:`class`, :obj:`type`, or :obj:`tuple` of classes and types): class, type, or tuple of classes and types
+        cls_info (:obj:`class`, :obj:`type`, or :obj:`tuple` of classes and types): class, type, or
+            tuple of classes and types
 
     Returns:
         :obj:`bool`: True if one of the classes in `cls_info` has name `cls_name`.
@@ -44,16 +47,25 @@ def isclass_by_name(cls_name, cls_info):
 
     return False
 
-def get_qual_cls_name(cls):
-    """Obtain the fully qualified class name for `cls`.
+def get_most_qual_cls_name(obj):
+    """Obtain the most qualified class name available for `obj`.
 
     Since references to classes cannot be sent in messages that leave an address space,
-    use fully qualified class names to compare class values across address spaces.
+    use the most qualified class name available to compare class values across address spaces.
+    Fully qualified class names are available for Python >= 3.3.
 
     Args:
-        cls (:obj:`class`): a class
+        obj (:obj:`class`): an object, which may be a class.
 
     Returns:
-        :obj:`str`: the fully qualified class name for `cls`.
+        :obj:`str`: the most qualified class name available for `obj`.
     """
-    return cls.__module__ + '.' + cls.__name__
+    if isinstance(obj, type):
+        cls = obj
+    else:
+        cls = obj.__class__
+
+    if (3,3) <= sys.version_info:
+        return cls.__module__ + '.' + cls.__qualname__
+    else:
+        return cls.__module__ + '.' + cls.__name__

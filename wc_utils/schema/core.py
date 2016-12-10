@@ -130,14 +130,14 @@ class ModelMeta(type):
                                 'serialize' in attr.__class__.__dict__ and 'deserialize' in attr.__class__.__dict__:
                             pass
                         elif not related_class.Meta.primary_attribute:
-                            if related_class.Meta.tabular_orientation == TabularOrientation['inline']:
+                            if related_class.Meta.tabular_orientation == TabularOrientation.inline:
                                 warnings.warn('Related class {} must have a primary attribute'.format(
                                     related_class.__name__))
                             else:
                                 raise ValueError('Related class {} must have a primary attribute'.format(
                                     related_class.__name__))
                         elif not related_class.Meta.primary_attribute.unique:
-                            if related_class.Meta.tabular_orientation == TabularOrientation['inline']:
+                            if related_class.Meta.tabular_orientation == TabularOrientation.inline:
                                 warnings.warn('Primary attribute {} of related class {} must be unique'.format(
                                     related_class.Meta.primary_attribute.name, related_class.__name__))
                             else:
@@ -258,7 +258,7 @@ class ModelMeta(type):
                     attr.related_class, attr.primary_class.__name__, attr_name))
 
         # tabular orientation
-        if cls.Meta.tabular_orientation == TabularOrientation['inline']:
+        if cls.Meta.tabular_orientation == TabularOrientation.inline:
             for attr in cls.Meta.related_attributes.values():
                 if attr in [OneToManyAttribute, OneToManyAttribute, ManyToOneAttribute, ManyToManyAttribute]:
                     raise ValueError(
@@ -316,7 +316,7 @@ class Model(with_metaclass(ModelMeta, object)):
         attribute_order = ()
         verbose_name = ''
         verbose_name_plural = ''
-        tabular_orientation = TabularOrientation['row']
+        tabular_orientation = TabularOrientation.row
         frozen_columns = 1
         inheritance = None
 
@@ -544,7 +544,7 @@ class Model(with_metaclass(ModelMeta, object)):
             else:
                 id_othr = 'instance: ' + cls.__name__
 
-            return 'Objects ({}, {}) have different attribute values:\n  {}'.format(id_self, id_othr, '\n'.join(msgs).replace('\n', '\n  '))
+            return 'Objects ({}, {}) have different attribute values:\n  {}'.format(id_self, id_othr, '\n  '.join([msg.replace('\n', '\n  ') for msg in msgs]))
 
         return ''
 
@@ -711,7 +711,7 @@ class Model(with_metaclass(ModelMeta, object)):
                 msg = 'Combinations of ({}) must be unique. The following combinations are repeated:'.format(
                     ', '.join(unique_together))
                 for rep_val in rep_vals:
-                    msg += '\n- {}'.format(', '.join(rep_val))
+                    msg += '\n  {}'.format(', '.join(rep_val))
                 attr = cls.Meta.attributes[list(unique_together)[0]]
                 errors.append(InvalidAttribute(attr, [msg]))
 
@@ -879,7 +879,7 @@ class Attribute(object):
                 unq_vals.add(val)
 
         if rep_vals:
-            message = 'Values must be unique. The following values are repeated:\n- ' + '\n- '.join(rep_vals)
+            message = 'Values must be unique. The following values are repeated:\n  ' + '\n  '.join(rep_vals)
             return InvalidAttribute(self, [message])
 
     def serialize(self, value):
@@ -950,16 +950,16 @@ class EnumAttribute(Attribute):
         error = None
 
         if isinstance(value, string_types):
-            if value in self.enum_class.__members__:
+            try:
                 value = self.enum_class[value]
-            else:
-                error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
+            except KeyError:
+                error = 'Value "{}" is not convertible to an instance of {}'.format(value, self.enum_class.__name__)
 
         elif isinstance(value, (integer_types, float)):
             try:
                 value = self.enum_class(value)
             except ValueError:
-                error = 'Value must be convertible to an instance of {}'.format(self.enum_class.__name__)
+                error = 'Value "{}" is not convertible to an instance of {}'.format(value, self.enum_class.__name__)
 
         elif not isinstance(value, self.enum_class):
             error = 'Value must be an instance of `{}`'.format(self.enum_class.__name__)
@@ -1060,7 +1060,7 @@ class BooleanAttribute(Attribute):
 
         if (value is None) or isinstance(value, bool):
             return (value, None)
-        return (None, InvalidAttribute(attr, ['Value must be a `bool` or `None`']))
+        return (None, InvalidAttribute(self, ['Value must be a `bool` or `None`']))
 
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
@@ -1547,17 +1547,24 @@ class SlugAttribute(RegexAttribute):
 class UrlAttribute(RegexAttribute):
     """ URL attribute to be used for URLs """
 
-    def __init__(self, verbose_name='URL', help='Enter a valid URL', primary=False, unique=False):
+    def __init__(self, min_length=0, verbose_name='URL', help='Enter a valid URL', primary=False, unique=False):
         """
         Args:
+            min_length (:obj:`int`, optional): minimum length
             verbose_name (:obj:`str`, optional): verbose name
             help (:obj:`str`, optional): help string
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
             unique (:obj:`bool`, optional): indicate if attribute value must be unique
         """
-        super(UrlAttribute, self).__init__(pattern=r'^(?:http|ftp)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?(?:/?|[/?]\S+)$',
+        core_pattern = '(?:http|ftp)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?(?:/?|[/?]\S+)'
+        if min_length == 0:
+            pattern = '^(|{})$'.format(core_pattern)
+        else:
+            pattern = '^{}$'.format(core_pattern)
+
+        super(UrlAttribute, self).__init__(pattern=pattern,
                                            flags=re.I,
-                                           min_length=1, max_length=2**16 - 1,
+                                           min_length=min_length, max_length=2**16 - 1,
                                            default='', verbose_name=verbose_name, help=help,
                                            primary=primary, unique=unique)
 
@@ -2342,6 +2349,7 @@ class ManyToOneAttribute(RelatedAttribute):
                 related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
+            primary_attr = self.related_class.Meta.primary_attribute
             return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
 
         if len(related_objs) == 1:
@@ -2743,6 +2751,7 @@ class ManyToManyAttribute(RelatedAttribute):
             if len(related_objs) == 1:
                 deserialized_values.add(related_objs[0])
             elif len(related_objs) == 0:
+                primary_attr = self.related_class.Meta.primary_attribute
                 errors.append('Unable to find {} with {}={}'.format(
                     self.related_class.__name__, primary_attr.name, value))
             else:
@@ -3072,8 +3081,7 @@ class InvalidObjectSet(object):
 
         Returns:
             :obj:`str`: string representation of errors
-        """
-        str = ''
+        """        
 
         obj_errs = self.get_object_errors_by_model()
         mdl_errs = self.get_model_errors_by_model()
@@ -3082,18 +3090,19 @@ class InvalidObjectSet(object):
         models.update(set(mdl_errs.keys()))
         models = natsorted(models, attrgetter('__name__'), alg=ns.IGNORECASE)
 
+        msg = ''
         for model in models:
-            str += '{}:\n'.format(model.__name__)
+            msg += '\n{}:'.format(model.__name__)
+
+            if model in mdl_errs:
+                msg += '\n  ' + str(mdl_errs[model]).replace('\n', '\n  ')
 
             if model in obj_errs:
                 errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
                 for obj_err in errs:
-                    str += '  ' + obj_err.__str__().replace('\n', '\n  ').rstrip(' ')
+                    msg += '\n  ' + str(obj_err).replace('\n', '\n  ')
 
-            if model in mdl_errs:
-                str += mdl_errs[model].__str__().replace('\n', '\n  ').rstrip(' ')
-
-        return str
+        return msg[1:]
 
 
 class InvalidModel(object):
@@ -3119,10 +3128,8 @@ class InvalidModel(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        str = ''
-        for attr in self.attributes:
-            str += attr.__str__()
-        return str
+        attrs = natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE)
+        return '\n'.join([str(attr) for attr in attrs])
 
 
 class InvalidObject(object):
@@ -3148,10 +3155,10 @@ class InvalidObject(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        str = '{}:\n'.format(self.object.get_primary_attribute())
-        for attr in self.attributes:
-            str += '  ' + attr.__str__().replace('\n', '\n  ').rstrip(' ')
-        return str
+        msg = '{}:'.format(self.object.serialize())
+        for attr in natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE):
+            msg += '\n  ' + str(attr).replace('\n', '\n  ')
+        return msg
 
 
 class InvalidAttribute(object):
@@ -3181,27 +3188,57 @@ class InvalidAttribute(object):
             :obj:`str`: string representation of errors
         """
         if self.related:
-            str = '{}:\n'.format(self.attribute.related_name)
+            str = '{}:'.format(self.attribute.related_name)
         else:
-            str = '{}:\n'.format(self.attribute.name)
+            str = '{}:'.format(self.attribute.name)
 
         for msg in self.messages:
-            str += '  {}\n'.format(msg)
+            str += '\n  ' + msg.rstrip().replace('\n', '\n  ')
 
         return str
 
 
-def get_model(name):
+def get_models(module=None, inline=True):
+    """ Get models
+
+    Args:
+        module (:obj:`module`, optional): module
+        inline (:obj:`bool`, optional): if true, return inline models
+
+    Returns:
+        :obj:`list` of `class`: list of model classes
+    """
+    if module:
+        models = []
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if isinstance(attr, type) and issubclass(attr, Model) and attr is not Model:
+                models.append(attr)
+
+    else:
+        models = get_subclasses(Model)
+
+    if not inline:
+        for model in list(models):
+            if model.Meta.tabular_orientation == TabularOrientation.inline:
+                models.remove(model)
+
+    return models
+
+
+def get_model(name, module=None):
     """ Get model with name `name`
 
     Args:
         name (:obj:`str`): name
+        module (:obj:`module`, optional): module
 
     Returns:
         :obj:`class`: model class
     """
     for model in get_subclasses(Model):
-        if name == model.__module__ + '.' + model.__name__:
+        if name == model.__module__ + '.' + model.__name__ or \
+                module is not None and module.__name__ == model.__module__ and name == model.__name__:
             return model
 
     return None

@@ -6,7 +6,6 @@
 :License: MIT
 """
 
-# todo: add method to compare (difference) models
 from __future__ import unicode_literals
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, InvalidObjectSet, InvalidObject, Validator
 

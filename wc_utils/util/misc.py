@@ -42,7 +42,7 @@ def isclass_by_name(cls_name, cls_info):
         if isinstance(a_cls_info, tuple):
             if isclass_by_name(cls_name, a_cls_info):
                 return True
-        elif cls_name == a_cls_info.__name__:
+        elif cls_name == most_qual_cls_name(a_cls_info):
             return True
 
     return False

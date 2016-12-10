@@ -43,3 +43,17 @@ def isclass_by_name(cls_name, cls_info):
             return True
 
     return False
+
+def get_qual_cls_name(cls):
+    """Obtain the fully qualified class name for `cls`.
+
+    Since references to classes cannot be sent in messages that leave an address space,
+    use fully qualified class names to compare class values across address spaces.
+
+    Args:
+        cls (:obj:`class`): a class
+
+    Returns:
+        :obj:`str`: the fully qualified class name for `cls`.
+    """
+    return cls.__module__ + '.' + cls.__name__

@@ -54,7 +54,7 @@ class Writer(object):
         error = Validator().run(all_objects)
 
         if error:
-            warnings.warn('Storage may be lossy because the objects are not valid:\n  {}'.format(
+            warn('Storage may be lossy because the objects are not valid:\n  {}'.format(
                 str(error).replace('\n', '\n  ').rstrip()))
 
         # group objects by class

@@ -3081,8 +3081,7 @@ class InvalidObjectSet(object):
 
         Returns:
             :obj:`str`: string representation of errors
-        """
-        str = ''
+        """        
 
         obj_errs = self.get_object_errors_by_model()
         mdl_errs = self.get_model_errors_by_model()
@@ -3091,18 +3090,19 @@ class InvalidObjectSet(object):
         models.update(set(mdl_errs.keys()))
         models = natsorted(models, attrgetter('__name__'), alg=ns.IGNORECASE)
 
+        msg = ''
         for model in models:
-            str += '{}:\n'.format(model.__name__)
+            msg += '\n{}:'.format(model.__name__)
+
+            if model in mdl_errs:
+                msg += '\n  ' + str(mdl_errs[model]).replace('\n', '\n  ')
 
             if model in obj_errs:
                 errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
                 for obj_err in errs:
-                    str += '  ' + obj_err.__str__().replace('\n', '\n  ')
+                    msg += '\n  ' + str(obj_err).replace('\n', '\n  ')
 
-            if model in mdl_errs:
-                str += mdl_errs[model].__str__().replace('\n', '\n  ')
-
-        return str
+        return msg[1:]
 
 
 class InvalidModel(object):
@@ -3128,7 +3128,8 @@ class InvalidModel(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        return '\n'.join([attr.__str__() for attr in self.attributes])
+        attrs = natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE)
+        return '\n'.join([str(attr) for attr in attrs])
 
 
 class InvalidObject(object):
@@ -3154,10 +3155,10 @@ class InvalidObject(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        str = '{}:\n'.format(self.object.serialize())
-        for attr in self.attributes:
-            str += '  ' + attr.__str__().replace('\n', '\n  ')
-        return str
+        msg = '{}:'.format(self.object.serialize())
+        for attr in natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE):
+            msg += '\n  ' + str(attr).replace('\n', '\n  ')
+        return msg
 
 
 class InvalidAttribute(object):
@@ -3192,7 +3193,7 @@ class InvalidAttribute(object):
             str = '{}:'.format(self.attribute.name)
 
         for msg in self.messages:
-            str += '\n  {}'.format(msg.rstrip().replace('\n', '\n  '))
+            str += '\n  ' + msg.rstrip().replace('\n', '\n  ')
 
         return str
 

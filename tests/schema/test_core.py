@@ -1190,3 +1190,114 @@ class TestCore(unittest.TestCase):
             '    gparent_0 != gparent_1'
         )
         self.assertEqual(g[0].difference(g[1]), msg)
+
+    def test_invalid_attribute_str(self):
+        attr = core.Attribute()
+        attr.name = 'attr'
+        msgs = ['msg1', 'msg2\ncontinue']
+        err = core.InvalidAttribute(attr, msgs)
+        self.assertEqual(str(err), '{}:\n  {}\n  {}'.format(attr.name, msgs[0], msgs[1].replace('\n', '\n  ')))
+
+    def test_invalid_object_str(self):
+        attrs = [
+            core.Attribute(),
+            core.Attribute(),
+        ]
+        attrs[0].name = 'attr0'
+        attrs[1].name = 'attr1'
+        msgs = ['msg00', 'msg01\ncontinue', 'msg10', 'msg11']
+        attr_errs = [
+            core.InvalidAttribute(attrs[0], msgs[0:2]),
+            core.InvalidAttribute(attrs[1], msgs[2:4]),
+        ]
+        obj = Grandparent(id='gp')
+        err = core.InvalidObject(obj, attr_errs)
+        self.assertEqual(str(err), (
+            '{}:\n'.format(obj.id) +
+            '  {}:\n'.format(attrs[0].name) +
+            '    {}\n'.format(msgs[0]) +
+            '    {}\n'.format(msgs[1].replace('\n', '\n    ')) +
+            '  {}:\n'.format(attrs[1].name) +
+            '    {}\n'.format(msgs[2]) +
+            '    {}'.format(msgs[3])
+        ))
+
+    def test_invalid_model_str(self):
+        attrs = [
+            core.Attribute(),
+            core.Attribute(),
+        ]
+        attrs[0].name = 'attr0'
+        attrs[1].name = 'attr1'
+        msgs = ['msg00', 'msg01\ncontinue', 'msg10', 'msg11']
+        attr_errs = [
+            core.InvalidAttribute(attrs[0], msgs[0:2]),
+            core.InvalidAttribute(attrs[1], msgs[2:4]),
+        ]
+        err = core.InvalidModel(Grandparent, attr_errs)
+        self.assertEqual(str(err), (
+            '{}:\n'.format(attrs[0].name) +
+            '  {}\n'.format(msgs[0]) +
+            '  {}\n'.format(msgs[1].replace('\n', '\n  ')) +
+            '{}:\n'.format(attrs[1].name) +
+            '  {}\n'.format(msgs[2]) +
+            '  {}'.format(msgs[3])
+        ))
+
+    def test_invalid_object_set_str(self):
+        attr = core.Attribute()
+        attr.name = 'attr'
+        msg = 'msg\ncontinue'
+        attr_err = core.InvalidAttribute(attr, [msg, msg])
+        gp = Grandparent(id='gp')
+        p = Parent(id='parent')
+        obj_err_gp = core.InvalidObject(gp, [attr_err, attr_err])
+        obj_err_p = core.InvalidObject(p, [attr_err, attr_err])
+        mod_err_gp = core.InvalidModel(Grandparent, [attr_err, attr_err])
+        mod_err_p = core.InvalidModel(Parent, [attr_err, attr_err])
+        err = core.InvalidObjectSet([obj_err_gp, obj_err_gp, obj_err_p, obj_err_p], [mod_err_gp, mod_err_p])
+
+        self.assertEqual(str(err), (
+            '{}:\n'.format(Grandparent.__name__) +
+            '  {}:\n'.format(attr.name) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '  {}:\n'.format(attr.name) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '  {}:\n'.format(gp.id) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '  {}:\n'.format(gp.id) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '{}:\n'.format(Parent.__name__) +
+            '  {}:\n'.format(attr.name) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '  {}:\n'.format(attr.name) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '    {}\n'.format(msg.replace('\n', '\n    ')) +
+            '  {}:\n'.format(p.id) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '  {}:\n'.format(p.id) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '    {}:\n'.format(attr.name) +
+            '      {}\n'.format(msg.replace('\n', '\n      ')) +
+            '      {}'.format(msg.replace('\n', '\n      '))
+        ))

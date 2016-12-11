@@ -36,5 +36,7 @@ class TestMisc(unittest.TestCase):
 
     def test_round_direct(self):
         self.assertEqual(round_direct(3.01, 2), '3.01')
+        self.assertEqual(round_direct(3.01), '3.01')
+        self.assertEqual(round_direct(3.011), '3.01+')
         self.assertEqual(round_direct(3.01, 1), '3.0+')
         self.assertEqual(round_direct(2.99, 1), '3.0-')

@@ -70,7 +70,7 @@ def most_qual_cls_name(obj):
     else:
         return cls.__module__ + '.' + cls.__name__
 
-def round_direct(value, precision):
+def round_direct(value, precision=2):
     '''Convert `value` to rounded string with appended sign indicating the rounding direction.
     
     Append '+' to indicate that `value` has been rounded down, and '-' to indicate rounding up.

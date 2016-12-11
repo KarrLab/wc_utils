@@ -12,7 +12,7 @@ from datetime import date, time, datetime
 from enum import Enum
 from itertools import chain
 from math import floor, isnan
-from natsort import natsorted, ns
+from natsort import natsort_keygen, natsorted, ns
 from operator import attrgetter
 from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
@@ -2517,6 +2517,7 @@ class OneToManyAttribute(RelatedAttribute):
             primary_attr = v.__class__.Meta.primary_attribute
             serialized_vals.append(primary_attr.serialize(getattr(v, primary_attr.name)))
 
+        serialized_vals.sort(key=natsort_keygen(alg=ns.IGNORECASE))
         return ', '.join(serialized_vals)
 
     def deserialize(self, values, objects):
@@ -2722,6 +2723,7 @@ class ManyToManyAttribute(RelatedAttribute):
             primary_attr = v.__class__.Meta.primary_attribute
             serialized_vals.append(primary_attr.serialize(getattr(v, primary_attr.name)))
 
+        serialized_vals.sort(key=natsort_keygen(alg=ns.IGNORECASE))
         return ', '.join(serialized_vals)
 
     def deserialize(self, values, objects):

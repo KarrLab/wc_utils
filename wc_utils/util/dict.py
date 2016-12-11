@@ -105,8 +105,12 @@ class DictUtil(object):
     def filtered_dict(d, filter_keys):
         '''Create a new dict from `d`, with keys filtered by `filter_keys`.
 
+        Args:
+            d (:obj:`dict`): dictionary to filter.
+            filter_keys (:obj:`list` of :obj:`str`): list of keys to retain.
+
         Returns:
-            dict: a new dict containing the entries in `d` whose keys are in `filter_keys`.
+            :obj:`dict`: a new dict containing the entries in `d` whose keys are in `filter_keys`.
         '''
         return {k:v for (k,v) in iteritems(d) if k in filter_keys}
 
@@ -114,8 +118,12 @@ class DictUtil(object):
     def filtered_iteritems(d, filter_keys):
         '''A generator that filters a dict's iteritems to keys in `filter_keys`.
 
+        Args:
+            d (:obj:`dict`): dictionary to filter.
+            filter_keys (:obj:`list` of :obj:`str`): list of keys to retain.
+
         Yields:
-            tuple: (key, value) tuples from `d` whose keys are in `filter_keys`.
+            :obj:`tuple`: (key, value) tuples from `d` whose keys are in `filter_keys`.
         '''
         for key, val in iteritems(d):
             if key not in filter_keys:

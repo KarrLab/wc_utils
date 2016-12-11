@@ -238,9 +238,9 @@ class WorkbookDifference(dict):
         diff = ''
 
         for name, sheet in self.items():
-            diff += 'Sheet {}:\n  {}'.format(name, str(sheet).replace('\n', '\n  '))
+            diff += '\nSheet {}:\n  {}'.format(name, str(sheet).replace('\n', '\n  '))
 
-        return diff
+        return diff[1:]
 
 
 class WorksheetDifference(OrderedDict):
@@ -255,9 +255,9 @@ class WorksheetDifference(OrderedDict):
         diff = ''
 
         for i_row, row in self.items():
-            diff += 'Row {}:\n  {}'.format(i_row + 1, str(row).replace('\n', '\n  '))
+            diff += '\nRow {}:\n  {}'.format(i_row + 1, str(row).replace('\n', '\n  '))
 
-        return diff
+        return diff[1:]
 
 
 class RowDifference(OrderedDict):
@@ -272,9 +272,9 @@ class RowDifference(OrderedDict):
         diff = ''
 
         for i_col, cell_diff in self.items():
-            diff += 'Cell {}: {}\n'.format(get_column_letter(i_col + 1), cell_diff)
+            diff += '\nCell {}: {}'.format(get_column_letter(i_col + 1), cell_diff.replace('\n', '\n  '))
 
-        return diff[0:-1]
+        return diff[1:]
 
 
 class CellDifference(str):

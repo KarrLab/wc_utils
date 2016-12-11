@@ -69,3 +69,29 @@ def most_qual_cls_name(obj):
         return cls.__module__ + '.' + cls.__qualname__
     else:
         return cls.__module__ + '.' + cls.__name__
+
+def round_direct(value, precision):
+    '''Convert `value` to rounded string with appended sign indicating the rounding direction.
+    
+    Append '+' to indicate that `value` has been rounded down, and '-' to indicate rounding up.
+    For example, 
+    round_direct(3.01, 2) == '3.01'
+    round_direct(3.01, 1) == '3.0+'
+    round_direct(2.99, 1) == '3.0-'
+    
+    This function helps display simulation times that have been slightly increased or decreased to
+    control order execution.
+    
+    Args:
+        value (float): the value to round.
+        precision (int): the precision with which to round `value`.
+
+    Returns:
+        str: `value` rounded to `precision` places, followed by a sign indicating rounding direction.
+    '''
+    if round(value, precision) == value:
+        return str(round(value, precision))
+    elif round(value, precision) < value:
+        return '{}+'.format(round(value, precision))
+    else:   # value < round(value, precision) 
+        return '{}-'.format(round(value, precision))

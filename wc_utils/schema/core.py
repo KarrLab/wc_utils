@@ -55,6 +55,7 @@ class ModelMeta(type):
             Meta.unique_together = make_deepcopy(bases[0].Meta.unique_together)
             Meta.tabular_orientation = bases[0].Meta.tabular_orientation
             Meta.frozen_columns = bases[0].Meta.frozen_columns
+            Meta.ordering = bases[0].Meta.ordering
 
         # call super class method
         cls = super(ModelMeta, metacls).__new__(metacls, name, bases, namespace)
@@ -71,6 +72,8 @@ class ModelMeta(type):
             metacls.init_related_attributes(model)
 
         metacls.init_attribute_order(cls)
+
+        metacls.init_ordering(cls)
 
         metacls.init_verbose_names(cls)
 
@@ -196,6 +199,14 @@ class ModelMeta(type):
 
         cls.Meta.attribute_order = tuple(ordered_attributes + unordered_attributes)
 
+    def init_ordering(cls):
+        """ Initialize how to sort objects """
+        if not cls.Meta.ordering:
+            if cls.Meta.primary_attribute:
+                cls.Meta.ordering = (cls.Meta.primary_attribute.name, )
+            else:
+                cls.Meta.ordering = ()
+
     def init_verbose_names(cls):
         """ Initialize the singular and plural verbose names of a model """
         if not cls.Meta.verbose_name:
@@ -319,6 +330,7 @@ class Model(with_metaclass(ModelMeta, object)):
         tabular_orientation = TabularOrientation.row
         frozen_columns = 1
         inheritance = None
+        ordering = None
 
     def __init__(self, **kwargs):
         """
@@ -448,6 +460,47 @@ class Model(with_metaclass(ModelMeta, object)):
             return '<{}.{}: {}>'.format(self.__class__.__module__, self.__class__.__name__, getattr(self, self.__class__.Meta.primary_attribute.name))
 
         return super(Model, self).__str__()
+
+    @classmethod
+    def sort(cls, objects):
+        """ Sort list of `Model` objects
+
+        Args:
+            objects (:obj:`list` of `Model`): list of objects
+
+        Returns:
+            :obj:`list` of `Model`: sorted list of objects
+        """
+        if cls.Meta.ordering:
+            return natsorted(objects, cls.get_sort_key, alg=ns.IGNORECASE)
+
+    @classmethod
+    def get_sort_key(cls, object):
+        """ Get sort key for `Model` instance `object` based on `cls.Meta.ordering`
+
+        Args:
+            object (:obj:`Model`): `Model` instance
+
+        Returns:
+            :obj:`object` or `tuple` of `object`: sort key for `object`
+        """
+        vals = []
+        for attr_name in cls.Meta.ordering:
+            if attr_name[0] == '-':
+                increasing = False
+                attr_name = attr_name[1:]
+            else:
+                increasing = True
+            attr = cls.Meta.attributes[attr_name]
+            val = attr.serialize(getattr(object, attr_name))
+            if increasing:
+                vals.append(val)
+            else:
+                vals.append(-val)
+
+        if len(vals) == 1:
+            return val
+        return tuple(vals)
 
     def difference(self, other, _seen=None):
         """ Get difference between two model objects
@@ -3083,7 +3136,7 @@ class InvalidObjectSet(object):
 
         Returns:
             :obj:`str`: string representation of errors
-        """        
+        """
 
         obj_errs = self.get_object_errors_by_model()
         mdl_errs = self.get_model_errors_by_model()

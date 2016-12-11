@@ -105,7 +105,7 @@ class Writer(object):
         headings = [[attr.verbose_name for attr in attributes]]
 
         # objects
-        objects = natsorted(objects, lambda obj: obj.serialize(), alg=ns.IGNORECASE)
+        objects = model.sort(objects)
 
         data = []
         for obj in objects:

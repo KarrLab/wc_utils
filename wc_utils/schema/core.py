@@ -103,10 +103,10 @@ class ModelMeta(type):
                     attr.primary_class = cls
 
     def init_related_attributes(cls):
-        """ Initialize related attributes 
+        """ Initialize related attributes
 
         Raises:
-            :obj:`ValueError`: if related attributes of the class are not valid 
+            :obj:`ValueError`: if related attributes of the class are not valid
                 (e.g. if a class that is the subject of a relationship does not have a primary attribute)
         """
         for attr in cls.Meta.attributes.values():
@@ -169,7 +169,7 @@ class ModelMeta(type):
                         related_class.Meta.related_attributes[attr.related_name] = attr
 
     def init_primary_attribute(cls):
-        """ Initialize the primary attribute of a model 
+        """ Initialize the primary attribute of a model
 
         Raises:
             :obj:`ValueError`: if class has multiple primary attributes
@@ -217,7 +217,7 @@ class ModelMeta(type):
             cls.Meta.verbose_name_plural = inflect_engine.plural(cls.Meta.verbose_name)
 
     def validate_attributes(cls):
-        """ Validate attribute values 
+        """ Validate attribute values
 
         Raises:
             :obj:`ValueError`: if attributes are not valid
@@ -257,9 +257,9 @@ class ModelMeta(type):
 
     @staticmethod
     def validate_related_attributes(cls):
-        """ Validate attribute values 
+        """ Validate attribute values
         Raises:
-            :obj:`ValueError`: if related attributes are not valid 
+            :obj:`ValueError`: if related attributes are not valid
                 (e.g. if a class that is the subject of a relationship does not have a primary attribute)
         """
 
@@ -384,7 +384,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         Args:
             other (:obj:`Model`): object to compare
-            _seen (:obj:`set`, optional): pairs of objects that have already been compared
+            _seen (:obj:`dict`, optional): pairs of objects that have already been compared
 
         Returns:
             :obj:`bool`: `True` if objects are semantically equal, else `False`
@@ -394,14 +394,17 @@ class Model(with_metaclass(ModelMeta, object)):
         if (self, other) in _seen:
             return _seen[(self, other)]
 
+        # already seen
         if self is other:
             _seen[(self, other)] = True
             return True
 
+        # different types
         if not self.__class__ is other.__class__:
             _seen[(self, other)] = False
             return False
 
+        # check non-related attributes (without recusion)
         for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
             val = getattr(self, attr_name)
             other_val = getattr(other, attr_name)
@@ -421,34 +424,83 @@ class Model(with_metaclass(ModelMeta, object)):
                     _seen[(self, other)] = False
                     return False
 
-        _seen[(self, other)] = True
+        _seen[(self, other)] = None
 
-        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if isinstance(attr, RelatedAttribute):
-                val = getattr(self, attr_name)
-                if isinstance(val, Model):
-                    other_val = getattr(other, attr_name)
-                    if val.__eq__(other_val, _seen) == False:
-                        _seen[(self, other)] = False
+        for attr_name, attr in self.Meta.attributes.items():
+            if not self._eq_related_object(other, attr, attr_name, _seen):
+                _seen[(self, other)] = False
+                return False
+
+        for attr_name, attr in self.Meta.related_attributes.items():
+            if not self._eq_related_object(other, attr, attr_name, _seen):
+                _seen[(self, other)] = False
+                return False
+
+        for attr_name, attr in self.Meta.attributes.items():
+            if not self._eq_related_set(other, attr, attr_name, _seen):
+                _seen[(self, other)] = False
+                return False
+
+        for attr_name, attr in self.Meta.related_attributes.items():
+            if not self._eq_related_set(other, attr, attr_name, _seen):
+                _seen[(self, other)] = False
+                return False
+
+        # return `True` since there are no difference
+        _seen[(self, other)] = True
+        return True
+
+    def _eq_related_object(self, other, attr, attr_name, _seen):
+        """ Get difference between attributes values of two objects
+
+        Args:
+            other (:obj:`Model`) other model object
+            attr (:obj:`Attribute`): attribute
+            attr_name (:obj:`str`): attribute name
+            _seen (:obj:`dict`): pairs of objects that have already been compared
+
+        Returns:
+            :obj:`bool`: true if related objects are equal
+        """
+        if isinstance(attr, RelatedAttribute):
+            val = getattr(self, attr_name)
+            if isinstance(val, Model):
+                other_val = getattr(other, attr_name)
+                if val.__eq__(other_val, _seen) == False:
+                    return False
+
+            elif isinstance(val, RelatedManager) and len(val) == 1:
+                other_val = getattr(other, attr_name)
+                if list(val)[0].__eq__(list(other_val)[0], _seen) == False:
+                    return False
+        return True
+
+    def _eq_related_set(self, other, attr, attr_name, _seen):
+        """ Get difference between attributes values of two objects
+
+        Args:
+            other (:obj:`Model`) other model object
+            attr (:obj:`Attribute`): attribute
+            attr_name (:obj:`str`): attribute name
+            _seen (:obj:`dict`): pairs of objects that have already been compared
+
+        Returns:
+            :obj:`bool`: true if related object sets are equal
+        """
+        if isinstance(attr, RelatedAttribute):
+            val = getattr(self, attr_name)
+            if isinstance(val, RelatedManager) and len(val) > 1:
+                other_val = list(getattr(other, attr_name))
+                for v in val:
+                    match = False
+                    for i_ov, ov in enumerate(other_val):
+                        if v.__eq__(ov, _seen) != False:
+                            match = True
+                            other_val.pop(i_ov)
+                            break
+                    if not match:
                         return False
 
-        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if isinstance(attr, RelatedAttribute):
-                val = getattr(self, attr_name)
-                if isinstance(val, RelatedManager):
-                    other_val = list(getattr(other, attr_name))
-                    for v in val:
-                        match = False
-                        for i_ov, ov in enumerate(other_val):
-                            if v.__eq__(ov, _seen) != False:
-                                match = True
-                                other_val.pop(i_ov)
-                                break
-                        if not match:
-                            _seen[(self, other)] = False
-                            return False
-
-        _seen[(self, other)] = True
         return True
 
     def __ne__(self, other):
@@ -528,99 +580,184 @@ class Model(with_metaclass(ModelMeta, object)):
 
         Args:
             other (:obj:`Model`): other model object
-            _seen (:obj:`set`, optional): pairs of objects that have already been compared
+            _seen (:obj:`dict`, optional): pairs of objects that have already been compared
 
         Returns:
             :obj:`str`: difference message
         """
-        othr = other
-
         if _seen is None:
-            _seen = set()
+            _seen = {}
+        if (self, other) in _seen:
+            return _seen[(self, other)]
 
-        if (self, othr) in _seen:
+        if self is other:
+            _seen[(self, other)] = ''
             return ''
-        _seen.add((self, othr))
 
-        cls_self = self.__class__
-        cls_othr = othr.__class__
-        if cls_self is not cls_othr:
-            return 'Objects have different types "{}" and "{}"'.format(cls_self, cls_othr)
+        # different types
+        if not self.__class__ is other.__class__:
+            _seen[(self, other)] = 'Objects {} and {} have different types "{}" and "{}"'.format(
+                self, other, self.__class__, other.__class__)
+            return _seen[(self, other)]
 
-        cls = cls_othr
-        msgs = []
+        # prepare ids for error messages
+        cls = self.__class__
+        id = self.serialize() or 'instance: '
+        other_id = other.serialize()
 
-        attr_names = natsorted(chain(cls.Meta.attributes.keys(), cls.Meta.related_attributes.keys()), alg=ns.IGNORECASE)
-        for attr_name in attr_names:
-            val_self = getattr(self, attr_name)
-            val_othr = getattr(othr, attr_name)
+        if id:
+            id = '"' + id + '"'
+        else:
+            id = 'instance: ' + cls.__name__
 
-            if isinstance(val_self, Model):
-                msg = val_self.difference(val_othr, _seen)
+        if other_id:
+            other_id = '"' + other_id + '"'
+        else:
+            other_id = 'instance: ' + cls.__name__
 
-            elif isinstance(val_self, RelatedManager):
-                if not isinstance(val_othr, RelatedManager):
-                    msg = 'Class: {} != Class: {}'.format(val_self, val_othr)
+        # check non-related attributes (without recusion)
+        differences = {}
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
+            val = getattr(self, attr_name)
+            other_val = getattr(other, attr_name)
 
-                elif len(val_self) != len(val_othr):
-                    msg = 'Length: {} != Length: {}'.format(len(val_self), len(val_othr))
+            if not isinstance(attr, RelatedAttribute):
+                if not attr.value_equal(val, other_val):
+                    differences[attr_name] = '{} != {}'.format(val, other_val)
 
-                else:
-                    attr_msgs = []
-                    for v_self in val_self:
-                        if v_self.__class__.Meta.primary_attribute:
-                            serial_self = v_self.get_primary_attribute()
-                        else:
-                            serial_self = v_self.serialize()
-
-                        match = None
-                        for v_othr in val_othr:
-                            if v_self.__class__.Meta.primary_attribute:
-                                serial_othr = v_othr.get_primary_attribute()
-                            else:
-                                serial_othr = v_othr.serialize()
-
-                            if serial_self == serial_othr:
-                                attr_msg = v_self.difference(v_othr, _seen)
-                                if v_self.__class__.Meta.primary_attribute or not attr_msg:
-                                    match = serial_othr
-                                    break
-
-                        if match:
-                            if attr_msg:
-                                attr_msgs.append('element: "{}" != element: "{}"\n  {}'.format(
-                                    serial_self, serial_othr, attr_msg.replace('\n', '\n  ')))
-                        else:
-                            attr_msgs.append('No matching element {}'.format(serial_self))
-
-                    msg = '\n'.join(attr_msgs)
-
-            elif val_self != val_othr:
-                msg = '{} != {}'.format(val_self, val_othr)
+            elif isinstance(val, RelatedManager):
+                if len(val) != len(other_val):
+                    differences[attr_name] = 'Length: {} != Length: {}'.format(len(val), len(other_val))
 
             else:
-                msg = ''
+                if val is None and other_val is not None:
+                    differences[attr_name] = '{} != {}'.format(val, other_val)
 
-            if msg:
-                msgs.append('`{}` are not equal:\n  {}'.format(attr_name, msg.replace('\n', '\n  ')))
+        if differences:
+            msg = 'Objects ({}, {}) have different attribute values:'.format(id, other_id)
+            for attr_name in natsorted(differences.keys(), alg=ns.IGNORECASE):
+                msg += '\n  `{}` are not equal:\n    {}'.format(attr_name,
+                                                                differences[attr_name].replace('\n', '\n    '))
 
-        if msgs:
-            id_self = self.serialize() or 'instance: '
-            id_othr = othr.serialize()
+            _seen[(self, other)] = msg
+            return msg
 
-            if id_self:
-                id_self = '"' + id_self + '"'
-            else:
-                id_self = 'instance: ' + cls.__name__
+        # check related attributes
+        differences = {}
+        _seen[(self, other)] = None
 
-            if id_othr:
-                id_othr = '"' + id_othr + '"'
-            else:
-                id_othr = 'instance: ' + cls.__name__
+        for attr_name, attr in self.Meta.attributes.items():
+            self._difference_related_object(other, attr, attr_name, differences, _seen)
 
-            return 'Objects ({}, {}) have different attribute values:\n  {}'.format(id_self, id_othr, '\n  '.join([msg.replace('\n', '\n  ') for msg in msgs]))
+        if differences:
+            return self._difference_format_message(other, id, other_id, attr, attr_name, differences, _seen)
 
+        for attr_name, attr in self.Meta.related_attributes.items():
+            self._difference_related_object(other, attr, attr_name, differences, _seen)
+
+        if differences:
+            return self._difference_format_message(other, id, other_id, attr, attr_name, differences, _seen)
+
+        for attr_name, attr in self.Meta.attributes.items():
+            self._difference_related_set(other, attr, attr_name, differences, _seen)
+
+        if differences:
+            return self._difference_format_message(other, id, other_id, attr, attr_name, differences, _seen)
+
+        for attr_name, attr in self.Meta.related_attributes.items():
+            self._difference_related_set(other, attr, attr_name, differences, _seen)
+
+        if differences:
+            return self._difference_format_message(other, id, other_id, attr, attr_name, differences, _seen)
+
+        # return '' if since no differences
+        _seen[(self, other)] = ''
         return ''
+
+    def _difference_related_object(self, other, attr, attr_name, differences, _seen):
+        """ Get difference between attributes values of two objects
+
+        Args:
+            other (:obj:`Model`) other model object
+            attr (:obj:`Attribute`): attribute
+            attr_name (:obj:`str`): attribute name
+            differences (:obj:`dict`): diotionary of differences
+            _seen (:obj:`dict`): pairs of objects that have already been compared
+        """
+        if isinstance(attr, RelatedAttribute):
+            val = getattr(self, attr_name)
+            if isinstance(val, Model):
+                other_val = getattr(other, attr_name)
+                attr_diff = val.difference(other_val, _seen)
+                if attr_diff:
+                    differences[attr_name] = attr_diff
+
+            elif isinstance(val, RelatedManager) and len(val) == 1:
+                other_val = getattr(other, attr_name)
+                attr_diff = list(val)[0].difference(list(other_val)[0], _seen)
+                if attr_diff:
+                    differences[attr_name] = attr_diff
+
+    def _difference_related_set(self, other, attr, attr_name, differences, _seen):
+        """ Get difference between attributes values of two objects
+
+        Args:
+            other (:obj:`Model`) other model object
+            attr (:obj:`Attribute`): attribute
+            attr_name (:obj:`str`): attribute name
+            differences (:obj:`dict`): diotionary of differences
+            _seen (:obj:`dict`): pairs of objects that have already been compared
+        """
+        if isinstance(attr, RelatedAttribute):
+            val = getattr(self, attr_name)
+            if isinstance(val, RelatedManager) and len(val) > 1:
+                attr_diffs = []
+                other_val = list(getattr(other, attr_name))
+                for v in val:
+                    serial_v = v.serialize()
+                    match = False
+                    partial_match = None
+                    for i_ov, ov in enumerate(other_val):
+                        serial_ov = ov.serialize()
+                        if serial_ov == serial_v:
+                            partial_match = serial_ov
+                            attr_diff = v.difference(ov, _seen)
+                            if not attr_diff:
+                                match = True
+                                other_val.pop(i_ov)
+                                break
+                    if not match:
+                        if partial_match:
+                            attr_diffs.append('element: "{}" != element: "{}"\n  {}'.format(
+                                serial_v, partial_match, attr_diff.replace('\n', '\n  ')))
+                        else:
+                            attr_diffs.append('No matching element {}'.format(v.serialize()))
+
+                if attr_diffs:
+                    differences[attr_name] = '\n'.join(attr_diffs)
+
+    def _difference_format_message(self, other, id, other_id, attr, attr_name, differences, _seen):
+        """ Format  difference message
+
+        Args:
+            other (:obj:`Model`) other model object
+            id (:obj:`str`): id of firt object
+            other_id (:obj:`str`): id of second object
+            attr (:obj:`Attribute`): attribute
+            attr_name (:obj:`str`): attribute name
+            differences (:obj:`dict`): diotionary of differences
+            _seen (:obj:`dict`): pairs of objects that have already been compared
+
+        Returns:
+            :obj:`str`: difference message
+        """
+        msg = 'Objects ({}, {}) have different attribute values:'.format(id, other_id)
+        for attr_name in natsorted(differences.keys(), alg=ns.IGNORECASE):
+            msg += '\n  `{}` are not equal:\n    {}'.format(attr_name,
+                                                            differences[attr_name].replace('\n', '\n    '))
+
+        _seen[(self, other)] = msg
+        return msg
 
     def get_primary_attribute(self):
         """ Get values of primary attribute

@@ -1124,6 +1124,7 @@ class TestCore(unittest.TestCase):
             Child(parent=p[3], id='c_1_1', val='child_1_1'),
         ]
 
+        self.assertEqual(g[1], g[0])
         self.assertEqual(g[0].difference(g[1]), '')
 
         g[1].val = 'gparent_1'
@@ -1132,9 +1133,20 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
+        self.assertNotEqual(g[1], g[0])
         self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_1'
+        c[4].val = 'child_3_0'
+        msg = (
+            'Objects ("g", "g") have different attribute values:\n'
+            '  `val` are not equal:\n'
+            '    gparent_0 != gparent_1'
+        )
+        self.assertNotEqual(g[1], g[0])
+        self.assertEqual(g[0].difference(g[1]), msg)
+
+        g[1].val = 'gparent_0'
         c[4].val = 'child_3_0'
         msg = (
             'Objects ("g", "g") have different attribute values:\n'
@@ -1145,13 +1157,12 @@ class TestCore(unittest.TestCase):
             '          element: "c_0_0" != element: "c_0_0"\n'
             '            Objects ("c_0_0", "c_0_0") have different attribute values:\n'
             '              `val` are not equal:\n'
-            '                child_0_0 != child_3_0\n'
-            '  `val` are not equal:\n'
-            '    gparent_0 != gparent_1'
+            '                child_0_0 != child_3_0'
         )
+        self.assertNotEqual(g[1], g[0])
         self.assertEqual(g[0].difference(g[1]), msg)
 
-        g[1].val = 'gparent_1'
+        g[1].val = 'gparent_0'
         c[4].val = 'child_3_0'
         c[5].val = 'child_3_1'
         msg = (
@@ -1167,13 +1178,12 @@ class TestCore(unittest.TestCase):
             '          element: "c_0_1" != element: "c_0_1"\n'
             '            Objects ("c_0_1", "c_0_1") have different attribute values:\n'
             '              `val` are not equal:\n'
-            '                child_0_1 != child_3_1\n'
-            '  `val` are not equal:\n'
-            '    gparent_0 != gparent_1'
+            '                child_0_1 != child_3_1'
         )
+        self.assertNotEqual(g[1], g[0])
         self.assertEqual(g[0].difference(g[1]), msg)
 
-        g[1].val = 'gparent_1'
+        g[1].val = 'gparent_0'
         c[4].val = 'child_3_0'
         c[4].id = 'c_3_0'
         c[5].val = 'child_3_1'
@@ -1185,10 +1195,9 @@ class TestCore(unittest.TestCase):
             '      Objects ("p_0", "p_0") have different attribute values:\n'
             '        `children` are not equal:\n'
             '          No matching element c_0_0\n'
-            '          No matching element c_0_1\n'
-            '  `val` are not equal:\n'
-            '    gparent_0 != gparent_1'
+            '          No matching element c_0_1'
         )
+        self.assertNotEqual(g[1], g[0])
         self.assertEqual(g[0].difference(g[1]), msg)
 
     def test_invalid_attribute_str(self):

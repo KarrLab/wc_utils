@@ -1,4 +1,17 @@
+configobj
 configparser
+enum34
+git+https://github.com/KarrLab/log#egg=log >=2016.10.12
+inflect
+natsort
+numpy
+openpyxl
+pyexcel
+pyexcel-io
+python-dateutil
+PyYAML
+six
 Sphinx
 sphinx_rtd_theme
+stringcase
 robpol86-sphinxcontrib-googleanalytics

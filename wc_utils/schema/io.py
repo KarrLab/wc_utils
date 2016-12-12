@@ -411,7 +411,7 @@ class Reader(object):
             attributes (:obj:`list` of `Attribute`): attribute order of `data`
             data (:obj:`list` of `list` of `object`): nested list of object data
             objects (:obj:`list`): list of model objects in order of `data`
-            objects_by_primary_attribute (:obj:`dict` of `class`: `dict of `object`:`Model`): dictionary of model objects grouped by model
+            objects_by_primary_attribute (:obj:`dict`): dictionary of model objects grouped by model
 
         Returns:
             :obj:`list` of `str`: list of parsing errors

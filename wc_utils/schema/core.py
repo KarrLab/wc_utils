@@ -258,9 +258,9 @@ class ModelMeta(type):
     @staticmethod
     def validate_related_attributes(cls):
         """ Validate attribute values
+        
         Raises:
-            :obj:`ValueError`: if related attributes are not valid
-                (e.g. if a class that is the subject of a relationship does not have a primary attribute)
+            :obj:`ValueError`: if related attributes are not valid (e.g. if a class that is the subject of a relationship does not have a primary attribute)
         """
 
         for attr_name, attr in cls.Meta.attributes.items():
@@ -312,7 +312,7 @@ class Model(with_metaclass(ModelMeta, object)):
         Attributes:
             attributes (:obj:`set` of `Attribute`): attributes
             related_attributes(:obj:`set` of `Attribute`): attributes declared in related objects
-            primary_attribute (:obj:`Attribute`): attributes with `primary`=True
+            primary_attribute (:obj:`Attribute`): attributes with `primary`=`True`
             attribute_order (:obj:`tuple` of `str`): tuple of attribute names, in the order in which they should be displayed
             verbose_name (:obj:`str`): verbose name to refer to a instance of the model
             verbose_name_plural (:obj:`str`): plural verbose name to refer to instances of the model

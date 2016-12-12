@@ -7,7 +7,7 @@
 """
 from wc_utils.schema import core, utils
 from wc_utils.schema.io import Reader, Writer, convert, create_template
-from wc_utils.workbook.io import WorksheetStyle
+from wc_utils.workbook.io import WorksheetStyle, read as read_workbook
 import os
 import shutil
 import sys
@@ -152,6 +152,13 @@ class TestIo(unittest.TestCase):
         self.assertEqual(len(objects2), len(objects))
 
         root2 = objects2[Root].pop()
+
+        filename2 = os.path.join(self.dirname, 'test2.xlsx')
+        Writer().run(filename2, set((root2,)), [Root, Node, Leaf, ])
+        original = read_workbook(filename)
+        copy = read_workbook(filename2)
+        self.assertEqual(copy, original)
+
         self.assertEqual(set([x.id for x in root2.nodes]), set([x.id for x in root.nodes]))
         self.assertEqual(root2, root)
 

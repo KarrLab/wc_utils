@@ -390,44 +390,65 @@ class Model(with_metaclass(ModelMeta, object)):
             :obj:`bool`: `True` if objects are semantically equal, else `False`
         """
         if _seen is None:
-            _seen = set()
+            _seen = {}
         if (self, other) in _seen:
-            return True
-        _seen.add((self, other))
+            return _seen[(self, other)]
 
         if self is other:
+            _seen[(self, other)] = True
             return True
 
         if not self.__class__ is other.__class__:
+            _seen[(self, other)] = False
             return False
 
-        for attr_name in chain(self.Meta.attributes.keys(), self.Meta.related_attributes.keys()):
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
             val = getattr(self, attr_name)
             other_val = getattr(other, attr_name)
 
-            if isinstance(val, Model):
-                if not val.__eq__(other_val, _seen):
+            if not isinstance(attr, RelatedAttribute):
+                if not attr.value_equal(val, other_val):
+                    _seen[(self, other)] = False
                     return False
 
-            elif isinstance(val, (set, list)):
-                if not isinstance(other_val, (set, list)):
-                    return False
-
+            elif isinstance(val, RelatedManager):
                 if len(val) != len(other_val):
+                    _seen[(self, other)] = False
                     return False
 
-                for v in val:
-                    match = False
-                    for ov in other_val:
-                        if v.__eq__(ov, _seen):
-                            match = True
-                            break
-                    if not match:
+            else:
+                if val is None and other_val is not None:
+                    _seen[(self, other)] = False
+                    return False
+
+        _seen[(self, other)] = True
+
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
+            if isinstance(attr, RelatedAttribute):
+                val = getattr(self, attr_name)
+                if isinstance(val, Model):
+                    other_val = getattr(other, attr_name)
+                    if val.__eq__(other_val, _seen) == False:
+                        _seen[(self, other)] = False
                         return False
 
-            elif val != other_val:
-                return False
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
+            if isinstance(attr, RelatedAttribute):
+                val = getattr(self, attr_name)
+                if isinstance(val, RelatedManager):
+                    other_val = list(getattr(other, attr_name))
+                    for v in val:
+                        match = False
+                        for i_ov, ov in enumerate(other_val):
+                            if v.__eq__(ov, _seen) != False:
+                                match = True
+                                other_val.pop(i_ov)
+                                break
+                        if not match:
+                            _seen[(self, other)] = False
+                            return False
 
+        _seen[(self, other)] = True
         return True
 
     def __ne__(self, other):
@@ -537,8 +558,8 @@ class Model(with_metaclass(ModelMeta, object)):
             if isinstance(val_self, Model):
                 msg = val_self.difference(val_othr, _seen)
 
-            elif isinstance(val_self, (set, list)):
-                if not isinstance(val_othr, (set, list)):
+            elif isinstance(val_self, RelatedManager):
+                if not isinstance(val_othr, RelatedManager):
                     msg = 'Class: {} != Class: {}'.format(val_self, val_othr)
 
                 elif len(val_self) != len(val_othr):
@@ -651,9 +672,9 @@ class Model(with_metaclass(ModelMeta, object)):
 
         cls = self.__class__
 
-        for attr in cls.Meta.attributes.values():
+        for attr_name, attr in chain(cls.Meta.attributes.items(), cls.Meta.related_attributes.items()):
             if isinstance(attr, RelatedAttribute):
-                value = getattr(self, attr.name)
+                value = getattr(self, attr_name)
 
                 if isinstance(value, set):
                     for v in value:
@@ -663,18 +684,6 @@ class Model(with_metaclass(ModelMeta, object)):
                 elif value is not None and value not in _related_objects:
                     _related_objects.add(value)
                     value.get_related(_related_objects)
-
-        for attr in cls.Meta.related_attributes.values():
-            value = getattr(self, attr.related_name)
-
-            if isinstance(value, set):
-                for v in value:
-                    if v not in _related_objects:
-                        _related_objects.add(v)
-                        v.get_related(_related_objects)
-            elif value is not None and value not in _related_objects:
-                _related_objects.add(value)
-                value.get_related(_related_objects)
 
         return _related_objects
 
@@ -886,6 +895,18 @@ class Attribute(object):
             :obj:`object`: attribute value
         """
         return new_value
+
+    def value_equal(self, val1, val2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`object`): first value
+            val2 (:obj:`object`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        return val1 == val2
 
     def clean(self, value):
         """ Convert attribute value into the appropriate type
@@ -1190,6 +1211,18 @@ class FloatAttribute(Attribute):
         self.min = min
         self.max = max
         self.nan = nan
+
+    def value_equal(self, val1, val2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`object`): first value
+            val2 (:obj:`object`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        return val1 == val2 or (isnan(val1) and isnan(val2)) or abs((val1 - val2) / val1) < 1e-10
 
     def clean(self, value):
         """ Convert attribute value into the appropriate type
@@ -2119,6 +2152,38 @@ class OneToOneAttribute(RelatedAttribute):
 
         return new_value
 
+    def value_equal(self, val1, val2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`Model`): first value
+            val2 (:obj:`Model`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if val1.__class__ is not val2.__class__:
+            return False
+        if val1 is None:
+            return True
+        return val1.eq_attributes(val2)
+
+    def related_value_equal(self, val1, val2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`Model`): first value
+            val2 (:obj:`Model`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if val1.__class__ is not val2.__class__:
+            return False
+        if val1 is None:
+            return True
+        return val1.eq_attributes(val2)
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
@@ -2305,6 +2370,46 @@ class ManyToOneAttribute(RelatedAttribute):
 
         return cur_values
 
+    def value_equal(self, val1, val2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`Model`): first value
+            val2 (:obj:`Model`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if val1.__class__ is not val2.__class__:
+            return False
+        if val1 is None:
+            return True
+        return val1.eq_attributes(val2)
+
+    def related_value_equal(self, vals1, vals2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`set`): first value
+            val2 (:obj:`set`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if vals1.__class__ != vals2.__class__:
+            return False
+
+        for v1 in vals1:
+            match = False
+            for v2 in vals2:
+                if v1.eq_attributes(v2):
+                    match = True
+                    break
+            if not match:
+                return False
+
+        return True
+
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
 
@@ -2462,6 +2567,46 @@ class OneToManyAttribute(RelatedAttribute):
         cur_values.update(new_values_copy)
 
         return cur_values
+
+    def value_equal(self, vals1, vals2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`set`): first value
+            val2 (:obj:`set`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if vals1.__class__ != vals2.__class__:
+            return False
+
+        for v1 in vals1:
+            match = False
+            for v2 in vals2:
+                if v1.eq_attributes(v2):
+                    match = True
+                    break
+            if not match:
+                return False
+
+        return True
+
+    def related_value_equal(self, val1, val2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`Model`): first value
+            val2 (:obj:`Model`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if val1.__class__ is not val2.__class__:
+            return False
+        if val1 is None:
+            return True
+        return val1.eq_attributes(val2)
 
     def set_related_value(self, obj, new_value):
         """ Update the values of the related attributes of the attribute
@@ -2696,6 +2841,54 @@ class ManyToManyAttribute(RelatedAttribute):
         cur_values.update(new_values_copy)
 
         return cur_values
+
+    def value_equal(self, vals1, vals2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`set`): first value
+            val2 (:obj:`set`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if vals1.__class__ != vals2.__class__:
+            return False
+
+        for v1 in vals1:
+            match = False
+            for v2 in vals2:
+                if v1.eq_attributes(v2):
+                    match = True
+                    break
+            if not match:
+                return False
+
+        return True
+
+    def related_value_equal(self, vals1, vals2):
+        """ Determine if attribute values are equal
+
+        Args:
+            val1 (:obj:`set`): first value
+            val2 (:obj:`set`): second value
+
+        Returns:
+            :obj:`bool`: True if attribute values are equal
+        """
+        if vals1.__class__ != vals2.__class__:
+            return False
+
+        for v1 in vals1:
+            match = False
+            for v2 in vals2:
+                if v1.eq_attributes(v2):
+                    match = True
+                    break
+            if not match:
+                return False
+
+        return True
 
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute

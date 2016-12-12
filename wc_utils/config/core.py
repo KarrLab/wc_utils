@@ -231,6 +231,8 @@ class ExtraValuesError(Exception):
         self.config = config
 
         messages = []
+
+        # todo: ensure that self.msg is generated even if this for loop raises another exception
         for section_list, name in get_extra_values(config):
 
             # this code gets the extra values themselves

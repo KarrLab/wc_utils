@@ -329,18 +329,22 @@ class Reader(object):
             data = transpose(data)
         headings = headings[0]
 
-        # get attributes order
-        attributes = [model.Meta.attributes[attr_name] for attr_name in model.Meta.attribute_order]
-
-        # sort attributes by header order
+        # acquire attributes by header order
         attributes = []
         errors = []
+        col = 1
         for verbose_name in headings:
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
             if attr is None:
-                errors.append('Header "{}" does not match any attributes'.format(verbose_name))
+                if verbose_name is None or verbose_name == '':
+                    errors.append("{}:'{}': Empty header field in column {} - delete empty column(s)".format(
+                        basename(reader.path), sheet_name, col))
+                else:
+                    errors.append("{}:'{}': Header '{}' does not match any attribute".format(
+                        basename(reader.path), sheet_name, verbose_name))
             else:
                 attributes.append(attr)
+            col += 1
 
         if errors:
             return ([], [], errors, [])

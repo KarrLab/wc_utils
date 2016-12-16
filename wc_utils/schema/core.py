@@ -149,7 +149,7 @@ class ModelMeta(type):
             namespace (:obj:`dict`): namespace of `Model` class definition
         """
 
-        # terminate early so this method is on run on the subclasses of `Model`
+        # terminate early so this method is only run on the subclasses of `Model`
         if name == 'Model' and len(bases) == 1 and bases[0] is object:
             return super(ModelMeta, metacls).__new__(metacls, name, bases, namespace)
 
@@ -1278,16 +1278,19 @@ class EnumAttribute(Attribute):
             try:
                 value = self.enum_class[value]
             except KeyError:
-                error = 'Value "{}" is not convertible to an instance of {}'.format(value, self.enum_class.__name__)
+                error = 'Value "{}" is not convertible to an instance of {} which contains {}'.format(
+                    value, self.enum_class.__name__, list(self.enum_class.__members__.keys()))
 
         elif isinstance(value, (integer_types, float)):
             try:
                 value = self.enum_class(value)
             except ValueError:
-                error = 'Value "{}" is not convertible to an instance of {}'.format(value, self.enum_class.__name__)
+                error = 'Value "{}" is not convertible to an instance of {}'.format(value,
+                    self.enum_class.__name__)
 
         elif not isinstance(value, self.enum_class):
-            error = 'Value must be an instance of `{}`'.format(self.enum_class.__name__)
+            error = "Value '{}' must be an instance of `{}` which contains {}".format(value,
+                self.enum_class.__name__, list(self.enum_class.__members__.keys()))
 
         if error:
             return (None, InvalidAttribute(self, [error]))
@@ -1311,7 +1314,8 @@ class EnumAttribute(Attribute):
             errors = []
 
         if not isinstance(value, self.enum_class):
-            errors.append('Value must be an instance of `{}`'.format(self.enum_class.__name__))
+            errors.append("Value '{}' must be an instance of `{}` which contains {}".format(value,
+                self.enum_class.__name__, list(self.enum_class.__members__.keys())))
 
         if errors:
             return InvalidAttribute(self, errors)

@@ -3421,6 +3421,33 @@ class RelatedManager(set):
 
         return matches
 
+    def index(self, **kwargs):
+        """ Get related object index by attribute/value pairs
+
+        Args:
+            **kwargs (:obj:`dict` of `str`:`object`): dictionary of attribute name/value pairs to find matching
+                objects
+
+        Returns:
+            :obj:`int`: index of matching object
+        """
+        match = None
+
+        for i_obj, obj in enumerate(self):
+            is_match = True
+            for attr_name, value in kwargs.items():
+                if getattr(obj, attr_name) != value:
+                    is_match = False
+                    break
+
+            if is_match:
+                if match:
+                    raise ValueError('Keyword argument attribute/value pairs match multiple objects')
+                else:
+                    match = i_obj
+
+        return match
+
 
 class ManyToOneRelatedManager(RelatedManager):
     """ Represent values of related attributes """

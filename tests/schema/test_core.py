@@ -939,7 +939,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(root_1.leaves, set((leaf_0,)))
         self.assertEqual(leaf_0.roots, set((root_0, root_1)))
 
-    def test_related_set_filter_and_get(self):
+    def test_related_set_filter_and_get_indedx(self):
         # many to one
         root = ManyToOneRoot()
         leaves = [
@@ -957,6 +957,11 @@ class TestCore(unittest.TestCase):
         self.assertEqual(root.leaves.get(id='leaf_0'), leaves[0])
         self.assertRaises(ValueError, lambda: root.leaves.get(id='leaf_1'))
         self.assertEqual(root.leaves.get(id='leaf_2'), leaves[3])
+
+        leaves_list = [l for l in root.leaves]
+        self.assertEqual(root.leaves.index(id='leaf_0'), leaves_list.index(leaves[0]))
+        self.assertRaises(ValueError, lambda: root.leaves.index(id='leaf_1'))
+        self.assertEqual(root.leaves.index(id='leaf_2'), leaves_list.index(leaves[3]))
 
         # one to many
         leaf = OneToManyLeaf()

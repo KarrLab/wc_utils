@@ -963,6 +963,11 @@ class TestCore(unittest.TestCase):
         self.assertRaises(ValueError, lambda: root.leaves.index(id='leaf_1'))
         self.assertEqual(root.leaves.index(id='leaf_2'), leaves_list.index(leaves[3]))
 
+        self.assertEqual(root.leaves.index(leaves[0]), leaves_list.index(leaves[0]))
+        self.assertEqual(root.leaves.index(leaves[1]), leaves_list.index(leaves[1]))
+        self.assertEqual(root.leaves.index(leaves[2]), leaves_list.index(leaves[2]))
+        self.assertEqual(root.leaves.index(leaves[3]), leaves_list.index(leaves[3]))
+
         # one to many
         leaf = OneToManyLeaf()
         roots = [

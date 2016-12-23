@@ -137,6 +137,7 @@ import re
 import warnings
 
 # todo: simplify primary attributes, deserialization
+# todo: add more helpful error messages
 
 
 class ModelMeta(type):

@@ -3754,7 +3754,7 @@ class Validator(object):
         """ Validate a list of objects and return their errors
 
         Args:
-            object (:obj:`list` of `Model`): list of objects
+            objects (:obj:`list` of `Model`): list of objects
 
         Returns:
             :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors

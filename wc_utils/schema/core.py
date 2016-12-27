@@ -137,6 +137,7 @@ import re
 import warnings
 
 # todo: simplify primary attributes, deserialization
+# todo: add more helpful error messages
 
 
 class ModelMeta(type):
@@ -1286,11 +1287,11 @@ class EnumAttribute(Attribute):
                 value = self.enum_class(value)
             except ValueError:
                 error = 'Value "{}" is not convertible to an instance of {}'.format(value,
-                    self.enum_class.__name__)
+                                                                                    self.enum_class.__name__)
 
         elif not isinstance(value, self.enum_class):
             error = "Value '{}' must be an instance of `{}` which contains {}".format(value,
-                self.enum_class.__name__, list(self.enum_class.__members__.keys()))
+                                                                                      self.enum_class.__name__, list(self.enum_class.__members__.keys()))
 
         if error:
             return (None, InvalidAttribute(self, [error]))
@@ -1315,7 +1316,7 @@ class EnumAttribute(Attribute):
 
         if not isinstance(value, self.enum_class):
             errors.append("Value '{}' must be an instance of `{}` which contains {}".format(value,
-                self.enum_class.__name__, list(self.enum_class.__members__.keys())))
+                                                                                            self.enum_class.__name__, list(self.enum_class.__members__.keys())))
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -3424,6 +3425,54 @@ class RelatedManager(set):
                 matches.add(obj)
 
         return matches
+
+    def index(self, *args, **kwargs):
+        """ Get related object index by attribute/value pairs
+
+        Args:
+            *args (:obj:`list` of `Model`): object to find
+            **kwargs (:obj:`dict` of `str`:`object`): dictionary of attribute name/value pairs to find matching
+                objects
+
+        Returns:
+            :obj:`int`: index of matching object
+
+        Raises:
+            :obj:`ValueError`: if no argument or keyword argument is provided, if argument and keyword arguments are 
+                both provided, if multiple arguments are provided, if the keyword attribute/value pairs match no object, 
+                or if the keyword attribute/value pairs match multiple objects
+        """
+        if args and kwargs:
+            raise ValueError('Argument and keyword arguments cannot both be provided')
+        if not args and not kwargs:
+            raise ValueError('At least one argument must be provided')
+
+        if args:
+            if len(args) > 1:
+                raise ValueError('At most one argument can be provided')
+
+            return list(self).index(args[0])
+
+        else:
+            match = None
+
+            for i_obj, obj in enumerate(self):
+                is_match = True
+                for attr_name, value in kwargs.items():
+                    if getattr(obj, attr_name) != value:
+                        is_match = False
+                        break
+
+                if is_match:
+                    if match is not None:
+                        raise ValueError('Keyword argument attribute/value pairs match multiple objects')
+                    else:
+                        match = i_obj
+
+            if match is None:
+                raise ValueError('No matching object')
+
+            return match
 
 
 class ManyToOneRelatedManager(RelatedManager):

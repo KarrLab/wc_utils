@@ -176,8 +176,7 @@ class Row(list):
         Returns:
             :obj:`bool`: True if rows are semantically unequal
         """
-        if other.__class__ is not self.__class__:
-            return False
+        return not self.__eq__(other)
 
     def difference(self, other):
         """ Get difference with another row

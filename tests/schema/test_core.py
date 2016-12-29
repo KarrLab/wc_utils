@@ -327,7 +327,8 @@ class TestCore(unittest.TestCase):
     def test_validate_attribute(self):
         root = Root()
         root.clean()
-        self.assertEqual(root.validate(), None)
+        self.assertIn('value for primary attribute cannot be empty',
+            root.validate().attributes[0].messages[0])
 
         leaf = Leaf()
         self.assertEqual(set((x.attribute.name for x in leaf.validate().attributes)), set(('id', 'root',)))
@@ -343,7 +344,8 @@ class TestCore(unittest.TestCase):
 
         leaf.root = root
         self.assertEqual(leaf.validate(), None)
-        self.assertEqual(root.validate(), None)
+        self.assertIn('value for primary attribute cannot be empty',
+            root.validate().attributes[0].messages[0])
 
         unrooted_leaf = UnrootedLeaf(root=root, id='a', id2='b', name2='ab', float2=2.4,
                                      float3=2.4, enum2=Order['root'], enum3=Order['leaf'])
@@ -1011,7 +1013,7 @@ class TestCore(unittest.TestCase):
         ]
 
         errors = core.Validator().run(parents)
-        self.assertEqual(len(errors.objects), 1)
+        self.assertEqual(len(errors.objects), 2)
         self.assertEqual(errors.objects[0].object, parents[0])
         self.assertEqual(len(errors.objects[0].attributes), 1)
         self.assertEqual(errors.objects[0].attributes[0].attribute.name, 'id')
@@ -1232,8 +1234,7 @@ class TestCore(unittest.TestCase):
         obj = Grandparent(id='gp')
         err = core.InvalidObject(obj, attr_errs)
         self.assertEqual(str(err), (
-            '{}:\n'.format(obj.id) +
-            '  {}:\n'.format(attrs[0].name) +
+            '\n  {}:\n'.format(attrs[0].name) +
             '    {}\n'.format(msgs[0]) +
             '    {}\n'.format(msgs[1].replace('\n', '\n    ')) +
             '  {}:\n'.format(attrs[1].name) +
@@ -1284,14 +1285,14 @@ class TestCore(unittest.TestCase):
             '  {}:\n'.format(attr.name) +
             '    {}\n'.format(msg.replace('\n', '\n    ')) +
             '    {}\n'.format(msg.replace('\n', '\n    ')) +
-            '  {}:\n'.format(gp.id) +
+            '  \n' +
             '    {}:\n'.format(attr.name) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '    {}:\n'.format(attr.name) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
-            '  {}:\n'.format(gp.id) +
+            '  \n' +
             '    {}:\n'.format(attr.name) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
@@ -1305,14 +1306,14 @@ class TestCore(unittest.TestCase):
             '  {}:\n'.format(attr.name) +
             '    {}\n'.format(msg.replace('\n', '\n    ')) +
             '    {}\n'.format(msg.replace('\n', '\n    ')) +
-            '  {}:\n'.format(p.id) +
+            '  \n' +
             '    {}:\n'.format(attr.name) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '    {}:\n'.format(attr.name) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
-            '  {}:\n'.format(p.id) +
+            '  \n' +
             '    {}:\n'.format(attr.name) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}\n'.format(msg.replace('\n', '\n      ')) +

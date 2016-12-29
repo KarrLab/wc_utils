@@ -16,7 +16,7 @@ class EnvironUtils(object):
     @staticmethod
     @contextlib.contextmanager
     def make_temp_environ(**environ):
-        """ Temporarily set environment variables.:
+        """ Temporarily set environment variables:
 
             with make_temp_environ(PLUGINS_DIR=u'test/plugins'):
                 "PLUGINS_DIR" in os.environ

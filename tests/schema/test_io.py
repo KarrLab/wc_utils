@@ -6,7 +6,7 @@
 :License: MIT
 """
 from wc_utils.schema import core, utils
-from wc_utils.schema.io import Reader, Writer, convert, create_template
+from wc_utils.schema.io import Reader, Writer, convert, create_template, excel_col_name
 from wc_utils.workbook.io import WorksheetStyle, read as read_workbook
 import os
 import shutil
@@ -165,22 +165,106 @@ class TestIo(unittest.TestCase):
         # unicode
         self.assertEqual(root2.name, u'\u20ac')
 
+    def test_validation(self):
+        t = Root(name='f')
+        self.assertIn('value for primary attribute cannot be empty',
+            t.validate().attributes[0].messages[0])
+
+    def test_read_bad_headers(self):
+        msgs = [
+            "'Nodes': Empty header field in row 1, col E - delete empty column(s)",
+            "'Nodes': Header 'y' does not match any attribute",
+            "'Root': Empty header field in row 4, col A - delete empty row(s)",
+            "'Root': Header 'x' does not match any attribute",]
+        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
+            'bad-headers.xlsx')
+        with self.assertRaises(ValueError) as context:
+            Reader().run(excel_fixture_filename, [Root, Node, Leaf, OneToManyRow])
+        for msg in msgs:
+            self.assertIn(msg, str(context.exception))
+
+        msgs = [
+            "'Nodes': Empty header field in row 1, col 5 - delete empty column(s)",
+            "'Nodes': Header 'y' does not match any attribute",
+            "'Root': Empty header field in row 4, col 1 - delete empty row(s)",
+            "'Root': Header 'x' does not match any attribute",]
+        csv_fixture_fileglob = os.path.join(os.path.dirname(__file__), 'fixtures',
+            'bad-headers-*.csv')
+        with self.assertRaises(ValueError) as context:
+            Reader().run(csv_fixture_fileglob, [Root, Node, Leaf, OneToManyRow])
+        for msg in msgs:
+            self.assertIn(msg, str(context.exception))
+
+        msgs = [
+            "Duplicate, case insensitive, header fields: 'Root', 'root'",
+            "Duplicate, case insensitive, header fields: 'good val', 'Good val', 'Good VAL'"]
+        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
+            'duplicate-headers.xlsx')
+        with self.assertRaises(ValueError) as context:
+            Reader().run(excel_fixture_filename, [Node])
+        for msg in msgs:
+            self.assertIn(msg, str(context.exception))
+
+    def test_read_invalid_data(self):
+        class Normal(core.Model):
+            id = core.SlugAttribute()
+            val = core.StringAttribute(min_length=2)
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'val', )
+
+        class Transposed(core.Model):
+            id = core.SlugAttribute()
+            val = core.StringAttribute(min_length=2)
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'val', )
+                tabular_orientation = core.TabularOrientation.column
+
+        RE_msgs = [
+            "Leaf: *\n +id:''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary attribute cannot be empty",
+            "Transposed:\n +val:'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least 2 characters",]
+        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
+            'invalid-data.xlsx')
+        with self.assertRaises(ValueError) as context:
+            Reader().run(excel_fixture_filename, [Leaf, Normal, Transposed])
+        for RE in RE_msgs:
+            self.assertRegexpMatches(str(context.exception), RE)
+
+        RE_msgs = [
+            "Leaf: *\n +id:''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for primary attribute cannot be empty",
+            "Transposed:\n +val:'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at least 2 characters",]
+        csv_fixture_fileglob = os.path.join(os.path.dirname(__file__), 'fixtures',
+            'invalid-data-*.csv')
+        with self.assertRaises(ValueError) as context:
+            Reader().run(csv_fixture_fileglob, [Leaf, Normal, Transposed])
+        for RE in RE_msgs:
+            self.assertRegexpMatches(str(context.exception), RE)
+
     def test_create_worksheet_style(self):
         self.assertIsInstance(Writer.create_worksheet_style(Root), WorksheetStyle)
 
+    def test_excel_col_name(self):
+        self.assertRaises(ValueError, lambda: excel_col_name(0))
+        self.assertRaises(ValueError, lambda: excel_col_name(''))
+        self.assertEqual(excel_col_name(5), 'E')
+        self.assertEqual(excel_col_name(2**14), 'XFD')
+
     def test_convert(self):
         filename_xls1 = os.path.join(self.dirname, 'test1.xlsx')
-        filename_xls2 = os.path.join(self.dirname, 'test2.xlsx')
+        filename_xls2 = os.path.join(self.dirname, 'test2_unreadable.xlsx')
         filename_csv = os.path.join(self.dirname, 'test-*.csv')
 
         models = [Root, Node, Leaf, ]
         Writer().run(filename_xls1, set((self.root,)), models)
 
         convert(filename_xls1, filename_csv, models)
+        # this writes a workbook that Excel (Mac 2016) calls 'unreadable'
+        # Excel also repairs the workbook and generates a "Repair result" xml file
         convert(filename_csv, filename_xls2, models)
 
     def test_create_template(self):
-        filename = os.path.join(self.dirname, 'test.xlsx')
+        filename = os.path.join(self.dirname, 'test3.xlsx')
         create_template(filename, [Root, Node, Leaf])
         objects = Reader().run(filename, [Root, Node, Leaf])
         self.assertEqual(objects, {

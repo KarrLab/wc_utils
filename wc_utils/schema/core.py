@@ -7,7 +7,7 @@ The `io` module provides methods to serialize and deserialize schema objects to/
 Defining schemas
 =====================================
 Each schema is composed of one or models (subclasses of :obj:`Model`) each of which has one or more attributes
-(instances of :obj:`Attribute` and its subclasses). The following shows an example of a schema for a lab member.::
+(instances of :obj:`Attribute` and its subclasses). The following shows an example of a schema for a lab member::
 
     class Member(Model):
         first_name = StringAttribute()
@@ -22,10 +22,10 @@ Several attributes types are provided:
 * :obj:`StringAttribute`, :obj:`LongStringAttribute`, :obj:`RegexAttribute`, :obj:`UrlAttribute`, :obj:`SlugAttribute`
 * :obj:`DateAttribute`, :obj:`TimeAttribute`, :obj:`DateTimeAttribute`
 
-Four related attribute types (:obj:`OneToOneAttribute`, :obj:`OneToManyAttribute`, :obj:`ManyToOneAttribute`, and 
+Four related attribute types (:obj:`OneToOneAttribute`, :obj:`OneToManyAttribute`, :obj:`ManyToOneAttribute`, and
 :obj:`ManyToManyAttribute`) are provided to enable relationships among objects. Each constructor includes an
 optional argument `related_name` which when provided automatically constructs a reverse attribute between the
-instances.::
+instances::
 
     class Lab(Model):
         name = StringAttribute()
@@ -35,6 +35,10 @@ instances.::
         first_name = StringAttribute()
         last_name = StringAttribute()
         lab = ManyToOneAttribute(Lab, related_name='members')
+
+Do not choose attribute names that would clash with with built-in attributes or methods of
+classes, such as `validate`, `serialize`, and `deserialize`.
+
 
 =====================================
 Instantiating objects
@@ -59,7 +63,7 @@ Related attributes can also be edited as shown below::
     lab.members = [new_member]
 
 *-to-many and many-to-* attribute and related attribute values are instances of :obj:`RelatedManager` which is a subclass
-of :obj:`set`. Thus, their values can also be edited with set methods such as `add`, `clear`, `remove`, and `update`. 
+of :obj:`set`. Thus, their values can also be edited with set methods such as `add`, `clear`, `remove`, and `update`.
 :obj:`RelatedManager` provides three additional methods:
 
 * `create`: `object.related_objects.create(**kwargs)` is syntatic sugar for `object.attribute.add(RelatedObject(**kwargs))`
@@ -69,7 +73,7 @@ of :obj:`set`. Thus, their values can also be edited with set methods such as `a
 =====================================
 Meta information
 =====================================
-To allow developers to customize the behavior of each :obj:`Model` subclass, :obj:`Model` provides an internal `Meta` class 
+To allow developers to customize the behavior of each :obj:`Model` subclass, :obj:`Model` provides an internal `Meta` class
 (:obj:`Model.Meta`). This provides several attributes:
 
 * `attribute_order`: :obj:`tuple` of attribute names; controls order in which attributes should be printed when serialized
@@ -85,13 +89,13 @@ Validation
 =====================================
 To facilitate data validation, the module allows developers to specify how objects should be validated at several levels:
 
-* Attribute: :obj:`Attribute` defines a method `validate` which can be used to validate individual attribute values. Attributes of 
+* Attribute: :obj:`Attribute` defines a method `validate` which can be used to validate individual attribute values. Attributes of
   (e.g. `min`, `max`, `min_length`, `max_length`, etc. ) these classes can be used to customize this validation
 * Object: :obj:`Model` defines a method `validate` which can be used to validate entire object instances
 * Model: :obj:`Model` defines a class method `validate_unique` which can be used to validate sets of object instances of the same type.
   This is customized by setting (a) the `unique` attribute of each model type's attrbutes or (b) the `unique_together` attribute
   of the model's `Meta` class.
-* Dataset: :obj:`Validator` can be subclasses provide additional custom validation of entire datasets 
+* Dataset: :obj:`Validator` can be subclasses provide additional custom validation of entire datasets
 
 =====================================
 Equality, differencing
@@ -104,7 +108,7 @@ To facilitate comparison between objects, the :obj:`Model` provides two methods
 =====================================
 Serialization/deserialization
 =====================================
-The `io` module provides methods to serialize and deserialize schema objects to/from Excel, csv, and tsv files(s). :obj:`Model.Meta` 
+The `io` module provides methods to serialize and deserialize schema objects to/from Excel, csv, and tsv files(s). :obj:`Model.Meta`
 provides several attributes to enable developers to control how each model is serialized. Please see the "Meta information" section
 above for more information.
 
@@ -112,7 +116,7 @@ above for more information.
 Utilities
 =====================================
 The `utils` module provides several additional utilities for manipulating :obj:`Model` instances.
-        
+
 
 :Author: Jonathan Karr <karr@mssm.edu>
 :Date: 2016-12-12
@@ -413,6 +417,12 @@ class ModelMeta(type):
 
 
 class TabularOrientation(Enum):
+    """ Describes a table's orientation
+
+    * `row`: the first row contains attribute names; subsequents rows store objects
+    * `column`: the first column contains attribute names; subsequents columns store objects
+    * `inline`: a cell contains a table, as a comma-separated list for example
+    """
     row = 1
     column = 2
     inline = 3
@@ -1062,7 +1072,7 @@ class Model(with_metaclass(ModelMeta, object)):
             objects_and_copies (:obj:`dict` of `Model`: `Model`): dictionary of pairs of objects and their new copies
 
         Raises:
-            :obj:`ValuerError`: if related attribute value is not `None`, a `Model`, or an iterable, 
+            :obj:`ValuerError`: if related attribute value is not `None`, a `Model`, or an iterable,
                 or if a non-related attribute is not an immutable
         """
         # get class
@@ -1611,7 +1621,8 @@ class IntegerAttribute(Attribute):
             value (:obj:`object`): value of attribute to validate
 
         Returns:
-            :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
+            :obj:`InvalidAttribute` or None: None if attribute is valid, otherwise return list of
+                errors as an instance of `InvalidAttribute`
         """
         errors = super(IntegerAttribute, self).validate(obj, value)
         if errors:
@@ -1751,10 +1762,10 @@ class StringAttribute(Attribute):
         return (value, None)
 
     def validate(self, obj, value):
-        """ Determine if `value` is a valid value of the attribute
+        """ Determine if `value` is a valid value for this StringAttribute
 
         Args:
-            obj (:obj:`Model`): object being validated
+            obj (:obj:`Model`): class being validated
             value (:obj:`object`): value of attribute to validate
 
         Returns:
@@ -1774,6 +1785,10 @@ class StringAttribute(Attribute):
 
             if self.max_length and len(value) > self.max_length:
                 errors.append('Value must be less than {:d} characters'.format(self.max_length))
+
+            if self.primary and (value == '' or value is None):
+                errors.append('{} value for primary attribute cannot be empty'.format(
+                    self.__class__.__name__))
 
         if errors:
             return InvalidAttribute(self, errors)
@@ -3438,8 +3453,8 @@ class RelatedManager(set):
             :obj:`int`: index of matching object
 
         Raises:
-            :obj:`ValueError`: if no argument or keyword argument is provided, if argument and keyword arguments are 
-                both provided, if multiple arguments are provided, if the keyword attribute/value pairs match no object, 
+            :obj:`ValueError`: if no argument or keyword argument is provided, if argument and keyword arguments are
+                both provided, if multiple arguments are provided, if the keyword attribute/value pairs match no object,
                 or if the keyword attribute/value pairs match multiple objects
         """
         if args and kwargs:
@@ -3707,7 +3722,7 @@ class InvalidObject(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        msg = '{}:'.format(self.object.serialize())
+        msg = ''
         for attr in natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE):
             msg += '\n  ' + str(attr).replace('\n', '\n  ')
         return msg
@@ -3718,20 +3733,35 @@ class InvalidAttribute(object):
 
     Attributes:
         attribute (:obj:`Attribute`): invalid attribute
-        message (:obj:`list` of `str`): list of error message
+        messages (:obj:`list` of `str`): list of error messages
         related (:obj:`bool`): indicates if error is about value or related value
+        location (:obj:`Location`, optional): location of the attribute in an input file
+        value (:obj:`str`, optional): invalid input value
     """
 
-    def __init__(self, attribute, messages, related=False):
+    def __init__(self, attribute, messages, related=False, location=None, value=None):
         """
         Args:
             attribute (:obj:`Attribute`): invalid attribute
-            message (:obj:`list` of `str`): list of error message
+            message (:obj:`list` of `str`): list of error messages
             related (:obj:`bool`, optional): indicates if error is about value or related value
+            location (:obj:`Location`, optional): location of the attribute in an input file
+            value (:obj:`str`, optional): invalid input value
         """
         self.attribute = attribute
         self.messages = messages
         self.related = related
+        self.location = location
+        self.value = value
+
+    def set_loc_value(self, location, value):
+        """ Set the location and value
+        """
+        self.location = location
+        if value is None:
+            self.value = ''
+        else:
+            self.value = value
 
     def __str__(self):
         """ Get string representation of errors
@@ -3740,14 +3770,23 @@ class InvalidAttribute(object):
             :obj:`str`: string representation of errors
         """
         if self.related:
-            str = '{}:'.format(self.attribute.related_name)
+            err_str = '{}:'.format(self.attribute.related_name)
         else:
-            str = '{}:'.format(self.attribute.name)
+            err_str = '{}:'.format(self.attribute.name)
 
-        for msg in self.messages:
-            str += '\n  ' + msg.rstrip().replace('\n', '\n  ')
+        if self.value is not None:
+            err_str += "'{}'".format(self.value)
 
-        return str
+        if self.location:
+            err_str += '\n  ' + str(self.location)
+            for msg in self.messages:
+                err_str += '\n    ' + msg.rstrip().replace('\n', '\n    ')
+
+        else:
+            for msg in self.messages:
+                err_str += '\n  ' + msg.rstrip().replace('\n', '\n  ')
+
+        return err_str
 
 
 def get_models(module=None, inline=True):

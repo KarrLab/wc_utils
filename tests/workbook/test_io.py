@@ -46,6 +46,18 @@ class TestIo(unittest.TestCase):
         # remove temp directory
         rmtree(self.tempdir)
 
+    def test_exceptions_excel(self):
+        filename = path.join(self.tempdir, 'test.foo')
+        with self.assertRaises(ValueError) as context:
+            io.ExcelWriter(filename)
+        self.assertIn("Extension of path", str(context.exception))
+        self.assertIn("must be '.xlsx'", str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            io.ExcelReader(filename)
+        self.assertIn("Extension of path", str(context.exception))
+        self.assertIn("must be '.xlsx'", str(context.exception))
+
     def test_read_write_excel(self):
         # write to file
         filename = path.join(self.tempdir, 'test.xlsx')
@@ -72,6 +84,24 @@ class TestIo(unittest.TestCase):
         self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
+
+    def test_exceptions_csv(self):
+        for method in [io.SeparatedValuesWriter, io.SeparatedValuesReader]:
+            filename = path.join(self.tempdir, 'test.foo')
+            with self.assertRaises(ValueError) as context:
+                method(filename)
+            self.assertIn("Extension of path", str(context.exception))
+            self.assertIn("must be one of '.csv' or '.tsv'", str(context.exception))
+
+            filename = path.join(self.tempdir, '*', 'test.csv')
+            with self.assertRaises(ValueError) as context:
+                method(filename)
+            self.assertIn('cannot have glob patterns in its directory name', str(context.exception))
+
+            filename = path.join(self.tempdir, 'test**.csv')
+            with self.assertRaises(ValueError) as context:
+                method(filename)
+            self.assertIn("must have one glob pattern '*' in its base name", str(context.exception))
 
     def test_read_write_csv(self):
         # write to files

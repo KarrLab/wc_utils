@@ -10,6 +10,7 @@
 :License: MIT
 """
 
+from collections import defaultdict
 from itertools import chain
 from natsort import natsorted, ns
 from os.path import basename, dirname, splitext
@@ -28,7 +29,7 @@ class Writer(object):
     def run(self, path, objects, models,
             title=None, description=None, keywords=None, version=None, language=None, creator=None):
         """ Write a set of model objects to an Excel file, with one worksheet for each model, or to
-        a or set of .csv or .tsv files, with one file for each model
+            a set of .csv or .tsv files, with one file for each model.
 
         Args:
             path (:obj:`str`): path to write file(s)
@@ -95,7 +96,7 @@ class Writer(object):
         Args:
             writer (:obj:`BaseWriter`): io writer
             model (:obj:`class`): model
-            objects (:obj:`set` of `Model`): set of instances of `model`            
+            objects (:obj:`set` of `Model`): set of instances of `model`
         """
 
         # attribute order
@@ -206,7 +207,8 @@ class Reader(object):
             :obj:`dict`: model objects grouped by `Model`
 
         Raises:
-            :obj:`ValueError`: if file(s) contains extra sheets that don't correspond to one of `models` or if the data is not valid
+            :obj:`ValueError`: if file(s) contains extra sheets that don't correspond to one of
+                `models` or if the data is not valid
         """
         _, ext = splitext(path)
         reader_cls = get_reader(ext)
@@ -225,7 +227,10 @@ class Reader(object):
                 model_names.add(model.Meta.verbose_name)
         extra_sheets = sheet_names.difference(model_names)
         if extra_sheets:
-            raise ValueError('Models must be defined for the following worksheets: {}'.format(', '.join(extra_sheets)))
+            extra_models = model_names.difference(sheet_names)
+            raise ValueError("{}: No correspondence between model names '{}' and worksheet/file "
+                "names '{}'".format(basename(path), ', '.join(sorted(extra_models)),
+                ', '.join(sorted(extra_sheets))))
 
         # read objects
         attributes = {}
@@ -248,7 +253,7 @@ class Reader(object):
             for model, model_errors in errors.items():
                 msg += '\n  {}:'.format(model.__name__)
                 for model_error in model_errors:
-                    msg += '\n    {}'.format(str(model_error).replace('\n', '\n    '))
+                    msg += '{}'.format(str(model_error).replace('\n', '\n    '))
             raise ValueError(msg)
 
         # link objects
@@ -296,11 +301,11 @@ class Reader(object):
         return objects
 
     def read_model(self, reader, model):
-        """ Read a set of objects from a file
+        """ Instantiate a list of objects from data in a table in a file
 
         Args:
             reader (:obj:`BaseReader`): reader
-            model (:obj:`class`): model
+            model (:obj:`class`): the model describing the objects' schema
 
         Returns:
             :obj:`tuple` of
@@ -313,6 +318,7 @@ class Reader(object):
                 * a list of parsing errors
                 * constructed model objects
         """
+        _, ext = splitext(reader.path)
         if model.Meta.tabular_orientation == TabularOrientation.row:
             sheet_name = model.Meta.verbose_name_plural
         else:
@@ -329,22 +335,39 @@ class Reader(object):
             data = transpose(data)
         headings = headings[0]
 
+        # prohibit duplicate headers
+        header_map = defaultdict(list)
+        for heading in headings:
+            if heading is None:
+                continue
+            l = heading.lower()
+            header_map[l].append(heading)
+        duplicate_headers = list(filter(lambda x: 1<len(x), header_map.values()))
+        if duplicate_headers:
+            errors = []
+            for dupes in duplicate_headers:
+                str = ', '.join(map(lambda s: "'{}'".format(s), dupes))
+                errors.append("{}:'{}': Duplicate, case insensitive, header fields: {}".format(
+                                basename(reader.path), sheet_name, str))
+            return ([], [], errors, [])
+
         # acquire attributes by header order
         attributes = []
         errors = []
-        col = 1
+        idx = 1
         for verbose_name in headings:
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
             if attr is None:
                 if verbose_name is None or verbose_name == '':
-                    errors.append("{}:'{}': Empty header field in column {} - delete empty column(s)".format(
-                        basename(reader.path), sheet_name, col))
+                    row, col, hdr_entries = header_row_col_names(idx, ext, model.Meta.tabular_orientation)
+                    errors.append("{}:'{}': Empty header field in row {}, col {} - delete empty {}(s)".format(
+                        basename(reader.path), sheet_name, row, col, hdr_entries))
                 else:
                     errors.append("{}:'{}': Header '{}' does not match any attribute".format(
                         basename(reader.path), sheet_name, verbose_name))
             else:
                 attributes.append(attr)
-            col += 1
+            idx += 1
 
         if errors:
             return ([], [], errors, [])
@@ -352,22 +375,35 @@ class Reader(object):
         # read data
         objects = []
         errors = []
+        transposed = model.Meta.tabular_orientation == TabularOrientation.column
+        obj_num = 1
         for obj_data in data:
             obj = model()
 
             obj_errors = []
+            attr_num = 1
             for attr, attr_value in zip(attributes, obj_data):
                 if not isinstance(attr, RelatedAttribute):
-                    value, error = attr.deserialize(attr_value)
-                    if error:
-                        obj_errors.append(error)
+                    value, deserialize_error = attr.deserialize(attr_value)
+                    validation_error = attr.validate(attr.__class__, value)
+                    if deserialize_error or validation_error:
+                        loc = Location(reader.path, sheet_name, obj_num, attr_num,
+                            transposed=transposed)
+                        if deserialize_error:
+                            deserialize_error.set_loc_value(loc, attr_value)
+                            obj_errors.append(deserialize_error)
+                        if validation_error:
+                            validation_error.set_loc_value(loc, attr_value)
+                            obj_errors.append(validation_error)
                     else:
                         setattr(obj, attr.name, value)
 
+                attr_num += 1
+
             if obj_errors:
                 errors.append(InvalidObject(obj, obj_errors))
-
             objects.append(obj)
+            obj_num += 1
 
         return (attributes, data, errors, objects)
 
@@ -381,7 +417,7 @@ class Reader(object):
             num_column_heading_rows (:obj:`int`, optional): number of rows of column headings
 
         Returns:
-            :obj:`tuple`: 
+            :obj:`tuple`:
                 * `list` of `list`: two-dimensional list of table values
                 * `list` of `list`: row headings
                 * `list` of `list`: column_headings
@@ -477,3 +513,81 @@ def create_template(path, models, title=None, description=None, keywords=None,
     Writer().run(path, set(), models,
                  title=title, description=description, keywords=keywords,
                  version=version, language=language, creator=creator)
+
+def excel_col_name(col):
+    """ Convert column number to an Excel-style string.
+
+    From http://stackoverflow.com/a/19169180/509882
+    """
+    LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if not isinstance(col, int) or col<1:
+        raise ValueError( "excel_col_name: col ({}) must be a positive integer".format(col))
+
+    result = []
+    while col:
+        col, rem = divmod(col-1, 26)
+        result[:0] = LETTERS[rem]
+    return ''.join(result)
+
+def header_row_col_names(index, file_ext, tabular_orientation):
+    """ Determine row and column names for header entries.
+
+    Args:
+        index (:obj:`int`): index in header sequence
+        file_ext (:obj:`str`): extension for model file
+        orientation (:obj:`TabularOrientation`): orientation of the stored table
+
+    Returns:
+        :obj:`tuple` of row, column, header_entries
+    """
+    if tabular_orientation == TabularOrientation.row:
+        row, col, hdr_entries = (1, index, 'column')
+    else:
+        row, col, hdr_entries = (index, 1, 'row')
+    if 'xlsx' in file_ext:
+        col = excel_col_name(col)
+    return (row, col, hdr_entries)
+
+
+class Location(object):
+    """ Represents the location of a field in an input file
+
+    Error messages use Location instances to report the location of errors.
+
+    Attributes:
+        path (:obj:`Attribute`): pathname of the file
+        worksheet (:obj:`str`): name of the worksheet
+        row (:obj:`int`): index of the data row
+        column (:obj:`int`): index of the column
+        transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
+    """
+
+    def __init__(self, path, worksheet, row, column, transposed=False):
+        """
+        Args:
+            path (:obj:`Attribute`): pathname of the file
+            worksheet (:obj:`str`): name of the worksheet
+            row (:obj:`int`): index of the data row
+            column (:obj:`int`): index of the column
+            transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
+        """
+        self.path = path
+        self.worksheet = worksheet
+        row += 1    # account for the header row
+        if transposed:
+            column, row = row, column
+        self.row = row
+        self.column = column
+
+    def __str__(self):
+        """ Get string representation of a Location
+
+        Returns:
+            :obj:`str`: string representation of a Location
+        """
+        _, ext = splitext(self.path)
+        if 'xlsx' in ext:
+            col = excel_col_name(self.column)
+            return "{}:{}:{}{}:".format(basename(self.path), self.worksheet, col, self.row)
+        else:
+            return "{}:{}:{},{}:".format(basename(self.path), self.worksheet, self.row, self.column)

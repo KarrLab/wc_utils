@@ -88,7 +88,7 @@ class Writer(with_metaclass(ABCMeta, object)):
 
 
 class Reader(with_metaclass(ABCMeta, object)):
-    """ Read data from file(s) 
+    """ Read data from file(s)
 
     Attributes:
         path (:obj:`str`): path to file(s)
@@ -104,9 +104,6 @@ class Reader(with_metaclass(ABCMeta, object)):
     def run(self):
         """ Read data from file(s)
 
-        Args:
-            path (:obj:`str`): path to file(s)
-
         Returns:
             :obj:`Workbook`: python representation of data
         """
@@ -120,7 +117,7 @@ class Reader(with_metaclass(ABCMeta, object)):
 
     @abstractmethod
     def initialize_workbook(self):
-        """ Initialize workbook 
+        """ Initialize workbook
 
         Returns:
             :obj:`Workbook`: data
@@ -138,7 +135,7 @@ class Reader(with_metaclass(ABCMeta, object)):
 
     @abstractmethod
     def read_worksheet(self, sheet_name):
-        """ Read data from file 
+        """ Read data from file
 
         Args:
             sheet_name (:obj:`str`): sheet name
@@ -156,7 +153,8 @@ class ExcelWriter(Writer):
         xls_workbook (:obj:`XlsWorkbook`): Excel workbook
     """
 
-    def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None, creator=None):
+    def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None,
+        creator=None):
         """
         Args:
             path (:obj:`str`): path to file(s)
@@ -172,7 +170,7 @@ class ExcelWriter(Writer):
         """
         _, ext = splitext(path)
         if ext != '.xlsx':
-            raise ValueError('Extension of `path` must one of ".xlsx"')
+            raise ValueError("Extension of path '{}' must be '.xlsx'".format(path))
 
         super(ExcelWriter, self).__init__(path,
                                           title=title, description=description,
@@ -282,12 +280,12 @@ class ExcelReader(Reader):
         """
         _, ext = splitext(path)
         if ext != '.xlsx':
-            raise ValueError('Extension of `path` must one of ".xlsx"')
+            raise ValueError("Extension of path '{}' must be '.xlsx'".format(path))
         super(ExcelReader, self).__init__(path)
         self.xls_workbook = None
 
     def initialize_workbook(self):
-        """ Initialize workbook 
+        """ Initialize workbook
 
         Returns:
             :obj:`Workbook`: data
@@ -298,16 +296,13 @@ class ExcelReader(Reader):
     def get_sheet_names(self):
         """ Get names of sheets contained within path
 
-        Args:
-            path (:obj:`str`): path to file(s)
-
         Returns:
             obj:`list` of `str`: list of sheet names
         """
         return self.xls_workbook.get_sheet_names()
 
     def read_worksheet(self, sheet_name):
-        """ Read data from file 
+        """ Read data from Excel worksheet
 
         Args:
             sheet_name (:obj:`str`): sheet name
@@ -343,17 +338,21 @@ class SeparatedValuesWriter(Writer):
             creator (:obj:`str`, optional): creator
 
         Raises:
-            :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+            :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern
+                doesn't contain exactly one glob
         """
         _, ext = splitext(path)
         if ext not in ('.csv', '.tsv'):
-            raise ValueError('Extension of `path` must match be one of ".csv" or ".tsv"')
+            raise ValueError("Extension of path '{}' must be one of '.csv' or '.tsv'".format(
+                path))
 
         if '*' in dirname(path):
-            raise ValueError('`path` cannot have glob patterns in its dirrectory name')
+            raise ValueError("path '{}' cannot have glob patterns in its directory name".format(
+                path))
 
         if basename(path).count('*') != 1:
-            raise ValueError('`path` must have one glob pattern "*" in its base name')
+            raise ValueError("path '{}' must have one glob pattern '*' in its base name".format(
+                path))
 
         super(SeparatedValuesWriter, self).__init__(path,
                                                     title=title, description=description,
@@ -387,22 +386,26 @@ class SeparatedValuesReader(Reader):
             path (:obj:`str`): path to file(s)
 
         Raises:
-            :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern doesn't contain exactly one glob
+            :obj:`ValueError`: if file extension is not '.csv' or '.tsv' or if file name pattern
+                doesn't contain exactly one glob
         """
         _, ext = splitext(path)
         if ext not in ('.csv', '.tsv'):
-            raise ValueError('Extension of `path` must match be one of ".csv" or ".tsv"')
+            raise ValueError("Extension of path '{}' must be one of '.csv' or '.tsv'".format(
+                path))
 
         if '*' in dirname(path):
-            raise ValueError('`path` cannot have glob patterns in its dirrectory name')
+            raise ValueError("path '{}' cannot have glob patterns in its directory name".format(
+                path))
 
         if basename(path).count('*') != 1:
-            raise ValueError('`path` must have one glob pattern "*" in its base name')
+            raise ValueError("path '{}' must have one glob pattern '*' in its base name".format(
+                path))
 
         super(SeparatedValuesReader, self).__init__(path)
 
     def initialize_workbook(self):
-        """ Initialize workbook 
+        """ Initialize workbook
 
         Returns:
             :obj:`Workbook`: data
@@ -422,7 +425,7 @@ class SeparatedValuesReader(Reader):
         return names
 
     def read_worksheet(self, sheet_name):
-        """ Read data from file 
+        """ Read data from file
 
         Args:
             sheet_name (:obj:`str`): sheet name
@@ -522,7 +525,7 @@ def read(path):
         path (:obj:`str`): path to file(s)
 
     Returns:
-        :obj:`Workbook`: python representation of data    
+        :obj:`Workbook`: python representation of data
     """
     # check extensions are valid
     _, ext = splitext(path)

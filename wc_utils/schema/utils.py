@@ -22,8 +22,10 @@ def get_attribute_by_verbose_name(cls, verbose_name):
             matching attribute
     """
 
+    if verbose_name is None:
+        return None
     for attr_name, attr in cls.Meta.attributes.items():
-        if attr.verbose_name == verbose_name:
+        if attr.verbose_name.lower() == verbose_name.lower():
             return attr
 
     return None

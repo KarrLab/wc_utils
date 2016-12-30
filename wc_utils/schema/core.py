@@ -119,6 +119,7 @@ The `utils` module provides several additional utilities for manipulating :obj:`
 
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-12-12
 :Copyright: 2016, Karr Lab
 :License: MIT

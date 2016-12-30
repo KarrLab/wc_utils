@@ -1348,13 +1348,12 @@ class TestCore(unittest.TestCase):
         self.assertEqual('\n'.join(indent_forest(forest, indentation=2)), indent_by_2)
         forest2 = [
             (0,1),
-            ["e e cummings\ncould write\n\n   but couldn't code"],
+            ["e e cummings\ncould write\n   but couldn't code"],
             (0,2),
         ]
         indent_with_text = """(0, 1)
    e e cummings
    could write
-
       but couldn't code
 (0, 2)"""
         self.assertEqual('\n'.join(indent_forest(forest2, indentation=3)), indent_with_text)

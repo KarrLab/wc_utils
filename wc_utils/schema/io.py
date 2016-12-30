@@ -16,7 +16,8 @@ from natsort import natsorted, ns
 from os.path import basename, dirname, splitext
 from warnings import warn
 from wc_utils.schema import utils
-from wc_utils.schema.core import Model, Attribute, RelatedAttribute, Validator, TabularOrientation, InvalidObject
+from wc_utils.schema.core import (Model, Attribute, RelatedAttribute, Validator, TabularOrientation,
+                                    InvalidObject, Location, excel_col_name, indent_forest)
 from wc_utils.util.list import transpose
 from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
                                   Writer as BaseWriter, Reader as BaseReader,
@@ -55,7 +56,7 @@ class Writer(object):
         error = Validator().run(all_objects)
 
         if error:
-            warn('Storage may be lossy because the objects are not valid:\n  {}'.format(
+            warn('Some data will not be written because objects are not valid:\n  {}'.format(
                 str(error).replace('\n', '\n  ').rstrip()))
 
         # group objects by class
@@ -253,7 +254,7 @@ class Reader(object):
             for model, model_errors in errors.items():
                 msg += '\n  {}:'.format(model.__name__)
                 for model_error in model_errors:
-                    msg += '{}'.format(str(model_error).replace('\n', '\n    '))
+                    msg += '\n    {}'.format(str(model_error).replace('\n', '\n    '))
             raise ValueError(msg)
 
         # link objects
@@ -267,6 +268,14 @@ class Reader(object):
                                            objects_by_primary_attribute)
             if model_errors:
                 errors[model] = model_errors
+
+        '''
+        if errors:
+            forest = ['The model cannot be loaded because the spreadsheet contains error(s):']
+            for model, model_errors in errors.items():
+                forest.append(model.__name__, model_errors)
+            raise ValueError('\n'.join(indent_forest(forest)))
+        '''
 
         if errors:
             msg = 'The model cannot be loaded because the spreadsheet contains error(s):'
@@ -514,21 +523,6 @@ def create_template(path, models, title=None, description=None, keywords=None,
                  title=title, description=description, keywords=keywords,
                  version=version, language=language, creator=creator)
 
-def excel_col_name(col):
-    """ Convert column number to an Excel-style string.
-
-    From http://stackoverflow.com/a/19169180/509882
-    """
-    LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    if not isinstance(col, int) or col<1:
-        raise ValueError( "excel_col_name: col ({}) must be a positive integer".format(col))
-
-    result = []
-    while col:
-        col, rem = divmod(col-1, 26)
-        result[:0] = LETTERS[rem]
-    return ''.join(result)
-
 def header_row_col_names(index, file_ext, tabular_orientation):
     """ Determine row and column names for header entries.
 
@@ -549,45 +543,3 @@ def header_row_col_names(index, file_ext, tabular_orientation):
     return (row, col, hdr_entries)
 
 
-class Location(object):
-    """ Represents the location of a field in an input file
-
-    Error messages use Location instances to report the location of errors.
-
-    Attributes:
-        path (:obj:`Attribute`): pathname of the file
-        worksheet (:obj:`str`): name of the worksheet
-        row (:obj:`int`): index of the data row
-        column (:obj:`int`): index of the column
-        transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
-    """
-
-    def __init__(self, path, worksheet, row, column, transposed=False):
-        """
-        Args:
-            path (:obj:`Attribute`): pathname of the file
-            worksheet (:obj:`str`): name of the worksheet
-            row (:obj:`int`): index of the data row
-            column (:obj:`int`): index of the column
-            transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
-        """
-        self.path = path
-        self.worksheet = worksheet
-        row += 1    # account for the header row
-        if transposed:
-            column, row = row, column
-        self.row = row
-        self.column = column
-
-    def __str__(self):
-        """ Get string representation of a Location
-
-        Returns:
-            :obj:`str`: string representation of a Location
-        """
-        _, ext = splitext(self.path)
-        if 'xlsx' in ext:
-            col = excel_col_name(self.column)
-            return "{}:{}:{}{}:".format(basename(self.path), self.worksheet, col, self.row)
-        else:
-            return "{}:{}:{},{}:".format(basename(self.path), self.worksheet, self.row, self.column)

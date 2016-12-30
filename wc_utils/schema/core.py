@@ -134,6 +134,7 @@ from natsort import natsort_keygen, natsorted, ns
 from operator import attrgetter
 from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
+from os.path import basename, dirname, splitext
 from wc_utils.util.types import get_subclasses, get_superclasses
 import dateutil.parser
 import inflect
@@ -3769,25 +3770,23 @@ class InvalidAttribute(object):
         Returns:
             :obj:`str`: string representation of errors
         """
+        forest = []
         if self.related:
-            err_str = '{}:'.format(self.attribute.related_name)
+            forest.append('{}:'.format(self.attribute.related_name))
         else:
-            err_str = '{}:'.format(self.attribute.name)
+            forest.append('{}:'.format(self.attribute.name))
 
         if self.value is not None:
-            err_str += "'{}'".format(self.value)
+            forest.append("'{}'".format(self.value))
 
         if self.location:
-            err_str += '\n  ' + str(self.location)
-            for msg in self.messages:
-                err_str += '\n    ' + msg.rstrip().replace('\n', '\n    ')
+            forest.append([str(self.location),
+                [msg.rstrip() for msg in self.messages]])
 
         else:
-            for msg in self.messages:
-                err_str += '\n  ' + msg.rstrip().replace('\n', '\n  ')
+            forest.append([msg.rstrip() for msg in self.messages])
 
-        return err_str
-
+        return '\n'.join(indent_forest(forest))
 
 def get_models(module=None, inline=True):
     """ Get models
@@ -3910,3 +3909,103 @@ class Validator(object):
             return InvalidObjectSet(object_errors, model_errors)
 
         return None
+
+class Location(object):
+    """ Represents the location of a field in an input file
+
+    Error messages use Location instances to report the location of errors.
+
+    Attributes:
+        path (:obj:`Attribute`): pathname of the file
+        worksheet (:obj:`str`): name of the worksheet
+        row (:obj:`int`): index of the data row
+        column (:obj:`int`): index of the column
+        transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
+    """
+
+    def __init__(self, path, worksheet, row, column, transposed=False):
+        """
+        Args:
+            path (:obj:`Attribute`): pathname of the file
+            worksheet (:obj:`str`): name of the worksheet
+            row (:obj:`int`): index of the data row
+            column (:obj:`int`): index of the column
+            transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
+        """
+        self.path = path
+        self.worksheet = worksheet
+        row += 1    # account for the header row
+        if transposed:
+            column, row = row, column
+        self.row = row
+        self.column = column
+
+    def __str__(self):
+        """ Get string representation of a Location
+
+        Returns:
+            :obj:`str`: string representation of a Location
+        """
+        _, ext = splitext(self.path)
+        if 'xlsx' in ext:
+            col = excel_col_name(self.column)
+            return "{}:{}:{}{}:".format(basename(self.path), self.worksheet, col, self.row)
+        else:
+            return "{}:{}:{},{}:".format(basename(self.path), self.worksheet, self.row, self.column)
+
+def excel_col_name(col):
+    """ Convert column number to an Excel-style string.
+
+    From http://stackoverflow.com/a/19169180/509882
+    """
+    LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if not isinstance(col, int) or col<1:
+        raise ValueError( "excel_col_name: col ({}) must be a positive integer".format(col))
+
+    result = []
+    while col:
+        col, rem = divmod(col-1, 26)
+        result[:0] = LETTERS[rem]
+    return ''.join(result)
+
+def indent_forest(forest, indentation=2):
+    """ Generate a list of lines, each indented by its depth in the forest
+
+    Convert a forest of objects provided in a list of nested lists into a flat list of strings,
+    each indented by depth*indentation spaces where depth is the objects' depth in the forest.
+    Properly handles strings containing newlines.
+
+    Args:
+        forest (:obj:`list` of `list`): a forest as a list of nested lists
+        indentation (:obj:`int`, optional): number of spaces to indent at each level
+
+    Returns:
+        :obj:`list` of `str`: list of strings, appropriately indented
+    """
+    return __indent_forest(forest, indentation, depth=0, output=[])
+
+def __indent_forest(forest, indentation, depth, output):
+    """ Private, recursive method to generate a list of lines indented by their depth in a forest
+
+    Args:
+        forest (:obj:`list` of `list`): a forest as a list of nested lists
+        indentation (:obj:`int`): number of spaces to indent at each level
+        depth (:obj:`int`): recursion depth, used by recursion
+        output (:obj:`list` of `str`): intermediate list of output, used by recursion
+
+    Returns:
+        :obj:`list` of `str`: list of strings, appropriately indented
+    """
+    for entry in forest:
+        if isinstance(entry, list):
+            __indent_forest(entry, indentation, depth+1, output)
+        else:
+            indent = ' '*depth*indentation
+            e_str = str(entry)
+            if '\n' in e_str:
+                lines = e_str.split('\n')
+                for line in lines:
+                    output.append(indent+line)
+            else:
+                output.append(indent+str(entry))
+    return output

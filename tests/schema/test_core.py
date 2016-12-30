@@ -13,7 +13,7 @@ from wc_utils.schema import core
 import re
 import sys
 import unittest
-
+from wc_utils.schema.core import excel_col_name, indent_forest
 
 class Order(Enum):
     root = 1
@@ -1321,3 +1321,40 @@ class TestCore(unittest.TestCase):
             '      {}\n'.format(msg.replace('\n', '\n      ')) +
             '      {}'.format(msg.replace('\n', '\n      '))
         ))
+
+    def test_excel_col_name(self):
+        self.assertRaises(ValueError, lambda: excel_col_name(0))
+        self.assertRaises(ValueError, lambda: excel_col_name(''))
+        self.assertEqual(excel_col_name(5), 'E')
+        self.assertEqual(excel_col_name(2**14), 'XFD')
+
+    def test_indent_forest(self):
+        forest = [
+            (0,1),
+                [(1,1), (1,2), ],
+            (0,2),
+                [(1,2),
+                    [(2,1), (2,2), ],
+                (1,3), ]
+                ]
+        indent_by_2 = """(0, 1)
+  (1, 1)
+  (1, 2)
+(0, 2)
+  (1, 2)
+    (2, 1)
+    (2, 2)
+  (1, 3)"""
+        self.assertEqual('\n'.join(indent_forest(forest, indentation=2)), indent_by_2)
+        forest2 = [
+            (0,1),
+            ["e e cummings\ncould write\n\n   but couldn't code"],
+            (0,2),
+        ]
+        indent_with_text = """(0, 1)
+   e e cummings
+   could write
+
+      but couldn't code
+(0, 2)"""
+        self.assertEqual('\n'.join(indent_forest(forest2, indentation=3)), indent_with_text)

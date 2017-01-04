@@ -396,7 +396,7 @@ class SeparatedValuesReader(Reader):
                 path))
 
         if '*' in dirname(path):
-            raise ValueError("path '{}' cannot have glob patterns in its directory name".format(
+            raise ValueError("path '{}' cannot have '*' glob pattern(s) in its directory name".format(
                 path))
 
         if basename(path).count('*') != 1:
@@ -418,11 +418,16 @@ class SeparatedValuesReader(Reader):
 
         Returns:
             obj:`list` of `str`: list of sheet names
+
+        Raises:
+            :obj:`ValueError`: if glob does not find any matching files
         """
         i_glob = self.path.find('*')
         names = []
         for filename in glob(self.path):
             names.append(filename[i_glob:i_glob + len(filename) - len(self.path) + 1])
+        if not names:
+            raise ValueError("glob of path '{}' does not match any files".format(self.path))
         return names
 
     def read_worksheet(self, sheet_name):
@@ -568,15 +573,21 @@ def convert(source, destination, worksheet_order=None, style=None):
         else:
             i_glob = source.find('*')
             dst_format = destination.replace('*', '{}')
+            if not list(glob(source)):
+                raise ValueError("glob of path '{}' does not match any files".format(source))
             for filename in glob(source):
                 sheet_name = filename[i_glob:i_glob + len(filename) - len(source) + 1]
                 copyfile(filename, dst_format.format(sheet_name))
+        return
 
-    # read/write
+    # read, convert, and write
     workbook = read(source)
 
     ordered_workbook = Workbook()
     worksheet_order = worksheet_order or []
+    difference = set(worksheet_order) - set(workbook.keys())
+    if difference:
+        raise ValueError("source '{}' missing worksheets: '{}'".format(source, difference))
     for worksheet in chain(worksheet_order, workbook.keys()):
         ordered_workbook[worksheet] = workbook[worksheet]
 

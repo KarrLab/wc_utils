@@ -348,7 +348,7 @@ class SeparatedValuesWriter(Writer):
                 path))
 
         if '*' in dirname(path):
-            raise ValueError("path '{}' cannot have glob patterns in its directory name".format(
+            raise ValueError("path '{}' cannot have glob pattern '*' in its directory name".format(
                 path))
 
         if basename(path).count('*') != 1:
@@ -396,7 +396,7 @@ class SeparatedValuesReader(Reader):
                 path))
 
         if '*' in dirname(path):
-            raise ValueError("path '{}' cannot have '*' glob pattern(s) in its directory name".format(
+            raise ValueError("path '{}' cannot have glob pattern '*' in its directory name".format(
                 path))
 
         if basename(path).count('*') != 1:

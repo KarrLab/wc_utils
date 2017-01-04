@@ -97,7 +97,7 @@ class TestIo(unittest.TestCase):
             filename = path.join(self.tempdir, '*', 'test.csv')
             with self.assertRaises(ValueError) as context:
                 method(filename)
-            self.assertIn('cannot have glob patterns in its directory name', str(context.exception))
+            self.assertIn("cannot have glob pattern '*' in its directory name", str(context.exception))
 
             filename = path.join(self.tempdir, 'test**.csv')
             with self.assertRaises(ValueError) as context:

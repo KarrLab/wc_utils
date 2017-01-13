@@ -18,12 +18,13 @@ from os.path import basename, dirname, splitext
 from warnings import warn
 from wc_utils.schema import utils
 from wc_utils.schema.core import (Model, Attribute, RelatedAttribute, Validator, TabularOrientation,
-                                    InvalidObject, Location, excel_col_name, indent_forest)
+                                    InvalidObject, Location, excel_col_name, indent_forest,
+                                    InvalidWorksheet, InvalidAttribute)
 from wc_utils.util.list import transpose
 from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
                                   Writer as BaseWriter, Reader as BaseReader,
                                   convert as base_convert)
-
+from wc_utils.util.misc import quote
 
 class Writer(object):
     """ Write model objects to file(s) """
@@ -230,9 +231,9 @@ class Reader(object):
         extra_sheets = sheet_names.difference(model_names)
         if extra_sheets:
             extra_models = model_names.difference(sheet_names)
-            raise ValueError("{}: No correspondence between model names '{}' and worksheet/file "
-                "names '{}'".format(basename(path), ', '.join(sorted(extra_models)),
-                ', '.join(sorted(extra_sheets))))
+            raise ValueError("'{}': No match between model names {{'{}'}} and worksheet/file "
+                "names {{'{}'}}".format(basename(path), "', '".join(sorted(extra_models)),
+                "', '".join(sorted(extra_sheets))))
 
         # read objects
         attributes = {}
@@ -251,12 +252,11 @@ class Reader(object):
                 objects[model] = model_objects
 
         if errors:
-            msg = 'The model cannot be loaded because the spreadsheet contains error(s):'
+            forest = ["The model cannot be loaded because '{}' contains error(s):".format(basename(path))]
             for model, model_errors in errors.items():
-                msg += '\n  {}:'.format(model.__name__)
-                for model_error in model_errors:
-                    msg += '\n    {}'.format(str(model_error).replace('\n', '\n    '))
-            raise ValueError(msg)
+                forest.append([quote(model.Meta.verbose_name_plural)])
+                forest.append([model_errors])
+            raise ValueError(indent_forest(forest))
 
         # link objects
         objects_by_primary_attribute = {}
@@ -275,7 +275,7 @@ class Reader(object):
             forest = ['The model cannot be loaded because the spreadsheet contains error(s):']
             for model, model_errors in errors.items():
                 forest.append(model.__name__, model_errors)
-            raise ValueError('\n'.join(indent_forest(forest)))
+            raise ValueError(indent_forest(forest))
         '''
 
         if errors:
@@ -370,11 +370,11 @@ class Reader(object):
             if attr is None:
                 if verbose_name is None or verbose_name == '':
                     row, col, hdr_entries = header_row_col_names(idx, ext, model.Meta.tabular_orientation)
-                    errors.append("{}:'{}': Empty header field in row {}, col {} - delete empty {}(s)".format(
-                        basename(reader.path), sheet_name, row, col, hdr_entries))
+                    errors.append("Empty header field in row {}, col {} - delete empty {}(s)".format(
+                        row, col, hdr_entries))
                 else:
-                    errors.append("{}:'{}': Header '{}' does not match any attribute".format(
-                        basename(reader.path), sheet_name, verbose_name))
+                    errors.append("Header '{}' does not match any attribute".format(
+                        verbose_name))
             else:
                 attributes.append(attr)
             idx += 1
@@ -386,34 +386,39 @@ class Reader(object):
         objects = []
         errors = []
         transposed = model.Meta.tabular_orientation == TabularOrientation.column
-        obj_num = 1
-        for obj_data in data:
+
+        for obj_num, obj_data in enumerate(data, start=1):
             obj = model()
 
             obj_errors = []
             attr_num = 1
             for attr, attr_value in zip(attributes, obj_data):
-                if not isinstance(attr, RelatedAttribute):
-                    value, deserialize_error = attr.deserialize(attr_value)
-                    validation_error = attr.validate(attr.__class__, value)
-                    if deserialize_error or validation_error:
-                        loc = Location(reader.path, sheet_name, obj_num, attr_num,
-                            transposed=transposed)
-                        if deserialize_error:
-                            deserialize_error.set_loc_value(loc, attr_value)
-                            obj_errors.append(deserialize_error)
-                        if validation_error:
-                            validation_error.set_loc_value(loc, attr_value)
-                            obj_errors.append(validation_error)
-                    else:
-                        setattr(obj, attr.name, value)
+                loc = Location(reader.path, sheet_name, obj_num, attr_num,
+                    transposed=transposed)
+                try:
+                    if not isinstance(attr, RelatedAttribute):
+                        value, deserialize_error = attr.deserialize(attr_value)
+                        validation_error = attr.validate(attr.__class__, value)
+                        if deserialize_error or validation_error:
+                            if deserialize_error:
+                                deserialize_error.set_loc_value(loc, attr_value)
+                                obj_errors.append(deserialize_error)
+                            if validation_error:
+                                validation_error.set_loc_value(loc, attr_value)
+                                obj_errors.append(validation_error)
+                        else:
+                            setattr(obj, attr.name, value)
+
+                except Exception as e:
+                    error = InvalidAttribute(attr, ["{}".format(e)])
+                    error.set_loc_value(loc, attr_value)
+                    obj_errors.append(error)
 
                 attr_num += 1
 
             if obj_errors:
                 errors.append(InvalidObject(obj, obj_errors))
             objects.append(obj)
-            obj_num += 1
 
         return (attributes, data, errors, objects)
 
@@ -542,5 +547,3 @@ def header_row_col_names(index, file_ext, tabular_orientation):
     if 'xlsx' in file_ext:
         col = excel_col_name(col)
     return (row, col, hdr_entries)
-
-

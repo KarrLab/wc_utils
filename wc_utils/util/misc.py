@@ -95,3 +95,17 @@ def round_direct(value, precision=2):
         return '{}+'.format(round(value, precision))
     else:   # value < round(value, precision) 
         return '{}-'.format(round(value, precision))
+
+def quote(s):
+    """ Enclose a string that contains spaces in single quotes, 'like this'
+
+    Args:
+        s (:obj:`str`): a string
+
+    Returns:
+        :obj:`str`: a string
+    """
+    if ' ' in s:
+        return "'{}'".format(s)
+    else:
+        return s

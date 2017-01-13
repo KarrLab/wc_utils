@@ -171,13 +171,13 @@ class TestIo(unittest.TestCase):
         self.assertIn('value for primary attribute cannot be empty',
             t.validate().attributes[0].messages[0])
 
-    @unittest.skip("error reporting formatting needs repair")
     def test_read_bad_headers(self):
         msgs = [
-            "'Nodes': Empty header field in row 1, col E - delete empty column(s)",
-            "'Nodes': Header 'y' does not match any attribute",
-            "'Root': Empty header field in row 4, col A - delete empty row(s)",
-            "'Root': Header 'x' does not match any attribute",]
+            "The model cannot be loaded because 'bad-headers.xlsx' contains error(s)",
+            "Empty header field in row 1, col E - delete empty column(s)",
+            "Header 'y' does not match any attribute",
+            "Roots\n",
+            "Empty header field in row 3, col A - delete empty row(s)",]
         excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
             'bad-headers.xlsx')
         with self.assertRaises(ValueError) as context:
@@ -186,10 +186,10 @@ class TestIo(unittest.TestCase):
             self.assertIn(msg, str(context.exception))
 
         msgs = [
-            "'Nodes': Empty header field in row 1, col 5 - delete empty column(s)",
-            "'Nodes': Header 'y' does not match any attribute",
-            "'Root': Empty header field in row 4, col 1 - delete empty row(s)",
-            "'Root': Header 'x' does not match any attribute",]
+            "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
+            "Header 'x' does not match any attribute",
+            "Nodes\n",
+            "Empty header field in row 1, col 5 - delete empty column(s)",]
         csv_fixture_fileglob = os.path.join(os.path.dirname(__file__), 'fixtures',
             'bad-headers-*.csv')
         with self.assertRaises(ValueError) as context:
@@ -207,14 +207,23 @@ class TestIo(unittest.TestCase):
         for msg in msgs:
             self.assertIn(msg, str(context.exception))
 
-    @unittest.skip("error reporting formatting needs repair")
+    def test_uncaught_data_error(self):
+        msgs = ["The model cannot be loaded because 'uncaught-error.xlsx' contains error(s)",
+            "uncaught-error.xlsx:Nodes:C5",]
+        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
+            'uncaught-error.xlsx')
+        with self.assertRaises(Exception) as context:
+            Reader().run(excel_fixture_filename, [Root, Node])
+        for msg in msgs:
+            self.assertIn(msg, str(context.exception))
+
     def test_read_invalid_data(self):
-        class Normal(core.Model):
-            id = core.SlugAttribute()
+        class NormalRecord(core.Model):
+            id_with_underscores = core.SlugAttribute()
             val = core.StringAttribute(min_length=2)
 
             class Meta(core.Model.Meta):
-                attribute_order = ('id', 'val', )
+                attribute_order = ('id_with_underscores', 'val')
 
         class Transposed(core.Model):
             id = core.SlugAttribute()
@@ -225,22 +234,24 @@ class TestIo(unittest.TestCase):
                 tabular_orientation = core.TabularOrientation.column
 
         RE_msgs = [
-            "Leaf: *\n +id:''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary attribute cannot be empty",
-            "Transposed:\n +val:'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least 2 characters",]
+            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary attribute cannot be empty",
+            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least 2 characters",]
         excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
             'invalid-data.xlsx')
         with self.assertRaises(ValueError) as context:
-            Reader().run(excel_fixture_filename, [Leaf, Normal, Transposed])
+            Reader().run(excel_fixture_filename, [Leaf, NormalRecord, Transposed])
         for RE in RE_msgs:
             self.assertRegexpMatches(str(context.exception), RE)
 
         RE_msgs = [
-            "Leaf: *\n +id:''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for primary attribute cannot be empty",
-            "Transposed:\n +val:'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at least 2 characters",]
+            "The model cannot be loaded because 'invalid-data-\*.csv' contains error",
+            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for primary attribute cannot be empty",
+            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at least 2 characters",]
         csv_fixture_fileglob = os.path.join(os.path.dirname(__file__), 'fixtures',
             'invalid-data-*.csv')
+        # Reader().run(csv_fixture_fileglob, [Leaf, NormalRecord, Transposed])
         with self.assertRaises(ValueError) as context:
-            Reader().run(csv_fixture_fileglob, [Leaf, Normal, Transposed])
+            Reader().run(csv_fixture_fileglob, [Leaf, NormalRecord, Transposed])
         for RE in RE_msgs:
             self.assertRegexpMatches(str(context.exception), RE)
 

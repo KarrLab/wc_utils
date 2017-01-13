@@ -125,7 +125,7 @@ The `utils` module provides several additional utilities for manipulating :obj:`
 :License: MIT
 """
 
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 from copy import copy as make_copy, deepcopy as make_deepcopy
 from datetime import date, time, datetime
 from enum import Enum
@@ -137,6 +137,7 @@ from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
 from os.path import basename, dirname, splitext
 from wc_utils.util.types import get_subclasses, get_superclasses
+from wc_utils.util.misc import quote
 import dateutil.parser
 import inflect
 import re
@@ -350,10 +351,12 @@ class ModelMeta(type):
 
         for attr_name in cls.Meta.attribute_order:
             if not isinstance(attr_name, str):
-                raise ValueError('{}.attribute_order must be a tuple of attribute names'.format(cls.__name__))
+                raise ValueError("attribute_order for {} must be tuple of attribute names; '{}' is "
+                    "not a string".format(cls.__name__, attr_name))
 
             if attr_name not in cls.Meta.attributes:
-                raise ValueError('{}.attribute_order must be a tuple of attribute names'.format(cls.__name__))
+                raise ValueError("'{}' not found in attributes of {}: {}".format(attr_name,
+                    cls.__name__, set(cls.Meta.attributes.keys())))
 
         # `unique_together` is a tuple of tuple of attribute names
         if not isinstance(cls.Meta.unique_together, tuple):
@@ -441,8 +444,8 @@ class Model(with_metaclass(ModelMeta, object)):
             related_attributes(:obj:`set` of `Attribute`): attributes declared in related objects
             primary_attribute (:obj:`Attribute`): attributes with `primary`=`True`
             attribute_order (:obj:`tuple` of `str`): tuple of attribute names, in the order in which they should be displayed
-            verbose_name (:obj:`str`): verbose name to refer to a instance of the model
-            verbose_name_plural (:obj:`str`): plural verbose name to refer to instances of the model
+            verbose_name (:obj:`str`): verbose name to refer to an instance of the model
+            verbose_name_plural (:obj:`str`): plural verbose name for multiple instances of the model
             tabular_orientation (:obj:`TabularOrientation`): orientation of model objects in table (e.g. Excel)
             frozen_columns (:obj:`int`): number of Excel columns to freeze
             inheritance (:obj:`tuple` of `class`): tuple of all superclasses
@@ -1508,7 +1511,7 @@ class FloatAttribute(Attribute):
             value = float(value)
             return (value, None)
         except ValueError:
-            return (None, InvalidAttribute(self, 'Value must be a `float`'))
+            return (None, InvalidAttribute(self, ['Value must be a `float`']))
 
     def validate(self, obj, value):
         """ Determine if `value` is a valid value of the attribute
@@ -3659,19 +3662,18 @@ class InvalidObjectSet(object):
         models.update(set(mdl_errs.keys()))
         models = natsorted(models, attrgetter('__name__'), alg=ns.IGNORECASE)
 
-        msg = ''
+        error_forest = []
         for model in models:
-            msg += '\n{}:'.format(model.__name__)
+            error_forest.append('{}:'.format(model.__name__))
 
             if model in mdl_errs:
-                msg += '\n  ' + str(mdl_errs[model]).replace('\n', '\n  ')
+                error_forest.append([str(mdl_errs[model]) for model in mdl_errs])
 
             if model in obj_errs:
                 errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
-                for obj_err in errs:
-                    msg += '\n  ' + str(obj_err).replace('\n', '\n  ')
+                error_forest.append([str(obj_err) for obj_err in errs])
 
-        return msg[1:]
+        return indent_forest(error_forest)
 
 
 class InvalidModel(object):
@@ -3724,10 +3726,10 @@ class InvalidObject(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        msg = ''
+        error_forest = []
         for attr in natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE):
-            msg += '\n  ' + str(attr).replace('\n', '\n  ')
-        return msg
+            error_forest.append(attr)
+        return indent_forest(error_forest)
 
 
 class InvalidAttribute(object):
@@ -3771,15 +3773,15 @@ class InvalidAttribute(object):
         Returns:
             :obj:`str`: string representation of errors
         """
-        forest = []
         if self.related:
-            forest.append('{}:'.format(self.attribute.related_name))
+            name = "'{}':".format(self.attribute.related_name)
         else:
-            forest.append('{}:'.format(self.attribute.name))
+            name = "'{}':".format(self.attribute.name)
 
         if self.value is not None:
-            forest.append("'{}'".format(self.value))
+            name += "'{}'".format(self.value)
 
+        forest = [name]
         if self.location:
             forest.append([str(self.location),
                 [msg.rstrip() for msg in self.messages]])
@@ -3787,7 +3789,7 @@ class InvalidAttribute(object):
         else:
             forest.append([msg.rstrip() for msg in self.messages])
 
-        return '\n'.join(indent_forest(forest))
+        return indent_forest(forest)
 
 def get_models(module=None, inline=True):
     """ Get models
@@ -3950,9 +3952,11 @@ class Location(object):
         _, ext = splitext(self.path)
         if 'xlsx' in ext:
             col = excel_col_name(self.column)
-            return "{}:{}:{}{}:".format(basename(self.path), self.worksheet, col, self.row)
+            return "{}:{}:{}{}:".format(quote(basename(self.path)), quote(self.worksheet), col,
+                self.row)
         else:
-            return "{}:{}:{},{}:".format(basename(self.path), self.worksheet, self.row, self.column)
+            return "{}:{}:{},{}:".format(quote(basename(self.path)), quote(self.worksheet), self.row,
+                self.column)
 
 def excel_col_name(col):
     """ Convert column number to an Excel-style string.
@@ -3969,44 +3973,112 @@ def excel_col_name(col):
         result[:0] = LETTERS[rem]
     return ''.join(result)
 
-def indent_forest(forest, indentation=2):
-    """ Generate a list of lines, each indented by its depth in the forest
+def indent_forest(forest, indentation=2, keep_trailing_blank_lines=False, return_list=False):
+    """ Generate a string of lines, each indented by its depth in `forest`
 
-    Convert a forest of objects provided in a list of nested lists into a flat list of strings,
-    each indented by depth*indentation spaces where depth is the objects' depth in the forest.
-    Properly handles strings containing newlines.
+    Convert a forest of objects provided in an iterator of nested iterators into a flat list of
+    strings, each indented by depth*indentation spaces where depth is the objects' depth in `forest`.
+
+    Strings are not treated as iterators. Properly handles strings containing newlines. Trailing
+    blank lines are removed from strings containing newlines.
 
     Args:
-        forest (:obj:`list` of `list`): a forest as a list of nested lists
+        forest (:obj:`iterators` of `iterators`): a forest as an iterator of nested iterators
         indentation (:obj:`int`, optional): number of spaces to indent at each level
+        keep_trailing_blank_lines (:obj:`Boolean`, optional): if set, keep trailing blank lines in
+            strings in `forest`
+        return_list (:obj:`Boolean`, optional): if set, return a list of lines, each indented by
+            its depth in `forest`
 
     Returns:
-        :obj:`list` of `str`: list of strings, appropriately indented
+        :obj:`str`: a string of lines, each indented by its depth in `forest`
     """
-    return __indent_forest(forest, indentation, depth=0, output=[])
+    if return_list:
+        return __indent_forest(forest, indentation, depth=0,
+            keep_trailing_blank_lines=keep_trailing_blank_lines)
+    else:
+        return '\n'.join(__indent_forest(forest, indentation, depth=0,
+            keep_trailing_blank_lines=keep_trailing_blank_lines))
 
-def __indent_forest(forest, indentation, depth, output):
+def del_trailing_blanks(l_of_strings):
+    """ Remove all blank lines from the end of a list of strings
+
+    A line is blank if it is empty after applying `String.rstrip()`.
+
+    Args:
+        l_of_strings (:obj:`list` of `str`): a list of strings
+    """
+    last = None
+    for i, e in reversed(list(enumerate(l_of_strings))):
+        e=e.rstrip()
+        if e:
+            break
+        last=i
+    if last is not None:
+        del l_of_strings[last:]
+
+def _iterable_not_string(o):
+    return isinstance(o, Iterable) and not isinstance(o, string_types)
+
+def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
     """ Private, recursive method to generate a list of lines indented by their depth in a forest
 
     Args:
-        forest (:obj:`list` of `list`): a forest as a list of nested lists
+        forest (:obj:`list` of `list`): a forest as an iterator of nested iterators
         indentation (:obj:`int`): number of spaces to indent at each level
         depth (:obj:`int`): recursion depth, used by recursion
-        output (:obj:`list` of `str`): intermediate list of output, used by recursion
+        keep_trailing_blank_lines (:obj:`Boolean`): if set, keep trailing blank lines in strings in
+            `forest`
 
     Returns:
         :obj:`list` of `str`: list of strings, appropriately indented
     """
-    for entry in forest:
-        if isinstance(entry, list):
-            __indent_forest(entry, indentation, depth+1, output)
-        else:
-            indent = ' '*depth*indentation
-            e_str = str(entry)
-            if '\n' in e_str:
-                lines = e_str.split('\n')
-                for line in lines:
-                    output.append(indent+line)
+    indent = ' '*depth*indentation
+    output=[]
+    if _iterable_not_string(forest):
+        for entry in forest:
+            if _iterable_not_string(entry):
+                output += __indent_forest(entry, indentation, depth+1, keep_trailing_blank_lines)
             else:
-                output.append(indent+str(entry))
+                e_str = str(entry)
+                if '\n' in e_str:
+                    lines = e_str.split('\n')
+                    if not keep_trailing_blank_lines:
+                        del_trailing_blanks(lines)
+                    for line in lines:
+                        output.append(indent+line)
+                else:
+                    output.append(indent+e_str)
+    else:
+        output.append(indent+str(forest))
     return output
+
+class InvalidWorksheet(object):
+    """ Represents an invalid worksheet or delimiter-separated file and its errors
+
+    Attributes:
+        filename (:obj:`str`): filename of file containing the invalid worksheet
+        name (:obj:`str`): name of the invalid worksheet
+        errors (:obj:`list` of `str`): list of the worksheet's errors
+    """
+
+    def __init__(self, filename, name, errors):
+        """
+        Args:
+            filename (:obj:`str`): filename of file containing the invalid worksheet
+            name (:obj:`str`): name of the invalid worksheet
+            errors (:obj:`list` of `str`): list of the worksheet's errors
+        """
+        self.filename = filename
+        self.name = name
+        self.errors = errors
+
+    def __str__(self):
+        """ Get string representation of an `InvalidWorksheet`
+
+        Returns:
+            :obj:`str`: string representation of an `InvalidWorksheet`
+        """
+        error_forest = ["'{}':'{}':".format(self.filename, self.name)]
+        error_forest.append(self.errors)
+        return indent_forest(error_forest)

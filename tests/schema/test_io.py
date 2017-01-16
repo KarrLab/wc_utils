@@ -10,6 +10,7 @@ from wc_utils.schema import core, utils
 from wc_utils.schema.io import Reader, Writer, convert, create_template
 from wc_utils.workbook.io import WorksheetStyle, read as read_workbook
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -171,6 +172,15 @@ class TestIo(unittest.TestCase):
         self.assertIn('value for primary attribute cannot be empty',
             t.validate().attributes[0].messages[0])
 
+    def check_reader_errors(self, fixture_file, expected_messages, models, use_re=False):
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
+        with self.assertRaises(Exception) as context:
+            Reader().run(filename, models)
+        for msg in expected_messages:
+            if not use_re:
+                msg = re.escape(msg)
+            self.assertRegexpMatches(str(context.exception), msg)
+
     def test_read_bad_headers(self):
         msgs = [
             "The model cannot be loaded because 'bad-headers.xlsx' contains error(s)",
@@ -178,44 +188,35 @@ class TestIo(unittest.TestCase):
             "Header 'y' does not match any attribute",
             "Roots\n",
             "Empty header field in row 3, col A - delete empty row(s)",]
-        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
-            'bad-headers.xlsx')
-        with self.assertRaises(ValueError) as context:
-            Reader().run(excel_fixture_filename, [Root, Node, Leaf, OneToManyRow])
-        for msg in msgs:
-            self.assertIn(msg, str(context.exception))
+        self.check_reader_errors('bad-headers.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
 
         msgs = [
             "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
             "Header 'x' does not match any attribute",
             "Nodes\n",
             "Empty header field in row 1, col 5 - delete empty column(s)",]
-        csv_fixture_fileglob = os.path.join(os.path.dirname(__file__), 'fixtures',
-            'bad-headers-*.csv')
-        with self.assertRaises(ValueError) as context:
-            Reader().run(csv_fixture_fileglob, [Root, Node, Leaf, OneToManyRow])
-        for msg in msgs:
-            self.assertIn(msg, str(context.exception))
+        self.check_reader_errors('bad-headers-*.csv', msgs, [Root, Node, Leaf, OneToManyRow])
 
         msgs = [
             "Duplicate, case insensitive, header fields: 'Root', 'root'",
             "Duplicate, case insensitive, header fields: 'good val', 'Good val', 'Good VAL'"]
-        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
-            'duplicate-headers.xlsx')
-        with self.assertRaises(ValueError) as context:
-            Reader().run(excel_fixture_filename, [Node])
-        for msg in msgs:
-            self.assertIn(msg, str(context.exception))
+        self.check_reader_errors('duplicate-headers.xlsx', msgs, [Node])
 
     def test_uncaught_data_error(self):
+        class Test(core.Model):
+            id = core.SlugAttribute(primary=True)
+            float1 = core.FloatAttribute()
+            bool1 = core.FloatAttribute()
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'float1', 'bool1', )
+
         msgs = ["The model cannot be loaded because 'uncaught-error.xlsx' contains error(s)",
-            "uncaught-error.xlsx:Nodes:C5",]
-        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
-            'uncaught-error.xlsx')
-        with self.assertRaises(Exception) as context:
-            Reader().run(excel_fixture_filename, [Root, Node])
-        for msg in msgs:
-            self.assertIn(msg, str(context.exception))
+            "uncaught-error.xlsx:Tests:B5",
+            "float() argument must be a string or a number, not 'datetime.datetime'",
+            "uncaught-error.xlsx:Tests:C6",
+            "Value must be a `float`",]
+        self.check_reader_errors('uncaught-error.xlsx', msgs, [Root, Test])
 
     def test_read_invalid_data(self):
         class NormalRecord(core.Model):
@@ -234,26 +235,29 @@ class TestIo(unittest.TestCase):
                 tabular_orientation = core.TabularOrientation.column
 
         RE_msgs = [
-            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least 2 characters",]
-        excel_fixture_filename = os.path.join(os.path.dirname(__file__), 'fixtures',
-            'invalid-data.xlsx')
-        with self.assertRaises(ValueError) as context:
-            Reader().run(excel_fixture_filename, [Leaf, NormalRecord, Transposed])
-        for RE in RE_msgs:
-            self.assertRegexpMatches(str(context.exception), RE)
+            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary "
+                "attribute cannot be empty",
+            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least "
+                "2 characters",]
+        self.check_reader_errors('invalid-data.xlsx', RE_msgs, [Leaf, NormalRecord, Transposed],
+            use_re=True)
 
         RE_msgs = [
             "The model cannot be loaded because 'invalid-data-\*.csv' contains error",
-            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for primary attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at least 2 characters",]
-        csv_fixture_fileglob = os.path.join(os.path.dirname(__file__), 'fixtures',
-            'invalid-data-*.csv')
-        # Reader().run(csv_fixture_fileglob, [Leaf, NormalRecord, Transposed])
-        with self.assertRaises(ValueError) as context:
-            Reader().run(csv_fixture_fileglob, [Leaf, NormalRecord, Transposed])
-        for RE in RE_msgs:
-            self.assertRegexpMatches(str(context.exception), RE)
+            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for "
+                "primary attribute cannot be empty",
+            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at "
+                "least 2 characters",]
+        self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
+            use_re=True)
+
+    @unittest.skip('make these tests work')
+    def test_reference_errors(self):
+        fixture_file='reference-errors.xlsx'
+        fixture_file='duplicate-primaries.xlsx'
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
+        Reader().run(filename, [Root, Node, Leaf, OneToManyRow])
+        #self.check_reader_errors('reference-errors.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
 
     def test_create_worksheet_style(self):
         self.assertIsInstance(Writer.create_worksheet_style(Root), WorksheetStyle)
@@ -281,3 +285,4 @@ class TestIo(unittest.TestCase):
             Leaf: set(),
         })
         self.assertEqual(core.Validator().run([]), None)
+

@@ -2550,7 +2550,8 @@ class OneToOneAttribute(RelatedAttribute):
                 related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
-            return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
+            return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(
+                self.related_class.__name__, primary_attr.name, quote(value))]))
 
         if len(related_objs) == 1:
             return (related_objs[0], None)
@@ -2784,7 +2785,8 @@ class ManyToOneAttribute(RelatedAttribute):
 
         if len(related_objs) == 0:
             primary_attr = self.related_class.Meta.primary_attribute
-            return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(self.related_class.__name__, primary_attr.name, value)]))
+            return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(
+                self.related_class.__name__, primary_attr.name, quote(value))]))
 
         if len(related_objs) == 1:
             return (related_objs[0], None)
@@ -3022,7 +3024,7 @@ class OneToManyAttribute(RelatedAttribute):
                 deserialized_values.add(related_objs[0])
             elif len(related_objs) == 0:
                 errors.append('Unable to find {} with {}={}'.format(
-                    self.related_class.__name__, self.related_class.Meta.primary_attribute.name, value))
+                    self.related_class.__name__, self.related_class.Meta.primary_attribute.name, quote(value)))
             else:
                 errors.append('Multiple matching objects with primary attribute = {}'.format(value))
 
@@ -3277,7 +3279,7 @@ class ManyToManyAttribute(RelatedAttribute):
             elif len(related_objs) == 0:
                 primary_attr = self.related_class.Meta.primary_attribute
                 errors.append('Unable to find {} with {}={}'.format(
-                    self.related_class.__name__, primary_attr.name, value))
+                    self.related_class.__name__, primary_attr.name, quote(value)))
             else:
                 errors.append('Multiple matching objects with primary attribute = {}'.format(value))
 

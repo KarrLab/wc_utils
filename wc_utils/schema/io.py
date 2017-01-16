@@ -270,21 +270,12 @@ class Reader(object):
             if model_errors:
                 errors[model] = model_errors
 
-        '''
         if errors:
-            forest = ['The model cannot be loaded because the spreadsheet contains error(s):']
+            forest = ["The model cannot be loaded because '{}' contains error(s):".format(basename(path))]
             for model, model_errors in errors.items():
-                forest.append(model.__name__, model_errors)
+                forest.append([quote(model.Meta.verbose_name_plural)])
+                forest.append([model_errors])
             raise ValueError(indent_forest(forest))
-        '''
-
-        if errors:
-            msg = 'The model cannot be loaded because the spreadsheet contains error(s):'
-            for model, model_errors in errors.items():
-                msg += '\n  {}:'.format(model.__name__)
-                for model_error in model_errors:
-                    msg += '\n    {}'.format(str(model_error).replace('\n', '\n    '))
-            raise ValueError(msg)
 
         # convert to sets
         for model in models:
@@ -364,8 +355,7 @@ class Reader(object):
         # acquire attributes by header order
         attributes = []
         errors = []
-        idx = 1
-        for verbose_name in headings:
+        for idx, verbose_name in enumerate(headings, start=1):
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
             if attr is None:
                 if verbose_name is None or verbose_name == '':
@@ -377,7 +367,6 @@ class Reader(object):
                         verbose_name))
             else:
                 attributes.append(attr)
-            idx += 1
 
         if errors:
             return ([], [], errors, [])

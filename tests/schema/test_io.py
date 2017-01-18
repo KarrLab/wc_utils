@@ -174,8 +174,25 @@ class TestIo(unittest.TestCase):
         self.assertIn('value for primary attribute cannot be empty',
             t.validate().attributes[0].messages[0])
 
-    def check_reader_errors(self, fixture_file, expected_messages, models, use_re=False):
+    def check_reader_errors(self, fixture_file, expected_messages, models, use_re=False,
+        do_not_catch=False):
+        ''' Run Reader expecting an error; check that the exception message matches expected messages
+
+        Args:
+            fixture_file (:obj:`str`): name of the file to be read
+            expected_messages (:obj:`list` of `str`): list of expected strings or patterns in the
+                exception
+            models (:obj:`list` of `Model`): `Model`s for the schema of the data being read
+            use_re (:obj:`boolean`, optional): if set, `expected_messages` contains RE patterns
+            do_not_catch (:obj:`boolean`, optional): if set, run Reader() outside try ... catch;
+                produces full exception message for debugging
+
+        Raises:
+            :obj:`Exception`: if do_not_catch
+        '''
         filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
+        if do_not_catch:
+            Reader().run(filename, models)
         with self.assertRaises(Exception) as context:
             Reader().run(filename, models)
         for msg in expected_messages:
@@ -326,9 +343,24 @@ class TestIo(unittest.TestCase):
         self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
 
-    @unittest.skip('make these tests work')
     def test_reference_errors(self):
-        fixture_file='reference-errors.xlsx'
+        class NodeFriend(core.Model):
+            id = core.SlugAttribute()
+            node = core.OneToOneAttribute(Node, related_name='nodes')
+            val = core.StringAttribute(min_length=2)
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'val', 'node')
+
+        RE_msgs = [
+            "reference-errors.xlsx:Nodes:B3\n +Unable to find Root with id='not root'",
+            "reference-errors.xlsx:Leaves:B6\n +Unable to find Node with id='no such node'",
+            "reference-errors.xlsx:Leaves:E7\n +Unable to find OneToManyRow with id='no such row'",
+            "reference-errors.xlsx:'Node friends':B2\n +Unable to find Node with id=no_node"]
+        self.check_reader_errors('reference-errors.xlsx', RE_msgs, [Root, Node, Leaf, OneToManyRow,
+            NodeFriend], use_re=True)
+
+    def test_duplicate_primaries(self):
         fixture_file='duplicate-primaries.xlsx'
         filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
         Reader().run(filename, [Root, Node, Leaf, OneToManyRow])

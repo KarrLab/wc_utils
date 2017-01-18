@@ -475,6 +475,7 @@ class Reader(object):
                 if isinstance(attr, RelatedAttribute):
                     value, error = attr.deserialize(attr_value, objects_by_primary_attribute)
                     if error:
+                        error.set_loc_and_value(obj.location_report(attr.name), attr_value)
                         errors.append(error)
                     else:
                         setattr(obj, attr.name, value)

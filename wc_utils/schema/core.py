@@ -2621,6 +2621,7 @@ class OneToOneAttribute(RelatedAttribute):
                 related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
+            primary_attr = self.related_class.Meta.primary_attribute
             return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(
                 self.related_class.__name__, primary_attr.name, quote(value))]))
 

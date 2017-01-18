@@ -6,6 +6,8 @@
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
+# todo: test detection of duplicates in primary key field
+
 from wc_utils.schema import core, utils
 from wc_utils.schema.io import Reader, Writer, convert, create_template
 from wc_utils.workbook.io import WorksheetStyle, read as read_workbook
@@ -181,18 +183,90 @@ class TestIo(unittest.TestCase):
                 msg = re.escape(msg)
             self.assertRegexpMatches(str(context.exception), msg)
 
+    def test_location_of_attrs(self):
+        class Normal(core.Model):
+            id = core.SlugAttribute()
+            val = core.StringAttribute()
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'val')
+
+        class Transposed(core.Model):
+            tid = core.SlugAttribute()
+            s = core.StringAttribute()
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('tid', 's', )
+                tabular_orientation = core.TabularOrientation.column
+
+        file = 'test-locations.xlsx'
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', file)
+        models = Reader().run(filename, [Normal, Transposed])
+        ext = 'xlsx'
+        normals = models[Normal]
+        for obj in normals:
+            if obj.val == 'x':
+                (file_type, basename, worksheet, row, column) = obj.get_location('val')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
+                self.assertEqual(row, 3)
+                self.assertEqual(column, 'B')
+                self.assertEqual(obj.location_report('val'),
+                    ':'.join([file, obj.Meta.verbose_name_plural, "{}{}".format(column, row)]))
+
+        transposeds = models[Transposed]
+        for obj in transposeds:
+            if obj.s == 'z':
+                (file_type, basename, worksheet, row, column) = obj.get_location('s')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(worksheet, obj.Meta.verbose_name)
+                self.assertEqual(row, 2)
+                self.assertEqual(column, 'C')
+                self.assertEqual(obj.location_report('s'),
+                    ':'.join([file, obj.Meta.verbose_name, "{}{}".format(column, row)]))
+
+        file = 'test-locations-*.csv'
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', file)
+        models = Reader().run(filename, [Normal, Transposed])
+        ext = 'csv'
+        normals = models[Normal]
+        for obj in normals:
+            if obj.val == 'x':
+                (file_type, basename, worksheet, row, column) = obj.get_location('val')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(row, 3)
+                self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
+                self.assertEqual(column, 2)
+                self.assertEqual(obj.location_report('val'),
+                    ':'.join([file, obj.Meta.verbose_name_plural, "{},{}".format(row, column)]))
+
+        transposeds = models[Transposed]
+        for obj in transposeds:
+            if obj.s == 'z':
+                (file_type, basename, worksheet, row, column) = obj.get_location('s')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(worksheet, obj.Meta.verbose_name)
+                self.assertEqual(row, 2)
+                self.assertEqual(column, 3)
+                self.assertEqual(obj.location_report('s'),
+                    ':'.join([file, obj.Meta.verbose_name, "{},{}".format(row, column)]))
+
     def test_read_bad_headers(self):
         msgs = [
             "The model cannot be loaded because 'bad-headers.xlsx' contains error(s)",
             "Empty header field in row 1, col E - delete empty column(s)",
-            "Header 'y' does not match any attribute",
+            "Header 'y' in row 1, col F does not match any attribute",
             "Roots\n",
             "Empty header field in row 3, col A - delete empty row(s)",]
         self.check_reader_errors('bad-headers.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
 
         msgs = [
             "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
-            "Header 'x' does not match any attribute",
+            "Header 'x' in row 5, col 1 does not match any attribute",
             "Nodes\n",
             "Empty header field in row 1, col 5 - delete empty column(s)",]
         self.check_reader_errors('bad-headers-*.csv', msgs, [Root, Node, Leaf, OneToManyRow])
@@ -235,18 +309,19 @@ class TestIo(unittest.TestCase):
                 tabular_orientation = core.TabularOrientation.column
 
         RE_msgs = [
-            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary "
+            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6\n +StringAttribute value for primary "
                 "attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least "
+            "invalid-data.xlsx:'Normal records':B3",
+            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2\n +Value must be at least "
                 "2 characters",]
         self.check_reader_errors('invalid-data.xlsx', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
 
         RE_msgs = [
             "The model cannot be loaded because 'invalid-data-\*.csv' contains error",
-            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for "
+            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1\n +StringAttribute value for "
                 "primary attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at "
+            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3\n +Value must be at "
                 "least 2 characters",]
         self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)

@@ -18,7 +18,7 @@ from os.path import basename, dirname, splitext
 from warnings import warn
 from wc_utils.schema import utils
 from wc_utils.schema.core import (Model, Attribute, RelatedAttribute, Validator, TabularOrientation,
-                                    InvalidObject, Location, excel_col_name, indent_forest,
+                                    InvalidObject, excel_col_name, indent_forest,
                                     InvalidWorksheet, InvalidAttribute)
 from wc_utils.util.list import transpose
 from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
@@ -358,20 +358,27 @@ class Reader(object):
         for idx, verbose_name in enumerate(headings, start=1):
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
             if attr is None:
+                row, col, hdr_entries = header_row_col_names(idx, ext, model.Meta.tabular_orientation)
                 if verbose_name is None or verbose_name == '':
-                    row, col, hdr_entries = header_row_col_names(idx, ext, model.Meta.tabular_orientation)
                     errors.append("Empty header field in row {}, col {} - delete empty {}(s)".format(
                         row, col, hdr_entries))
                 else:
-                    errors.append("Header '{}' does not match any attribute".format(
-                        verbose_name))
+                    errors.append("Header '{}' in row {}, col {} does not match any attribute".format(
+                        verbose_name, row, col))
             else:
                 attributes.append(attr)
 
         if errors:
             return ([], [], errors, [])
 
-        # read data
+        # save model location in file
+        attribute_seq = []
+        for verbose_name in headings:
+            attr = utils.get_attribute_by_verbose_name(model, verbose_name)
+            attribute_seq.append(attr.name)
+        model.set_location(reader.path, sheet_name, attribute_seq)
+
+        # load the data into objects
         objects = []
         errors = []
         transposed = model.Meta.tabular_orientation == TabularOrientation.column
@@ -379,34 +386,35 @@ class Reader(object):
         for obj_num, obj_data in enumerate(data, start=1):
             obj = model()
 
+            # save object location in file
+            obj.set_obj_num(obj_num)
+
             obj_errors = []
-            attr_num = 1
-            for attr, attr_value in zip(attributes, obj_data):
-                loc = Location(reader.path, sheet_name, obj_num, attr_num,
-                    transposed=transposed)
+            for attr_num, (attr, attr_value) in enumerate(zip(attributes, obj_data), start=1):
                 try:
                     if not isinstance(attr, RelatedAttribute):
                         value, deserialize_error = attr.deserialize(attr_value)
                         validation_error = attr.validate(attr.__class__, value)
                         if deserialize_error or validation_error:
                             if deserialize_error:
-                                deserialize_error.set_loc_value(loc, attr_value)
+                                deserialize_error.set_loc_and_value(obj.location_report(attr.name),
+                                    attr_value)
                                 obj_errors.append(deserialize_error)
                             if validation_error:
-                                validation_error.set_loc_value(loc, attr_value)
+                                validation_error.set_loc_and_value(obj.location_report(attr.name),
+                                    attr_value)
                                 obj_errors.append(validation_error)
                         else:
                             setattr(obj, attr.name, value)
 
                 except Exception as e:
                     error = InvalidAttribute(attr, ["{}".format(e)])
-                    error.set_loc_value(loc, attr_value)
+                    error.set_loc_and_value(obj.location_report(attr.name), attr_value)
                     obj_errors.append(error)
-
-                attr_num += 1
 
             if obj_errors:
                 errors.append(InvalidObject(obj, obj_errors))
+
             objects.append(obj)
 
         return (attributes, data, errors, objects)

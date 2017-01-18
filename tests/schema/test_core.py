@@ -7,6 +7,7 @@
 :License: MIT
 """
 
+import resource
 from datetime import date, time, datetime
 from enum import Enum
 from itertools import chain
@@ -224,6 +225,18 @@ class TestCore(unittest.TestCase):
         leaf.name = 'Leaf 2'
         self.assertEqual(leaf.id, 'leaf_2')
         self.assertEqual(leaf.name, 'Leaf 2')
+
+    def test_memory_use(self):
+        ''' Not a test; rather a measurement of the memory use by schema objects for monitoring '''
+        root = Root()
+        n = 100
+        while n <= 10000:
+            start_RAM = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            for i in range(n):
+                Leaf(root=root, id=str(i), name="leaf_{}".format(i))
+            print("{} {} objects: {} KB/obj".format(n, 'Leaf',
+                (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_RAM)/n))
+            n *= 4
 
     def test_set_related(self):
         root1 = Root()

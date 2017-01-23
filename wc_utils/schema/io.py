@@ -342,6 +342,9 @@ class Reader(object):
             data = transpose(data)
         headings = headings[0]
 
+        print('model', model)
+        print('headings', headings)
+        print('data', data)
         # prohibit duplicate headers
         header_map = defaultdict(list)
         for heading in headings:

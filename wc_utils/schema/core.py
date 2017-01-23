@@ -125,7 +125,7 @@ The `utils` module provides several additional utilities for manipulating :obj:`
 :License: MIT
 """
 
-from collections import OrderedDict, Iterable
+from collections import OrderedDict, Iterable, defaultdict
 from copy import copy as make_copy, deepcopy as make_deepcopy
 from datetime import date, time, datetime
 from enum import Enum
@@ -143,9 +143,11 @@ import inflect
 import re
 import warnings
 
+import traceback, sys
 # todo: simplify primary attributes, deserialization
 # todo: add more helpful error messages
 # todo: memory efficient models
+# todo: rename clean to convert
 
 
 class ModelMeta(type):
@@ -443,7 +445,7 @@ class Model(with_metaclass(ModelMeta, object)):
         Attributes:
             attributes (:obj:`set` of `Attribute`): attributes
             related_attributes(:obj:`set` of `Attribute`): attributes declared in related objects
-            primary_attribute (:obj:`Attribute`): attributes with `primary`=`True`
+            primary_attribute (:obj:`Attribute`): attribute with `primary`=`True`
             unique_together (obj:`tuple` of attribute names): controls what tuples of attribute values must be unique
             attribute_order (:obj:`tuple` of `str`): tuple of attribute names, in the order in which they should be displayed
             verbose_name (:obj:`str`): verbose name to refer to an instance of the model
@@ -961,10 +963,10 @@ class Model(with_metaclass(ModelMeta, object)):
         return msg
 
     def get_primary_attribute(self):
-        """ Get values of primary attribute
+        """ Get value of primary attribute
 
         Returns:
-            :obj:`object`: values of primary attribute
+            :obj:`object`: value of primary attribute
         """
         if self.__class__.Meta.primary_attribute:
             return getattr(self, self.__class__.Meta.primary_attribute.name)
@@ -1026,7 +1028,7 @@ class Model(with_metaclass(ModelMeta, object)):
         return _related_objects
 
     def clean(self):
-        """ Clean all of the object's attributes
+        """ Clean all of this `Model`'s attributes
 
         Returns:
             :obj:`InvalidObject` or None: `None` if the object is valid,
@@ -1291,7 +1293,8 @@ class Attribute(object):
                 unq_vals.add(val)
 
         if rep_vals:
-            message = 'Values must be unique. The following values are repeated:\n  ' + '\n  '.join(rep_vals)
+            message = "{} values must be unique, but these values are repeated: {}".format(self.name,
+                ', '.join([quote(val) for val in rep_vals]))
             return InvalidAttribute(self, [message])
 
     def serialize(self, value):
@@ -1969,7 +1972,8 @@ class SlugAttribute(RegexAttribute):
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
         """
         if help is None:
-            help = 'Enter a unique string identifier that (1) starts with a letter, (2) is composed of letters, numbers and underscopes, and (3) is less than 64 characters long'
+            help = "Enter a unique string identifier that (1) starts with a letter, (2) is composed "
+            "of letters, numbers and underscopes, and (3) is less than 64 characters long"
 
         super(SlugAttribute, self).__init__(pattern=r'^[a-z_][a-z0-9_]*$', flags=re.I,
                                             min_length=1, max_length=63,
@@ -3683,44 +3687,48 @@ class ManyToManyRelatedManager(RelatedManager):
 
 
 class InvalidObjectSet(object):
-    """ Represents a list of invalid objects and their errors
+    """ Represents a list of invalid objects and invalid models
 
     Attributes:
-        objects (:obj:`list`): list of invalid objects
+        objects (:obj:`list` of `InvalidObject`): list of invalid objects
         models (:obj:`list` of `InvalidModel`): list of invalid models
     """
 
-    def __init__(self, objects, models):
+    def __init__(self, invalid_objects, invalid_models):
         """
         Args:
-            objects (:obj:`list` of `InvalidObject`): list of invalid objects
-            models (:obj:`list` of `InvalidModel`): list of invalid models
+            invalid_objects (:obj:`list` of `InvalidObject`): list of invalid objects
+            invalid_models (:obj:`list` of `InvalidModel`): list of invalid models
         """
-        self.objects = objects or []
-        self.models = models or []
+        all_invalid_models = set()
+        models = [invalid_model.model for invalid_model in invalid_models]
+        duplicate_invalid_models = set(mdl for mdl in models
+            if mdl in all_invalid_models or all_invalid_models.add(mdl))
+        if duplicate_invalid_models:
+            raise ValueError("duplicate invalid models: {}".format(
+                [mdl.__class__.__name__ for mdl in duplicate_invalid_models]))
+        self.invalid_objects = invalid_objects or []
+        self.invalid_models = invalid_models or []
 
     def get_object_errors_by_model(self):
-        """ Get object errors grouped by models
+        """ Get object errors grouped by model
 
         Returns:
             :obj:`dict` of `Model`: `list` of `InvalidObject`: dictionary of object errors, grouped by model
         """
+        object_errors_by_model = defaultdict(list)
+        for obj in self.invalid_objects:
+            object_errors_by_model[obj.object.__class__].append(obj)
 
-        obj_by_model = {}
-        for obj in self.objects:
-            if obj.object.__class__ not in obj_by_model:
-                obj_by_model[obj.object.__class__] = []
-            obj_by_model[obj.object.__class__].append(obj)
-
-        return obj_by_model
+        return object_errors_by_model
 
     def get_model_errors_by_model(self):
-        """ Get object errors grouped by models
+        """ Get model errors grouped by models
 
         Returns:
             :obj:`dict` of `Model`: `InvalidModel`: dictionary of model errors, grouped by model
         """
-        return {model.model: model for model in self.models}
+        return {invalid_model.model: invalid_model for invalid_model in self.invalid_models}
 
     def __str__(self):
         """ Get string representation of errors
@@ -3741,7 +3749,7 @@ class InvalidObjectSet(object):
             error_forest.append('{}:'.format(model.__name__))
 
             if model in mdl_errs:
-                error_forest.append([str(mdl_errs[model]) for model in mdl_errs])
+                error_forest.append([str(mdl_errs[model])])
 
             if model in obj_errs:
                 errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
@@ -3751,7 +3759,7 @@ class InvalidObjectSet(object):
 
 
 class InvalidModel(object):
-    """ Represents an invalid model, such as a model with an attribute that doesn't have unique values
+    """ Represents an invalid model, such as a model with an attribute that fails to meet specified constraints
 
     Attributes:
         model (:obj:`class`): `Model` class
@@ -3774,7 +3782,7 @@ class InvalidModel(object):
             :obj:`str`: string representation of errors
         """
         attrs = natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE)
-        return '\n'.join([str(attr) for attr in attrs])
+        return indent_forest(attrs)
 
 
 class InvalidObject(object):
@@ -3958,7 +3966,7 @@ class Validator(object):
         """ Validate a list of objects and return their errors
 
         Args:
-            object (:obj:`list` of `Model`): list of objects
+            object (:obj:`list` of `Model`): list of Model instances
 
         Returns:
             :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors

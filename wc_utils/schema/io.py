@@ -296,7 +296,13 @@ class Reader(object):
 
         errors = Validator().clean(all_objects)
         if errors:
-            raise ValueError(str(errors))
+            raise ValueError(
+                indent_forest(['The model cannot be loaded because it fails to clean:', [errors]]))
+
+        errors = Validator().validate(all_objects)
+        if errors:
+            raise ValueError(
+                indent_forest(['The model cannot be loaded because it fails to validate:', [errors]]))
 
         # return
         return objects

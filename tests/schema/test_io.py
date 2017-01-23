@@ -6,7 +6,6 @@
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
-# todo: test detection of duplicates in primary key field
 
 from wc_utils.schema import core, utils
 from wc_utils.schema.io import Reader, Writer, convert, create_template
@@ -304,7 +303,7 @@ class TestIo(unittest.TestCase):
 
         msgs = ["The model cannot be loaded because 'uncaught-error.xlsx' contains error(s)",
             "uncaught-error.xlsx:Tests:B5",
-            "float() argument must be a string or a number, not 'datetime.datetime'",
+            "float() argument must be a string or a number",
             "uncaught-error.xlsx:Tests:C6",
             "Value must be a `float`",]
         self.check_reader_errors('uncaught-error.xlsx', msgs, [Root, Test])
@@ -361,10 +360,12 @@ class TestIo(unittest.TestCase):
             NodeFriend], use_re=True)
 
     def test_duplicate_primaries(self):
-        fixture_file='duplicate-primaries.xlsx'
-        filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
-        Reader().run(filename, [Root, Node, Leaf, OneToManyRow])
-        #self.check_reader_errors('reference-errors.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
+        RE_msgs = [
+            "The model cannot be loaded because it fails to validate",
+            "Node:\n +'id':\n +id values must be unique, but these values are repeated: node_2",
+            "Root:\n +'id':\n +id values must be unique, but these values are repeated: 'root 2'"]
+        self.check_reader_errors('duplicate-primaries.xlsx', RE_msgs, [Root, Node, Leaf, OneToManyRow],
+            use_re=True)
 
     def test_create_worksheet_style(self):
         self.assertIsInstance(Writer.create_worksheet_style(Root), WorksheetStyle)

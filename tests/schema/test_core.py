@@ -1027,10 +1027,10 @@ class TestCore(unittest.TestCase):
         ]
 
         errors = core.Validator().run(parents)
-        self.assertEqual(len(errors.objects), 2)
-        self.assertEqual(errors.objects[0].object, parents[0])
-        self.assertEqual(len(errors.objects[0].attributes), 1)
-        self.assertEqual(errors.objects[0].attributes[0].attribute.name, 'id')
+        self.assertEqual(len(errors.invalid_objects), 2)
+        self.assertEqual(errors.invalid_objects[0].object, parents[0])
+        self.assertEqual(len(errors.invalid_objects[0].attributes), 1)
+        self.assertEqual(errors.invalid_objects[0].attributes[0].attribute.name, 'id')
 
         roots = [
             Root(label='root-0'),
@@ -1047,12 +1047,12 @@ class TestCore(unittest.TestCase):
         ]
         errors = core.Validator().run(roots)
 
-        self.assertEqual(len(errors.objects), 0)
-        self.assertEqual(set([model.model for model in errors.models]), set((Root, UniqueRoot)))
-        self.assertEqual(len(errors.models[0].attributes), 1)
-        self.assertEqual(errors.models[0].attributes[0].attribute.name, 'label')
-        self.assertEqual(len(errors.models[0].attributes[0].messages), 1)
-        self.assertRegexpMatches(errors.models[0].attributes[0].messages[0], '^Values must be unique\.')
+        self.assertEqual(len(errors.invalid_objects), 0)
+        self.assertEqual(set([model.model for model in errors.invalid_models]), set((Root, UniqueRoot)))
+        self.assertEqual(len(errors.invalid_models[0].attributes), 1)
+        self.assertEqual(errors.invalid_models[0].attributes[0].attribute.name, 'label')
+        self.assertEqual(len(errors.invalid_models[0].attributes[0].messages), 1)
+        self.assertRegexpMatches(errors.invalid_models[0].attributes[0].messages[0], 'values must be unique')
 
     def test_inheritance(self):
         self.assertEqual(Leaf.Meta.attributes['name'].max_length, 255)
@@ -1279,8 +1279,14 @@ class TestCore(unittest.TestCase):
             "  {}".format(msgs[3])
         ))
 
+    def test_invalid_object_set_exception(self):
+        p = Parent(id='parent')
+        invalid_model = core.InvalidModel(p, [])
+        self.assertRaises(ValueError,
+            lambda: core.InvalidObjectSet([], [invalid_model, invalid_model]))
+
     # .. todo :: fix InvalidObjectSet.str()
-    @unittest.skip('skipping until InvalidObjectSet.str() is right')
+    @unittest.skip('skipping until I have time to do a detailed comparison')
     def test_invalid_object_set_str(self):
         attr = core.Attribute()
         attr.name = 'attr'

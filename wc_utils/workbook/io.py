@@ -441,8 +441,10 @@ class SeparatedValuesReader(Reader):
         """
         worksheet = Worksheet()
         sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name))
+        print('pyexcel.get_sheet: sheet_name', sheet_name)
 
         for sv_row in sv_worksheet.row:
+            print('sv_row', list(sv_row))
             row = Row()
             worksheet.append(row)
             for sv_cell in sv_row:

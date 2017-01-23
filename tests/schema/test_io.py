@@ -6,6 +6,7 @@
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
+
 from wc_utils.schema import core, utils
 from wc_utils.schema.io import Reader, Writer, convert, create_template
 from wc_utils.workbook.io import WorksheetStyle, read as read_workbook
@@ -172,8 +173,25 @@ class TestIo(unittest.TestCase):
         self.assertIn('value for primary attribute cannot be empty',
             t.validate().attributes[0].messages[0])
 
-    def check_reader_errors(self, fixture_file, expected_messages, models, use_re=False):
+    def check_reader_errors(self, fixture_file, expected_messages, models, use_re=False,
+        do_not_catch=False):
+        ''' Run Reader expecting an error; check that the exception message matches expected messages
+
+        Args:
+            fixture_file (:obj:`str`): name of the file to be read
+            expected_messages (:obj:`list` of `str`): list of expected strings or patterns in the
+                exception
+            models (:obj:`list` of `Model`): `Model`s for the schema of the data being read
+            use_re (:obj:`boolean`, optional): if set, `expected_messages` contains RE patterns
+            do_not_catch (:obj:`boolean`, optional): if set, run Reader() outside try ... catch;
+                produces full exception message for debugging
+
+        Raises:
+            :obj:`Exception`: if do_not_catch
+        '''
         filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
+        if do_not_catch:
+            Reader().run(filename, models)
         with self.assertRaises(Exception) as context:
             Reader().run(filename, models)
         for msg in expected_messages:
@@ -181,18 +199,90 @@ class TestIo(unittest.TestCase):
                 msg = re.escape(msg)
             self.assertRegexpMatches(str(context.exception), msg)
 
+    def test_location_of_attrs(self):
+        class Normal(core.Model):
+            id = core.SlugAttribute()
+            val = core.StringAttribute()
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'val')
+
+        class Transposed(core.Model):
+            tid = core.SlugAttribute()
+            s = core.StringAttribute()
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('tid', 's', )
+                tabular_orientation = core.TabularOrientation.column
+
+        file = 'test-locations.xlsx'
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', file)
+        models = Reader().run(filename, [Normal, Transposed])
+        ext = 'xlsx'
+        normals = models[Normal]
+        for obj in normals:
+            if obj.val == 'x':
+                (file_type, basename, worksheet, row, column) = obj.get_location('val')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
+                self.assertEqual(row, 3)
+                self.assertEqual(column, 'B')
+                self.assertEqual(obj.location_report('val'),
+                    ':'.join([file, obj.Meta.verbose_name_plural, "{}{}".format(column, row)]))
+
+        transposeds = models[Transposed]
+        for obj in transposeds:
+            if obj.s == 'z':
+                (file_type, basename, worksheet, row, column) = obj.get_location('s')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(worksheet, obj.Meta.verbose_name)
+                self.assertEqual(row, 2)
+                self.assertEqual(column, 'C')
+                self.assertEqual(obj.location_report('s'),
+                    ':'.join([file, obj.Meta.verbose_name, "{}{}".format(column, row)]))
+
+        file = 'test-locations-*.csv'
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', file)
+        models = Reader().run(filename, [Normal, Transposed])
+        ext = 'csv'
+        normals = models[Normal]
+        for obj in normals:
+            if obj.val == 'x':
+                (file_type, basename, worksheet, row, column) = obj.get_location('val')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(row, 3)
+                self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
+                self.assertEqual(column, 2)
+                self.assertEqual(obj.location_report('val'),
+                    ':'.join([file, obj.Meta.verbose_name_plural, "{},{}".format(row, column)]))
+
+        transposeds = models[Transposed]
+        for obj in transposeds:
+            if obj.s == 'z':
+                (file_type, basename, worksheet, row, column) = obj.get_location('s')
+                self.assertEqual(file_type, ext)
+                self.assertEqual(basename, file)
+                self.assertEqual(worksheet, obj.Meta.verbose_name)
+                self.assertEqual(row, 2)
+                self.assertEqual(column, 3)
+                self.assertEqual(obj.location_report('s'),
+                    ':'.join([file, obj.Meta.verbose_name, "{},{}".format(row, column)]))
+
     def test_read_bad_headers(self):
         msgs = [
             "The model cannot be loaded because 'bad-headers.xlsx' contains error(s)",
             "Empty header field in row 1, col E - delete empty column(s)",
-            "Header 'y' does not match any attribute",
+            "Header 'y' in row 1, col F does not match any attribute",
             "Roots\n",
             "Empty header field in row 3, col A - delete empty row(s)",]
         self.check_reader_errors('bad-headers.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
 
         msgs = [
             "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
-            "Header 'x' does not match any attribute",
+            "Header 'x' in row 5, col 1 does not match any attribute",
             "Nodes\n",
             "Empty header field in row 1, col 5 - delete empty column(s)",]
         self.check_reader_errors('bad-headers-*.csv', msgs, [Root, Node, Leaf, OneToManyRow])
@@ -213,7 +303,7 @@ class TestIo(unittest.TestCase):
 
         msgs = ["The model cannot be loaded because 'uncaught-error.xlsx' contains error(s)",
             "uncaught-error.xlsx:Tests:B5",
-            "float() argument must be a string or a number, not 'datetime.datetime'",
+            "float() argument must be a string or a number",
             "uncaught-error.xlsx:Tests:C6",
             "Value must be a `float`",]
         self.check_reader_errors('uncaught-error.xlsx', msgs, [Root, Test])
@@ -235,29 +325,47 @@ class TestIo(unittest.TestCase):
                 tabular_orientation = core.TabularOrientation.column
 
         RE_msgs = [
-            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6:\n +StringAttribute value for primary "
+            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6\n +StringAttribute value for primary "
                 "attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2:\n +Value must be at least "
+            "invalid-data.xlsx:'Normal records':B3",
+            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2\n +Value must be at least "
                 "2 characters",]
         self.check_reader_errors('invalid-data.xlsx', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
 
         RE_msgs = [
             "The model cannot be loaded because 'invalid-data-\*.csv' contains error",
-            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1:\n +StringAttribute value for "
+            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1\n +StringAttribute value for "
                 "primary attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3:\n +Value must be at "
+            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3\n +Value must be at "
                 "least 2 characters",]
         self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
 
-    @unittest.skip('make these tests work')
     def test_reference_errors(self):
-        fixture_file='reference-errors.xlsx'
-        fixture_file='duplicate-primaries.xlsx'
-        filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
-        Reader().run(filename, [Root, Node, Leaf, OneToManyRow])
-        #self.check_reader_errors('reference-errors.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
+        class NodeFriend(core.Model):
+            id = core.SlugAttribute()
+            node = core.OneToOneAttribute(Node, related_name='nodes')
+            val = core.StringAttribute(min_length=2)
+
+            class Meta(core.Model.Meta):
+                attribute_order = ('id', 'val', 'node')
+
+        RE_msgs = [
+            "reference-errors.xlsx:Nodes:B3\n +Unable to find Root with id='not root'",
+            "reference-errors.xlsx:Leaves:B6\n +Unable to find Node with id='no such node'",
+            "reference-errors.xlsx:Leaves:E7\n +Unable to find OneToManyRow with id='no such row'",
+            "reference-errors.xlsx:'Node friends':B2\n +Unable to find Node with id=no_node"]
+        self.check_reader_errors('reference-errors.xlsx', RE_msgs, [Root, Node, Leaf, OneToManyRow,
+            NodeFriend], use_re=True)
+
+    def test_duplicate_primaries(self):
+        RE_msgs = [
+            "The model cannot be loaded because it fails to validate",
+            "Node:\n +'id':\n +id values must be unique, but these values are repeated: node_2",
+            "Root:\n +'id':\n +id values must be unique, but these values are repeated: 'root 2'"]
+        self.check_reader_errors('duplicate-primaries.xlsx', RE_msgs, [Root, Node, Leaf, OneToManyRow],
+            use_re=True)
 
     def test_create_worksheet_style(self):
         self.assertIsInstance(Writer.create_worksheet_style(Root), WorksheetStyle)

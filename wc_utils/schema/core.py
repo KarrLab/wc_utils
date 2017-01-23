@@ -13,7 +13,7 @@ Each schema is composed of one or models (subclasses of :obj:`Model`) each of wh
         first_name = StringAttribute()
         last_name = StringAttribute()
 
-Several attributes types are provided:
+Multiple attributes types are provided:
 
 * :obj:`BooleanAttribute`
 * :obj:`EnumAttribute`
@@ -125,7 +125,7 @@ The `utils` module provides several additional utilities for manipulating :obj:`
 :License: MIT
 """
 
-from collections import OrderedDict, Iterable
+from collections import OrderedDict, Iterable, defaultdict
 from copy import copy as make_copy, deepcopy as make_deepcopy
 from datetime import date, time, datetime
 from enum import Enum
@@ -143,8 +143,11 @@ import inflect
 import re
 import warnings
 
+import traceback, sys
 # todo: simplify primary attributes, deserialization
 # todo: add more helpful error messages
+# todo: memory efficient models
+# todo: rename clean to convert
 
 
 class ModelMeta(type):
@@ -442,13 +445,16 @@ class Model(with_metaclass(ModelMeta, object)):
         Attributes:
             attributes (:obj:`set` of `Attribute`): attributes
             related_attributes(:obj:`set` of `Attribute`): attributes declared in related objects
-            primary_attribute (:obj:`Attribute`): attributes with `primary`=`True`
+            primary_attribute (:obj:`Attribute`): attribute with `primary`=`True`
+            unique_together (obj:`tuple` of attribute names): controls what tuples of attribute values must be unique
             attribute_order (:obj:`tuple` of `str`): tuple of attribute names, in the order in which they should be displayed
             verbose_name (:obj:`str`): verbose name to refer to an instance of the model
             verbose_name_plural (:obj:`str`): plural verbose name for multiple instances of the model
             tabular_orientation (:obj:`TabularOrientation`): orientation of model objects in table (e.g. Excel)
             frozen_columns (:obj:`int`): number of Excel columns to freeze
             inheritance (:obj:`tuple` of `class`): tuple of all superclasses
+            ordering (:obj:`tuple` of attribute names): controls the order in which objects should be printed when serialized
+            location (:obj:`dict`): model location data in a file, if the Model was read from a file
         """
         attributes = None
         related_attributes = None
@@ -461,6 +467,7 @@ class Model(with_metaclass(ModelMeta, object)):
         frozen_columns = 1
         inheritance = None
         ordering = None
+        location = None
 
     def __init__(self, **kwargs):
         """
@@ -663,6 +670,72 @@ class Model(with_metaclass(ModelMeta, object)):
             return '<{}.{}: {}>'.format(self.__class__.__module__, self.__class__.__name__, getattr(self, self.__class__.Meta.primary_attribute.name))
 
         return super(Model, self).__str__()
+
+    @classmethod
+    def set_location(cls, pathname, sheet_name, attribute_seq):
+        cls.Meta.location = {}
+        cls.Meta.location['pathname'] = pathname
+        cls.Meta.location['sheet_name'] = sheet_name
+        cls.Meta.location['attribute_seq'] = attribute_seq
+
+    def set_obj_num(self, obj_num):
+        self.obj_num = obj_num
+
+    def get_location(self, attr):
+        """ Get file location of attribute `attr`
+
+        Provide the type, filename, worksheet, row, and column of `attr`. Row and column use
+        1-based counting. Column is provided in Excel format if the file was a spreadsheet.
+
+        Args:
+            attr (:obj:`str`): attribute name
+
+        Returns:
+            tuple of (type, basename, worksheet, row, column)
+
+        Raises:
+            ValueError if the location of `attr` is unknown
+        """
+        if self.Meta.location == None or not hasattr(self, 'obj_num'):
+            raise ValueError("location information unavailable".format())
+
+        # account for the header row and possible transposition
+        row = 1 + self.obj_num
+        try:
+            column = self.Meta.location['attribute_seq'].index(attr)
+            column += 1
+        except ValueError as e:
+            raise ValueError("cannot find attr {}".format(attr))
+        if self.Meta.tabular_orientation == TabularOrientation.column:
+            column, row = row, column
+        path = self.Meta.location['pathname']
+        sheet_name = self.Meta.location['sheet_name']
+
+        _, ext = splitext(path)
+        ext = ext.split('.')[-1]
+        if 'xlsx' in ext:
+            col = excel_col_name(column)
+            return (ext, quote(basename(path)), quote(sheet_name), row, col)
+        else:
+            return (ext, quote(basename(path)), quote(sheet_name), row, column)
+
+    def location_report(self, attr_name):
+        """ Provide the file location of attribute `attr_name`
+
+        Provide the filename, worksheet, row, and column of `attr_name` in a colon-separated
+        string.
+
+        Args:
+            attr_name (:obj:`str`): attribute name
+
+        Returns:
+            (:obj:`str`): a string representation of the file location of `attr_name`
+        """
+        ext, filename, worksheet, row, column = self.get_location(attr_name)
+        if 'xlsx' in ext:
+            return "{}:{}:{}{}".format(filename, worksheet, column, row)
+        else:
+            return "{}:{}:{},{}".format(filename, worksheet, row, column)
 
     @classmethod
     def sort(cls, objects):
@@ -890,10 +963,10 @@ class Model(with_metaclass(ModelMeta, object)):
         return msg
 
     def get_primary_attribute(self):
-        """ Get values of primary attribute
+        """ Get value of primary attribute
 
         Returns:
-            :obj:`object`: values of primary attribute
+            :obj:`object`: value of primary attribute
         """
         if self.__class__.Meta.primary_attribute:
             return getattr(self, self.__class__.Meta.primary_attribute.name)
@@ -955,7 +1028,7 @@ class Model(with_metaclass(ModelMeta, object)):
         return _related_objects
 
     def clean(self):
-        """ Clean all of the object's attributes
+        """ Clean all of this `Model`'s attributes
 
         Returns:
             :obj:`InvalidObject` or None: `None` if the object is valid,
@@ -1220,7 +1293,8 @@ class Attribute(object):
                 unq_vals.add(val)
 
         if rep_vals:
-            message = 'Values must be unique. The following values are repeated:\n  ' + '\n  '.join(rep_vals)
+            message = "{} values must be unique, but these values are repeated: {}".format(self.name,
+                ', '.join([quote(val) for val in rep_vals]))
             return InvalidAttribute(self, [message])
 
     def serialize(self, value):
@@ -1898,7 +1972,8 @@ class SlugAttribute(RegexAttribute):
             primary (:obj:`bool`, optional): indicate if attribute is primary attribute
         """
         if help is None:
-            help = 'Enter a unique string identifier that (1) starts with a letter, (2) is composed of letters, numbers and underscopes, and (3) is less than 64 characters long'
+            help = "Enter a unique string identifier that (1) starts with a letter, (2) is composed "
+            "of letters, numbers and underscopes, and (3) is less than 64 characters long"
 
         super(SlugAttribute, self).__init__(pattern=r'^[a-z_][a-z0-9_]*$', flags=re.I,
                                             min_length=1, max_length=63,
@@ -2550,6 +2625,7 @@ class OneToOneAttribute(RelatedAttribute):
                 related_objs.append(objects[related_class][value])
 
         if len(related_objs) == 0:
+            primary_attr = self.related_class.Meta.primary_attribute
             return (None, InvalidAttribute(self, ['Unable to find {} with {}={}'.format(
                 self.related_class.__name__, primary_attr.name, quote(value))]))
 
@@ -3611,44 +3687,48 @@ class ManyToManyRelatedManager(RelatedManager):
 
 
 class InvalidObjectSet(object):
-    """ Represents a list of invalid objects and their errors
+    """ Represents a list of invalid objects and invalid models
 
     Attributes:
-        objects (:obj:`list`): list of invalid objects
+        objects (:obj:`list` of `InvalidObject`): list of invalid objects
         models (:obj:`list` of `InvalidModel`): list of invalid models
     """
 
-    def __init__(self, objects, models):
+    def __init__(self, invalid_objects, invalid_models):
         """
         Args:
-            objects (:obj:`list` of `InvalidObject`): list of invalid objects
-            models (:obj:`list` of `InvalidModel`): list of invalid models
+            invalid_objects (:obj:`list` of `InvalidObject`): list of invalid objects
+            invalid_models (:obj:`list` of `InvalidModel`): list of invalid models
         """
-        self.objects = objects or []
-        self.models = models or []
+        all_invalid_models = set()
+        models = [invalid_model.model for invalid_model in invalid_models]
+        duplicate_invalid_models = set(mdl for mdl in models
+            if mdl in all_invalid_models or all_invalid_models.add(mdl))
+        if duplicate_invalid_models:
+            raise ValueError("duplicate invalid models: {}".format(
+                [mdl.__class__.__name__ for mdl in duplicate_invalid_models]))
+        self.invalid_objects = invalid_objects or []
+        self.invalid_models = invalid_models or []
 
     def get_object_errors_by_model(self):
-        """ Get object errors grouped by models
+        """ Get object errors grouped by model
 
         Returns:
             :obj:`dict` of `Model`: `list` of `InvalidObject`: dictionary of object errors, grouped by model
         """
+        object_errors_by_model = defaultdict(list)
+        for obj in self.invalid_objects:
+            object_errors_by_model[obj.object.__class__].append(obj)
 
-        obj_by_model = {}
-        for obj in self.objects:
-            if obj.object.__class__ not in obj_by_model:
-                obj_by_model[obj.object.__class__] = []
-            obj_by_model[obj.object.__class__].append(obj)
-
-        return obj_by_model
+        return object_errors_by_model
 
     def get_model_errors_by_model(self):
-        """ Get object errors grouped by models
+        """ Get model errors grouped by models
 
         Returns:
             :obj:`dict` of `Model`: `InvalidModel`: dictionary of model errors, grouped by model
         """
-        return {model.model: model for model in self.models}
+        return {invalid_model.model: invalid_model for invalid_model in self.invalid_models}
 
     def __str__(self):
         """ Get string representation of errors
@@ -3669,7 +3749,7 @@ class InvalidObjectSet(object):
             error_forest.append('{}:'.format(model.__name__))
 
             if model in mdl_errs:
-                error_forest.append([str(mdl_errs[model]) for model in mdl_errs])
+                error_forest.append([str(mdl_errs[model])])
 
             if model in obj_errs:
                 errs = natsorted(obj_errs[model], key=lambda x: x.object.get_primary_attribute(), alg=ns.IGNORECASE)
@@ -3679,7 +3759,7 @@ class InvalidObjectSet(object):
 
 
 class InvalidModel(object):
-    """ Represents an invalid model, such as a model with an attribute that doesn't have unique values
+    """ Represents an invalid model, such as a model with an attribute that fails to meet specified constraints
 
     Attributes:
         model (:obj:`class`): `Model` class
@@ -3702,7 +3782,7 @@ class InvalidModel(object):
             :obj:`str`: string representation of errors
         """
         attrs = natsorted(self.attributes, key=lambda x: x.attribute.name, alg=ns.IGNORECASE)
-        return '\n'.join([str(attr) for attr in attrs])
+        return indent_forest(attrs)
 
 
 class InvalidObject(object):
@@ -3741,29 +3821,34 @@ class InvalidAttribute(object):
         attribute (:obj:`Attribute`): invalid attribute
         messages (:obj:`list` of `str`): list of error messages
         related (:obj:`bool`): indicates if error is about value or related value
-        location (:obj:`Location`, optional): location of the attribute in an input file
+        loc (:obj:`str`, optional): a string representation of the attribute's location in an input file
         value (:obj:`str`, optional): invalid input value
     """
 
-    def __init__(self, attribute, messages, related=False, location=None, value=None):
+    def __init__(self, attribute, messages, related=False, loc=None, value=None):
         """
         Args:
             attribute (:obj:`Attribute`): invalid attribute
             message (:obj:`list` of `str`): list of error messages
             related (:obj:`bool`, optional): indicates if error is about value or related value
-            location (:obj:`Location`, optional): location of the attribute in an input file
+            loc (:obj:`str`, optional): a string representation of the attribute's location in an
+                input file
             value (:obj:`str`, optional): invalid input value
         """
         self.attribute = attribute
         self.messages = messages
         self.related = related
-        self.location = location
+        self.loc = loc
         self.value = value
 
-    def set_loc_value(self, location, value):
-        """ Set the location and value
+    def set_loc_and_value(self, loc, value):
+        """ Set the location and value of the attribute
+
+        Args:
+            loc (:obj:`str`): a string representation of the attribute's location in an input file
+            value (:obj:`str`): the invalid input value
         """
-        self.location = location
+        self.loc = loc
         if value is None:
             self.value = ''
         else:
@@ -3784,8 +3869,8 @@ class InvalidAttribute(object):
             name += "'{}'".format(self.value)
 
         forest = [name]
-        if self.location:
-            forest.append([str(self.location),
+        if self.loc:
+            forest.append([self.loc,
                 [msg.rstrip() for msg in self.messages]])
 
         else:
@@ -3881,7 +3966,7 @@ class Validator(object):
         """ Validate a list of objects and return their errors
 
         Args:
-            object (:obj:`list` of `Model`): list of objects
+            object (:obj:`list` of `Model`): list of Model instances
 
         Returns:
             :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors
@@ -3914,51 +3999,6 @@ class Validator(object):
             return InvalidObjectSet(object_errors, model_errors)
 
         return None
-
-class Location(object):
-    """ Represents the location of a field in an input file
-
-    Error messages use Location instances to report the location of errors.
-
-    Attributes:
-        path (:obj:`Attribute`): pathname of the file
-        worksheet (:obj:`str`): name of the worksheet
-        row (:obj:`int`): index of the data row
-        column (:obj:`int`): index of the column
-        transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
-    """
-
-    def __init__(self, path, worksheet, row, column, transposed=False):
-        """
-        Args:
-            path (:obj:`Attribute`): pathname of the file
-            worksheet (:obj:`str`): name of the worksheet
-            row (:obj:`int`): index of the data row
-            column (:obj:`int`): index of the column
-            transposed (:obj:`boolean`, optional): True if rows and columns have been transposed
-        """
-        self.path = path
-        self.worksheet = worksheet
-        row += 1    # account for the header row
-        if transposed:
-            column, row = row, column
-        self.row = row
-        self.column = column
-
-    def __str__(self):
-        """ Get string representation of a Location
-
-        Returns:
-            :obj:`str`: string representation of a Location
-        """
-        _, ext = splitext(self.path)
-        if 'xlsx' in ext:
-            col = excel_col_name(self.column)
-            return "{}:{}:{}{}:".format(quote(basename(self.path)), quote(self.worksheet), col,
-                self.row)
-        else:
-            return "{}:{}:{},{}:".format(quote(basename(self.path)), quote(self.worksheet), self.row,
-                self.column)
 
 def excel_col_name(col):
     """ Convert column number to an Excel-style string.

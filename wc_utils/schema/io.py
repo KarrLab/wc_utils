@@ -342,6 +342,8 @@ class Reader(object):
             data = transpose(data)
         headings = headings[0]
 
+        print('reader.path', reader.path)
+        print('sheet_name', sheet_name)
         print('model', model)
         print('headings', headings)
         print('data', data)

@@ -78,7 +78,7 @@ class Workbook(OrderedDict):
 
 
 class Worksheet(list):
-    """ Represents an Excel worksheet """
+    """ Represents a table of data, such as an Excel worksheet or a csv/tsv file"""
 
     def __eq__(self, other):
         """ Compare two worksheets
@@ -144,7 +144,7 @@ class Worksheet(list):
 
 
 class Row(list):
-    """ Represents a row of an Excel worksheet """
+    """ Represents a row in a table of data """
 
     def __eq__(self, other):
         """ Compare rows

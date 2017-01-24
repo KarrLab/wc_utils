@@ -440,11 +440,10 @@ class SeparatedValuesReader(Reader):
             :obj:`Worksheet`: data
         """
         worksheet = Worksheet()
-        sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name))
-        print('pyexcel.get_sheet: sheet_name', sheet_name)
+        sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name),
+            skip_empty_rows=False)
 
         for sv_row in sv_worksheet.row:
-            print('sv_row', list(sv_row))
             row = Row()
             worksheet.append(row)
             for sv_cell in sv_row:

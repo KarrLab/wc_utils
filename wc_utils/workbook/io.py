@@ -440,6 +440,8 @@ class SeparatedValuesReader(Reader):
             :obj:`Worksheet`: data
         """
         worksheet = Worksheet()
+        # todo: skip_empty_rows=False is the default for pyexcel-io v >= 0.3.2
+        # when it's available on pypi, set pyexcel>=0.4.0  pyexcel-io>=0.3.2 & remove skip_empty_rows option
         sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name),
             skip_empty_rows=False)
 

@@ -145,9 +145,9 @@ import warnings
 
 import traceback, sys
 # todo: simplify primary attributes, deserialization
-# todo: add more helpful error messages
 # todo: memory efficient models
-# todo: rename clean to convert
+# todo: improve naming: on meaning for Model, clean -> convert, Slug -> id, etc.
+# todo: model migration
 
 
 class ModelMeta(type):
@@ -1954,7 +1954,7 @@ class RegexAttribute(StringAttribute):
             errors = []
 
         if not re.match(self.pattern, value, flags=self.flags):
-            errors.append('Value "{}" does not match pattern: {}'.format(value, self.pattern))
+            errors.append("Value '{}' does not match pattern: {}".format(value, self.pattern))
 
         if errors:
             return InvalidAttribute(self, errors)

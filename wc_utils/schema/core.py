@@ -97,6 +97,8 @@ To facilitate data validation, the module allows developers to specify how objec
   of the model's `Meta` class.
 * Dataset: :obj:`Validator` can be subclasses provide additional custom validation of entire datasets
 
+Validation does not occur automatically, rather users must call validate() when it is needed.
+
 =====================================
 Equality, differencing
 =====================================
@@ -148,6 +150,7 @@ import traceback, sys
 # todo: memory efficient models
 # todo: improve naming: on meaning for Model, clean -> convert, Slug -> id, etc.
 # todo: model migration
+# todo: ensure unique and unique_together properties always maintained: see schema/test_core.py::TestCore::test_maintain_unique
 
 
 class ModelMeta(type):

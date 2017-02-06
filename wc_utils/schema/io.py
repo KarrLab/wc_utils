@@ -200,7 +200,7 @@ class Reader(object):
     """ Read model objects from file(s) """
 
     def run(self, path, models):
-        """ Read a set of model objects from file(s)
+        """ Read a set of model objects from file(s) and validate them
 
         Args:
             path (:obj:`str`): path to file(s)

@@ -1408,3 +1408,36 @@ class TestCore(unittest.TestCase):
         self.assertEqual(
             indent_forest(forest, indentation=0),
             test_string1.rstrip() + '\n' + test_string2)
+
+    @unittest.expectedFailure
+    def test_maintain_unique(self):
+        class test(core.Model):
+            unique_attr = core.StringAttribute(unique=True)
+        t1 = test(unique_attr='x')
+        t2 = test(unique_attr='y')
+
+        '''
+        Currently (2/2017), validation of uniqueness is a static property that's
+        ensured only when validate_unique() is called, that is, when a model's created or when
+        validate_unique() is called by the user.
+
+        Thus, this fails:
+        '''
+        with self.assertRaises(Exception) as context:
+            t2.unique_attr='x'
+        '''
+        Todo fix:
+            Index each unique & unique_together in their class object derived from Model. Obtain
+            O(1) validation for each object instantiation or attribute change.
+            Will also provide instance lookup by unique or unique_together attributes.
+
+            Implementation:
+                create instance:
+                    redefine __new__() to insert a weak reference to the object in a dict in the class
+
+                modify field:
+                    modify __setattr__() to test uniqueness, and raise exception if test fails
+
+                delete object:
+                    use a finalizer to remove object from the class dict
+        '''

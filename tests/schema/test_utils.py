@@ -27,22 +27,25 @@ class Leaf(core.Model):
 
 class TestUtils(unittest.TestCase):
 
+    def setUp(self):
+        self.root = Root(id='root')
+        self.nodes = [
+            Node(root=self.root, id='node-0'),
+            Node(root=self.root, id='node-1'),
+        ]
+        self.leaves = [
+            Leaf(node=self.nodes[0], id='leaf-0-0'),
+            Leaf(node=self.nodes[0], id='leaf-0-1'),
+            Leaf(node=self.nodes[1], id='leaf-1-0'),
+            Leaf(node=self.nodes[1], id='leaf-1-1'),
+        ]
+
     def test_get_attribute_by_verbose_name(self):
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'Identifier'), Root.Meta.attributes['id'])
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'Identifier2'), None)
 
     def test_group_objects_by_model(self):
-        root = Root(id='root')
-        nodes = [
-            Node(root=root, id='node-0'),
-            Node(root=root, id='node-1'),
-        ]
-        leaves = [
-            Leaf(node=nodes[0], id='leaf-0-0'),
-            Leaf(node=nodes[0], id='leaf-0-1'),
-            Leaf(node=nodes[1], id='leaf-1-0'),
-            Leaf(node=nodes[1], id='leaf-1-1'),
-        ]
+        (root, nodes, leaves) = (self.root, self.nodes, self.leaves)
         objects = set((root,)) | set(nodes) | set(leaves)
         grouped_objects = utils.group_objects_by_model(objects)
         self.assertEqual(grouped_objects, {
@@ -52,17 +55,7 @@ class TestUtils(unittest.TestCase):
         })
 
     def test_get_related_errors(self):
-        root = Root(id='root')
-        nodes = [
-            Node(root=root, id='node-0'),
-            Node(root=root, id='node-1'),
-        ]
-        leaves = [
-            Leaf(node=nodes[0], id='leaf-0-0'),
-            Leaf(node=nodes[0], id='leaf-0-1'),
-            Leaf(node=nodes[1], id='leaf-1-0'),
-            Leaf(node=nodes[1], id='leaf-1-1'),
-        ]
+        (root, nodes, leaves) = (self.root, self.nodes, self.leaves)
 
         errors = utils.get_related_errors(root)
         self.assertEqual(set((x.object for x in errors.invalid_objects)), set((root, )) | set(nodes))
@@ -74,3 +67,17 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(errors_by_model[Node]), 2)
 
         self.assertIsInstance(str(errors), string_types)
+
+    def test_get_component_by_id(self):
+        class Test(core.Model):
+            val = core.StringAttribute()
+
+        (root, nodes, leaves) = (self.root, self.nodes, self.leaves)
+        self.assertEqual(utils.get_component_by_id(nodes, 'node-0'), nodes[0])
+        self.assertEqual(utils.get_component_by_id(nodes, 'node-1'), nodes[1])
+        self.assertEqual(utils.get_component_by_id(nodes, 'x'), None)
+
+        test = Test(val='x')
+        self.assertRaises(AttributeError,
+            lambda: utils.get_component_by_id([test], 'x'))
+        self.assertEqual(utils.get_component_by_id([test], 'x', identifier='val'), test)

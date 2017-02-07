@@ -59,3 +59,27 @@ def get_related_errors(object):
     """
     objects = set((object,)) | object.get_related()
     return Validator().run(objects)
+
+
+def get_component_by_id(models, id, identifier='id'):
+    ''' Retrieve a model instance by its identifier
+
+    Args:
+        model (:obj:list of `Model`): an iterable of `Model` objects
+        id (:obj:`str`): the identifier being sought
+        identifier (:obj:`str`, optional): the name of the identifier attribute
+
+    Returns:
+        :obj:`Model`: the retrieved Model instance if found, or None
+
+    Raises:
+        :obj:`AttributeError`: if `model` does not have the attribute specified by `identifier`
+    '''
+    for model in models:
+        try:
+            if getattr(model, identifier) == id:
+                return model
+        except AttributeError as e:
+            raise AttributeError("{} does not have the attribute '{}'".format(model.__class__.__name__,
+                identifier))
+    return None

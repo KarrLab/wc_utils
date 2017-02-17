@@ -75,6 +75,7 @@ def get_component_by_id(models, id, identifier='id'):
     Raises:
         :obj:`AttributeError`: if `model` does not have the attribute specified by `identifier`
     '''
+    # todo: has O(n) performance; replace with dictionaries, to achieve O(1)
     for model in models:
         try:
             if getattr(model, identifier) == id:

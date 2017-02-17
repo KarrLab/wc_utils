@@ -12,7 +12,7 @@
 """
 
 from collections import defaultdict
-from itertools import chain
+from itertools import chain, compress
 from natsort import natsorted, ns
 from os.path import basename, dirname, splitext
 from warnings import warn
@@ -199,19 +199,26 @@ class Writer(object):
 class Reader(object):
     """ Read model objects from file(s) """
 
-    def run(self, path, models):
+    def run(self, path, models, ignore_other_sheets=False, skip_missing_attributes=False):
         """ Read a set of model objects from file(s) and validate them
+
+        File(s) may be a single Excel workbook with multiple sheets or a set of delimeter
+        separated files encoded by a single path with a glob pattern.
 
         Args:
             path (:obj:`str`): path to file(s)
             models (:obj:`list` of `class`): list of models
+            ignore_other_sheets (:obj: `boolean`, optional): if true and all models found, ignore
+                other worksheets or files
+            skip_missing_attributes (:obj:`boolean`, optional): if set, do not report errors if
+                attributes in the data are not in the model
 
         Returns:
             :obj:`dict`: model objects grouped by `Model`
 
         Raises:
             :obj:`ValueError`: if file(s) contains extra sheets that don't correspond to one of
-                `models` or if the data is not valid
+                `models` or if the data is not valid, depending on the optional arguments
         """
         _, ext = splitext(path)
         reader_cls = get_reader(ext)
@@ -229,11 +236,13 @@ class Reader(object):
             else:
                 model_names.add(model.Meta.verbose_name)
         extra_sheets = sheet_names.difference(model_names)
+        matching_sheets = sheet_names.intersection(model_names)
         if extra_sheets:
-            extra_models = model_names.difference(sheet_names)
-            raise ValueError("'{}': No match between model names {{'{}'}} and worksheet/file "
-                "names {{'{}'}}".format(basename(path), "', '".join(sorted(extra_models)),
-                "', '".join(sorted(extra_sheets))))
+            if not ignore_other_sheets or (len(matching_sheets) != len(models)):
+                extra_models = model_names.difference(sheet_names)
+                raise ValueError("'{}': No match between model names {{'{}'}} and worksheet/file "
+                    "names {{'{}'}}".format(basename(path), "', '".join(sorted(extra_models)),
+                    "', '".join(sorted(extra_sheets))))
 
         # read objects
         attributes = {}
@@ -241,7 +250,8 @@ class Reader(object):
         errors = {}
         objects = {}
         for model in models:
-            model_attributes, model_data, model_errors, model_objects = self.read_model(reader, model)
+            model_attributes, model_data, model_errors, model_objects = self.read_model(reader, model,
+                skip_missing_attributes=skip_missing_attributes)
             if model_attributes:
                 attributes[model] = model_attributes
             if model_data:
@@ -307,12 +317,14 @@ class Reader(object):
         # return
         return objects
 
-    def read_model(self, reader, model):
+    def read_model(self, reader, model, skip_missing_attributes=False):
         """ Instantiate a list of objects from data in a table in a file
 
         Args:
             reader (:obj:`BaseReader`): reader
             model (:obj:`class`): the model describing the objects' schema
+            skip_missing_attributes (:obj:`boolean`): if set, do not report errors if attributes
+                in the data are not in the model
 
         Returns:
             :obj:`tuple` of
@@ -361,9 +373,12 @@ class Reader(object):
         # acquire attributes by header order
         attributes = []
         errors = []
+        good_columns = []
         for idx, verbose_name in enumerate(headings, start=1):
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
-            if attr is None:
+            if attr is not None:
+                attributes.append(attr)
+            if attr is None and not skip_missing_attributes:
                 row, col, hdr_entries = header_row_col_names(idx, ext, model.Meta.tabular_orientation)
                 if verbose_name is None or verbose_name == '':
                     errors.append("Empty header field in row {}, col {} - delete empty {}(s)".format(
@@ -371,8 +386,11 @@ class Reader(object):
                 else:
                     errors.append("Header '{}' in row {}, col {} does not match any attribute".format(
                         verbose_name, row, col))
-            else:
-                attributes.append(attr)
+            if skip_missing_attributes:
+                if attr is None:
+                    good_columns.append(0)
+                else:
+                    good_columns.append(1)
 
         if errors:
             return ([], [], errors, [])
@@ -381,7 +399,10 @@ class Reader(object):
         attribute_seq = []
         for verbose_name in headings:
             attr = utils.get_attribute_by_verbose_name(model, verbose_name)
-            attribute_seq.append(attr.name)
+            if attr is None:
+                attribute_seq.append('')
+            else:
+                attribute_seq.append(attr.name)
         model.set_location(reader.path, sheet_name, attribute_seq)
 
         # load the data into objects
@@ -396,6 +417,9 @@ class Reader(object):
             obj.set_obj_num(obj_num)
 
             obj_errors = []
+            if skip_missing_attributes:
+                obj_data = list(compress(obj_data, good_columns))
+
             for attr_num, (attr, attr_value) in enumerate(zip(attributes, obj_data), start=1):
                 try:
                     if not isinstance(attr, RelatedAttribute):

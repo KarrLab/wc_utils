@@ -223,6 +223,8 @@ class ModelMeta(type):
             if isinstance(attr, Attribute):
                 attr.name = attr_name
                 if not attr.verbose_name:
+                    # todo: don't do this: it makes attribute names in data which EXACTLY matches
+                    # the attribute name of a Model fail Reader().run()
                     attr.verbose_name = sentencecase(attr_name)
                 cls.Meta.attributes[attr_name] = attr
 
@@ -4066,6 +4068,7 @@ def del_trailing_blanks(l_of_strings):
         del l_of_strings[last:]
 
 def _iterable_not_string(o):
+    # todo: try to simplify & generalize this by using isinstance(o, basestring)
     return isinstance(o, Iterable) and not isinstance(o, string_types)
 
 def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):

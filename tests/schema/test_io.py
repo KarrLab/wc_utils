@@ -396,3 +396,50 @@ class TestIo(unittest.TestCase):
         })
         self.assertEqual(core.Validator().run([]), None)
 
+    def run_options_tests(self, fixture_file):
+        filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
+
+        class SimpleModel(core.Model):
+            val = core.StringAttribute(min_length=10)
+
+        with self.assertRaises(ValueError) as context:
+            # raises extra sheet exception
+            Reader().run(filename, [SimpleModel])
+        self.assertRegexpMatches(str(context.exception),
+            "'test_run_options.*': No match .* model names {''} .* names {'extra sheet'}")
+
+        with self.assertRaises(ValueError) as context:
+            # raises extra attribute exception
+            Reader().run(filename, [SimpleModel], ignore_other_sheets=True)
+        self.assertRegexpMatches(str(context.exception),
+            "The model cannot be loaded because 'test_run_options.*' contains error.*")
+        if 'xlsx' in fixture_file:
+            col = 'B'
+        elif 'csv' in fixture_file:
+            col = '2'
+        self.assertRegexpMatches(str(context.exception),
+            ".*Header 'extra' in row 1, col {} does not match any attribute.*".format(col))
+
+        with self.assertRaises(ValueError) as context:
+            # raises validation exception on 'too short'
+            Reader().run(filename, [SimpleModel], ignore_other_sheets=True,
+                skip_missing_attributes=True)
+        self.assertRegexpMatches(str(context.exception),
+            "The model cannot be loaded because 'test_run_options.*' contains error.*")
+        if 'xlsx' in fixture_file:
+            location = 'A3'
+        elif 'csv' in fixture_file:
+            location = '3,1'
+        self.assertRegexpMatches(str(context.exception),
+            ".*'val':'too short'\n.*test_run_options.*:'Simple models':{}\n.*"
+                "Value must be at least 10 characters".format(location))
+
+        class SimpleModel(core.Model):
+            val = core.StringAttribute()
+        model = Reader().run(filename, [SimpleModel], ignore_other_sheets=True,
+            skip_missing_attributes=True)
+        self.assertIn('too short', [r.val for r in model[SimpleModel]])
+
+    def test_run_options(self):
+        self.run_options_tests('test_run_options.xlsx')
+        self.run_options_tests('test_run_options-*.csv')

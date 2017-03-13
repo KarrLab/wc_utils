@@ -151,6 +151,7 @@ import traceback, sys
 # todo: improve naming: on meaning for Model, clean -> convert, Slug -> id, etc.
 # todo: model migration
 # todo: ensure unique and unique_together properties always maintained: see schema/test_core.py::TestCore::test_maintain_unique
+# todo: improve errors: attach file location (if available) and value to each attribute; then use them
 
 
 class ModelMeta(type):

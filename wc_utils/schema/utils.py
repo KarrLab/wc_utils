@@ -18,8 +18,8 @@ def get_attribute_by_verbose_name(cls, verbose_name):
         verbose_name (:obj:`str`): verbose attribute name
 
     Returns:
-        :obj:`Attribute`: attribute with verbose name equal to the value of `verbose_name` or `None` if there is no
-            matching attribute
+        :obj:`Attribute`: attribute with verbose name equal to the value of `verbose_name` or `None`
+        if there is no matching attribute
     """
 
     if verbose_name is None:
@@ -27,7 +27,6 @@ def get_attribute_by_verbose_name(cls, verbose_name):
     for attr_name, attr in cls.Meta.attributes.items():
         if attr.verbose_name.lower() == verbose_name.lower():
             return attr
-
     return None
 
 
@@ -75,7 +74,7 @@ def get_component_by_id(models, id, identifier='id'):
     Raises:
         :obj:`AttributeError`: if `model` does not have the attribute specified by `identifier`
     '''
-    # todo: has O(n) performance; replace with dictionaries, to achieve O(1)
+    # todo: has O(n) performance; achieve O(1) by maintaining dictionaries id -> component for each model
     for model in models:
         try:
             if getattr(model, identifier) == id:

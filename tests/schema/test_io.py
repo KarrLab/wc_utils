@@ -396,7 +396,7 @@ class TestIo(unittest.TestCase):
         })
         self.assertEqual(core.Validator().run([]), None)
 
-    def run_options_tests(self, fixture_file):
+    def run_options_helper(self, fixture_file):
         filename = os.path.join(os.path.dirname(__file__), 'fixtures', fixture_file)
 
         class SimpleModel(core.Model):
@@ -441,5 +441,5 @@ class TestIo(unittest.TestCase):
         self.assertIn('too short', [r.val for r in model[SimpleModel]])
 
     def test_run_options(self):
-        self.run_options_tests('test_run_options.xlsx')
-        self.run_options_tests('test_run_options-*.csv')
+        self.run_options_helper('test_run_options.xlsx')
+        self.run_options_helper('test_run_options-*.csv')

@@ -145,7 +145,6 @@ import inflect
 import re
 import warnings
 
-import traceback, sys
 # todo: simplify primary attributes, deserialization
 # todo: memory efficient models
 # todo: improve naming: on meaning for Model, clean -> convert, Slug -> id, etc.
@@ -186,6 +185,9 @@ class ModelMeta(type):
             Meta.frozen_columns = bases[0].Meta.frozen_columns
             Meta.ordering = bases[0].Meta.ordering
 
+        # validate attribute inheritance
+        metacls.validate_attribute_inheritance(name, bases, namespace)
+
         # call super class method
         cls = super(ModelMeta, metacls).__new__(metacls, name, bases, namespace)
 
@@ -216,11 +218,29 @@ class ModelMeta(type):
         cls.Meta.inheritance = tuple([cls] + [supercls for supercls in get_superclasses(cls)
                                               if issubclass(supercls, Model) and supercls is not Model])
 
+    @classmethod
+    def validate_attribute_inheritance(metacls, name, bases, namespace):
+        """ Check attribute inheritance
+
+        Raises:
+            :obj:`ValueError`: if subclass overrides a superclass attribute (instance of Attribute) with an incompatible 
+                attribute (i.e. an attribute that is not a subclass of the class of the super class' attribute)
+        """
+        for attr_name, attr in namespace.items():
+            for super_cls in bases:
+                if attr_name in dir(super_cls):
+                    super_attr = getattr(super_cls, attr_name)
+                    if (isinstance(attr, Attribute) or isinstance(super_attr, Attribute)) and not isinstance(attr, super_attr.__class__):
+                        raise ValueError('Attribute "{}" of class "{}" inherited from "{}" must be a subclass of {} because the attribute is already defined in the superclass'.
+                                         format(__name__, super_cls.__name__, attr_name, super_attr.__class__.__name__))
+
     def init_attributes(cls):
         """ Initialize attributes """
+
         cls.Meta.attributes = dict()
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name)
+
             if isinstance(attr, Attribute):
                 attr.name = attr_name
                 if not attr.verbose_name:
@@ -255,7 +275,7 @@ class ModelMeta(type):
 
                 # setup related attributes on related classes
                 if attr.name in cls.__dict__ and attr.related_name and \
-                isinstance(attr.related_class, type) and issubclass(attr.related_class, Model):
+                        isinstance(attr.related_class, type) and issubclass(attr.related_class, Model):
                     related_classes = chain([attr.related_class], get_subclasses(attr.related_class))
                     for related_class in related_classes:
                         # check that related class has primary attributes
@@ -368,11 +388,11 @@ class ModelMeta(type):
         for attr_name in cls.Meta.attribute_order:
             if not isinstance(attr_name, str):
                 raise ValueError("attribute_order for {} must be tuple of attribute names; '{}' is "
-                    "not a string".format(cls.__name__, attr_name))
+                                 "not a string".format(cls.__name__, attr_name))
 
             if attr_name not in cls.Meta.attributes:
                 raise ValueError("'{}' not found in attributes of {}: {}".format(attr_name,
-                    cls.__name__, set(cls.Meta.attributes.keys())))
+                                                                                 cls.__name__, set(cls.Meta.attributes.keys())))
 
         # `unique_together` is a tuple of tuple of attribute names
         if not isinstance(cls.Meta.unique_together, tuple):
@@ -1307,7 +1327,7 @@ class Attribute(object):
 
         if rep_vals:
             message = "{} values must be unique, but these values are repeated: {}".format(self.name,
-                ', '.join([quote(val) for val in rep_vals]))
+                                                                                           ', '.join([quote(val) for val in rep_vals]))
             return InvalidAttribute(self, [message])
 
     def serialize(self, value):
@@ -3716,7 +3736,7 @@ class InvalidObjectSet(object):
         all_invalid_models = set()
         models = [invalid_model.model for invalid_model in invalid_models]
         duplicate_invalid_models = set(mdl for mdl in models
-            if mdl in all_invalid_models or all_invalid_models.add(mdl))
+                                       if mdl in all_invalid_models or all_invalid_models.add(mdl))
         if duplicate_invalid_models:
             raise ValueError("duplicate invalid models: {}".format(
                 [mdl.__class__.__name__ for mdl in duplicate_invalid_models]))
@@ -3884,12 +3904,13 @@ class InvalidAttribute(object):
         forest = [name]
         if self.loc:
             forest.append([self.loc,
-                [msg.rstrip() for msg in self.messages]])
+                           [msg.rstrip() for msg in self.messages]])
 
         else:
             forest.append([msg.rstrip() for msg in self.messages])
 
         return indent_forest(forest)
+
 
 def get_models(module=None, inline=True):
     """ Get models
@@ -4013,20 +4034,22 @@ class Validator(object):
 
         return None
 
+
 def excel_col_name(col):
     """ Convert column number to an Excel-style string.
 
     From http://stackoverflow.com/a/19169180/509882
     """
     LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    if not isinstance(col, int) or col<1:
-        raise ValueError( "excel_col_name: col ({}) must be a positive integer".format(col))
+    if not isinstance(col, int) or col < 1:
+        raise ValueError("excel_col_name: col ({}) must be a positive integer".format(col))
 
     result = []
     while col:
-        col, rem = divmod(col-1, 26)
+        col, rem = divmod(col - 1, 26)
         result[:0] = LETTERS[rem]
     return ''.join(result)
+
 
 def indent_forest(forest, indentation=2, keep_trailing_blank_lines=False, return_list=False):
     """ Generate a string of lines, each indented by its depth in `forest`
@@ -4050,10 +4073,11 @@ def indent_forest(forest, indentation=2, keep_trailing_blank_lines=False, return
     """
     if return_list:
         return __indent_forest(forest, indentation, depth=0,
-            keep_trailing_blank_lines=keep_trailing_blank_lines)
+                               keep_trailing_blank_lines=keep_trailing_blank_lines)
     else:
         return '\n'.join(__indent_forest(forest, indentation, depth=0,
-            keep_trailing_blank_lines=keep_trailing_blank_lines))
+                                         keep_trailing_blank_lines=keep_trailing_blank_lines))
+
 
 def del_trailing_blanks(l_of_strings):
     """ Remove all blank lines from the end of a list of strings
@@ -4065,16 +4089,18 @@ def del_trailing_blanks(l_of_strings):
     """
     last = None
     for i, e in reversed(list(enumerate(l_of_strings))):
-        e=e.rstrip()
+        e = e.rstrip()
         if e:
             break
-        last=i
+        last = i
     if last is not None:
         del l_of_strings[last:]
+
 
 def _iterable_not_string(o):
     # todo: try to simplify & generalize this by using isinstance(o, basestring)
     return isinstance(o, Iterable) and not isinstance(o, string_types)
+
 
 def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
     """ Private, recursive method to generate a list of lines indented by their depth in a forest
@@ -4089,12 +4115,12 @@ def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
     Returns:
         :obj:`list` of `str`: list of strings, appropriately indented
     """
-    indent = ' '*depth*indentation
-    output=[]
+    indent = ' ' * depth * indentation
+    output = []
     if _iterable_not_string(forest):
         for entry in forest:
             if _iterable_not_string(entry):
-                output += __indent_forest(entry, indentation, depth+1, keep_trailing_blank_lines)
+                output += __indent_forest(entry, indentation, depth + 1, keep_trailing_blank_lines)
             else:
                 e_str = str(entry)
                 if '\n' in e_str:
@@ -4102,12 +4128,13 @@ def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
                     if not keep_trailing_blank_lines:
                         del_trailing_blanks(lines)
                     for line in lines:
-                        output.append(indent+line)
+                        output.append(indent + line)
                 else:
-                    output.append(indent+e_str)
+                    output.append(indent + e_str)
     else:
-        output.append(indent+str(forest))
+        output.append(indent + str(forest))
     return output
+
 
 class InvalidWorksheet(object):
     """ Represents an invalid worksheet or delimiter-separated file and its errors

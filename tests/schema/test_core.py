@@ -17,6 +17,7 @@ import sys
 import unittest
 from wc_utils.schema.core import excel_col_name, indent_forest, del_trailing_blanks
 
+
 class Order(Enum):
     root = 1
     leaf = 2
@@ -235,7 +236,7 @@ class TestCore(unittest.TestCase):
             for i in range(n):
                 Leaf(root=root, id=str(i), name="leaf_{}".format(i))
             print("{} {} objects: {} KB/obj".format(n, 'Leaf',
-                (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_RAM)/n))
+                                                    (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_RAM) / n))
             n *= 4
 
     def test_set_related(self):
@@ -342,7 +343,7 @@ class TestCore(unittest.TestCase):
         root = Root()
         root.clean()
         self.assertIn('value for primary attribute cannot be empty',
-            root.validate().attributes[0].messages[0])
+                      root.validate().attributes[0].messages[0])
 
         leaf = Leaf()
         self.assertEqual(set((x.attribute.name for x in leaf.validate().attributes)), set(('id', 'root',)))
@@ -359,7 +360,7 @@ class TestCore(unittest.TestCase):
         leaf.root = root
         self.assertEqual(leaf.validate(), None)
         self.assertIn('value for primary attribute cannot be empty',
-            root.validate().attributes[0].messages[0])
+                      root.validate().attributes[0].messages[0])
 
         unrooted_leaf = UnrootedLeaf(root=root, id='a', id2='b', name2='ab', float2=2.4,
                                      float3=2.4, enum2=Order['root'], enum3=Order['leaf'])
@@ -1086,6 +1087,18 @@ class TestCore(unittest.TestCase):
         self.assertEqual(unrooted_leaf.root, root)
         self.assertEqual(root.leaves, set((leaf, unrooted_leaf, )))
 
+    def test_attribute_inheritance(self):
+        X = type('X', (core.Model, ), {'label': core.StringAttribute()})
+        Y = type('Y', (X, ), {'label': core.StringAttribute()})
+
+        x = X(label='x')
+        y = Y(label='y')
+
+        self.assertRaises(ValueError, lambda: type('Z', (X, ), {'label': 'z'}))
+
+        Z = type('Z', (Y, ), {'label': core.StringAttribute()})
+        z = Z(label='z')
+
     def test_unique(self):
         roots = [
             UniqueTogetherRoot(val0='a', val1='a', val2='a'),
@@ -1232,7 +1245,7 @@ class TestCore(unittest.TestCase):
         msgs = ['msg1', 'msg2\ncontinue']
         err = core.InvalidAttribute(attr, msgs)
         self.assertEqual(str(err),
-            "'{}':\n  {}\n  {}".format(attr.name, msgs[0], msgs[1].replace('\n', '\n  ')))
+                         "'{}':\n  {}\n  {}".format(attr.name, msgs[0], msgs[1].replace('\n', '\n  ')))
 
     def test_invalid_object_str(self):
         attrs = [
@@ -1283,7 +1296,7 @@ class TestCore(unittest.TestCase):
         p = Parent(id='parent')
         invalid_model = core.InvalidModel(p, [])
         self.assertRaises(ValueError,
-            lambda: core.InvalidObjectSet([], [invalid_model, invalid_model]))
+                          lambda: core.InvalidObjectSet([], [invalid_model, invalid_model]))
 
     # .. todo :: fix InvalidObjectSet.str()
     @unittest.skip('skipping until I have time to do a detailed comparison')
@@ -1354,12 +1367,12 @@ class TestCore(unittest.TestCase):
     def test_indent_forest(self):
         forest = [
             '0,1',
-                ['1,1', '1,2', ],
+            ['1,1', '1,2', ],
             '0,2',
-                ['1,2',
-                    ['2,1', '2,2', ],
-                '1,3', ]
-                ]
+            ['1,2',
+             ['2,1', '2,2', ],
+             '1,3', ]
+        ]
         indent_by_2 = """0,1
   1,1
   1,2
@@ -1383,24 +1396,24 @@ class TestCore(unittest.TestCase):
         self.assertEqual(indent_forest(forest2, indentation=3), indent_with_text)
 
     def test_del_trailing_blanks(self):
-        test_strings=['test_text\ntest_text',
-            'test_text\ntest_text\n',
-            'test_text\ntest_text\n  \n',
-            'test_text\n\ntest_text\n  \n']
-        correct_lists=[
-                ['test_text', 'test_text'],
-                ['test_text', 'test_text'],
-                ['test_text', 'test_text'],
-                ['test_text', '', 'test_text']
-            ]
+        test_strings = ['test_text\ntest_text',
+                        'test_text\ntest_text\n',
+                        'test_text\ntest_text\n  \n',
+                        'test_text\n\ntest_text\n  \n']
+        correct_lists = [
+            ['test_text', 'test_text'],
+            ['test_text', 'test_text'],
+            ['test_text', 'test_text'],
+            ['test_text', '', 'test_text']
+        ]
         for test_string, correct_list in zip(test_strings, correct_lists):
             lines = test_string.split('\n')
             del_trailing_blanks(lines)
             self.assertEqual(lines, correct_list)
 
     def test_indent_forest_with_trailing_blanks(self):
-        test_string1 ='test_text1\ntest_text2\n\ntest_text4\n   \n'
-        test_string2 ='test_text5\ntest_text6'
+        test_string1 = 'test_text1\ntest_text2\n\ntest_text4\n   \n'
+        test_string2 = 'test_text5\ntest_text6'
         forest = [test_string1, test_string2]
         self.assertEqual(
             indent_forest(forest, keep_trailing_blank_lines=True, indentation=0),
@@ -1424,7 +1437,7 @@ class TestCore(unittest.TestCase):
         Thus, this fails:
         '''
         with self.assertRaises(Exception) as context:
-            t2.unique_attr='x'
+            t2.unique_attr = 'x'
         '''
         Todo fix:
             Index each unique & unique_together in their class object derived from Model. Obtain

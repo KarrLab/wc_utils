@@ -346,7 +346,11 @@ class ModelMeta(type):
         if not cls.Meta.verbose_name:
             cls.Meta.verbose_name = sentencecase(cls.__name__)
 
-        if not cls.Meta.verbose_name_plural:
+            if not cls.Meta.verbose_name_plural:
+                inflect_engine = inflect.engine()
+                cls.Meta.verbose_name_plural = sentencecase(inflect_engine.plural(cls.__name__))
+
+        elif not cls.Meta.verbose_name_plural:
             inflect_engine = inflect.engine()
             cls.Meta.verbose_name_plural = inflect_engine.plural(cls.Meta.verbose_name)
 

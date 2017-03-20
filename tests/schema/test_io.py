@@ -374,16 +374,21 @@ class TestIo(unittest.TestCase):
 
     def test_convert(self):
         filename_xls1 = os.path.join(self.dirname, 'test1.xlsx')
-        filename_xls2 = os.path.join(self.dirname, 'test2_unreadable.xlsx')
+        filename_xls2 = os.path.join(self.dirname, 'test2.xlsx')
         filename_csv = os.path.join(self.dirname, 'test-*.csv')
 
-        models = [Root, Node, Leaf, ]
+        models = [Root, Node, Leaf, OneToManyRow]
+        
         Writer().run(filename_xls1, set((self.root,)), models)
 
         convert(filename_xls1, filename_csv, models)
-        # this writes a workbook that Excel (Mac 2016) calls 'unreadable'
-        # Excel also repairs the workbook and generates a "Repair result" xml file
         convert(filename_csv, filename_xls2, models)
+        
+        objects2 = Reader().run(filename_csv, models)
+        self.assertEqual(self.root, list(objects2[Root])[0])
+        
+        objects2 = Reader().run(filename_xls2, models)
+        self.assertEqual(self.root, list(objects2[Root])[0])
 
     def test_create_template(self):
         filename = os.path.join(self.dirname, 'test3.xlsx')

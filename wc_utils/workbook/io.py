@@ -254,7 +254,7 @@ class ExcelWriter(Writer):
 
         xls_worksheet.freeze_panes = xls_worksheet.cell(row=frozen_rows + 1, column=frozen_columns + 1)
 
-        if style.auto_filter:
+        if style.auto_filter and len(data) > 0 and len(data[0]) > 0 and frozen_rows > 0:
             xls_worksheet.auto_filter.ref = '{}{}:{}{}'.format(
                 get_column_letter(1), frozen_rows,
                 get_column_letter(max(len(row) for row in data)), len(data))

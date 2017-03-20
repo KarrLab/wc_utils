@@ -18,13 +18,14 @@ from os.path import basename, dirname, splitext
 from warnings import warn
 from wc_utils.schema import utils
 from wc_utils.schema.core import (Model, Attribute, RelatedAttribute, Validator, TabularOrientation,
-                                    InvalidObject, excel_col_name, indent_forest,
+                                    InvalidObject, excel_col_name,
                                     InvalidWorksheet, InvalidAttribute)
 from wc_utils.util.list import transpose
 from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
                                   Writer as BaseWriter, Reader as BaseReader,
                                   convert as base_convert)
 from wc_utils.util.misc import quote
+from wc_utils.util.string import indent_forest
 
 class Writer(object):
     """ Write model objects to file(s) """

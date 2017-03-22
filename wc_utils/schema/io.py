@@ -18,14 +18,15 @@ from os.path import basename, dirname, splitext
 from warnings import warn
 from wc_utils.schema import utils
 from wc_utils.schema.core import (Model, Attribute, RelatedAttribute, Validator, TabularOrientation,
-                                    InvalidObject, excel_col_name,
-                                    InvalidWorksheet, InvalidAttribute)
+                                  InvalidObject, excel_col_name,
+                                  InvalidWorksheet, InvalidAttribute)
 from wc_utils.util.list import transpose
 from wc_utils.workbook.io import (get_writer, get_reader, WorkbookStyle, WorksheetStyle,
                                   Writer as BaseWriter, Reader as BaseReader,
                                   convert as base_convert)
 from wc_utils.util.misc import quote
 from wc_utils.util.string import indent_forest
+
 
 class Writer(object):
     """ Write model objects to file(s) """
@@ -229,21 +230,16 @@ class Reader(object):
         workbook = reader.initialize_workbook()
 
         # check that models are defined for each worksheet
-        sheet_names = set(reader.get_sheet_names())
-        model_names = set()
+        used_sheet_names = dict()
         for model in models:
-            if model.Meta.tabular_orientation == TabularOrientation.row:
-                model_names.add(model.Meta.verbose_name_plural)
-            else:
-                model_names.add(model.Meta.verbose_name)
-        extra_sheets = sheet_names.difference(model_names)
-        matching_sheets = sheet_names.intersection(model_names)
-        if extra_sheets:
-            if not ignore_other_sheets or (len(matching_sheets) != len(models)):
-                extra_models = model_names.difference(sheet_names)
-                raise ValueError("'{}': No match between model names {{'{}'}} and worksheet/file "
-                    "names {{'{}'}}".format(basename(path), "', '".join(sorted(extra_models)),
-                    "', '".join(sorted(extra_sheets))))
+            model_sheet_name = self.get_model_sheet_name(reader, model)
+            if model_sheet_name:
+                used_sheet_names[model_sheet_name] = model
+
+        extra_sheet_names = set(reader.get_sheet_names()).difference(set(used_sheet_names.keys()))
+        if extra_sheet_names and not ignore_other_sheets:
+            raise ValueError("No matching models for worksheets/files {} / {}".format(
+                basename(path), "', '".join(sorted(extra_sheet_names))))
 
         # read objects
         attributes = {}
@@ -252,7 +248,7 @@ class Reader(object):
         objects = {}
         for model in models:
             model_attributes, model_data, model_errors, model_objects = self.read_model(reader, model,
-                skip_missing_attributes=skip_missing_attributes)
+                                                                                        skip_missing_attributes=skip_missing_attributes)
             if model_attributes:
                 attributes[model] = model_attributes
             if model_data:
@@ -265,7 +261,7 @@ class Reader(object):
         if errors:
             forest = ["The model cannot be loaded because '{}' contains error(s):".format(basename(path))]
             for model, model_errors in errors.items():
-                forest.append([quote(model.Meta.verbose_name_plural)])
+                forest.append([quote(model.__name__)])
                 forest.append([model_errors])
             raise ValueError(indent_forest(forest))
 
@@ -284,7 +280,7 @@ class Reader(object):
         if errors:
             forest = ["The model cannot be loaded because '{}' contains error(s):".format(basename(path))]
             for model, model_errors in errors.items():
-                forest.append([quote(model.Meta.verbose_name_plural)])
+                forest.append([quote(model.__name__)])
                 forest.append([model_errors])
             raise ValueError(indent_forest(forest))
 
@@ -339,12 +335,8 @@ class Reader(object):
                 * constructed model objects
         """
         _, ext = splitext(reader.path)
-        if model.Meta.tabular_orientation == TabularOrientation.row:
-            sheet_name = model.Meta.verbose_name_plural
-        else:
-            sheet_name = model.Meta.verbose_name
-
-        if sheet_name not in reader.get_sheet_names():
+        sheet_name = self.get_model_sheet_name(reader, model)        
+        if not sheet_name:
             return ([], [], None, [])
 
         # get worksheet
@@ -362,13 +354,13 @@ class Reader(object):
                 continue
             l = heading.lower()
             header_map[l].append(heading)
-        duplicate_headers = list(filter(lambda x: 1<len(x), header_map.values()))
+        duplicate_headers = list(filter(lambda x: 1 < len(x), header_map.values()))
         if duplicate_headers:
             errors = []
             for dupes in duplicate_headers:
                 str = ', '.join(map(lambda s: "'{}'".format(s), dupes))
                 errors.append("{}:'{}': Duplicate, case insensitive, header fields: {}".format(
-                                basename(reader.path), sheet_name, str))
+                    basename(reader.path), sheet_name, str))
             return ([], [], errors, [])
 
         # acquire attributes by header order
@@ -429,11 +421,11 @@ class Reader(object):
                         if deserialize_error or validation_error:
                             if deserialize_error:
                                 deserialize_error.set_loc_and_value(obj.location_report(attr.name),
-                                    attr_value)
+                                                                    attr_value)
                                 obj_errors.append(deserialize_error)
                             if validation_error:
                                 validation_error.set_loc_and_value(obj.location_report(attr.name),
-                                    attr_value)
+                                                                   attr_value)
                                 obj_errors.append(validation_error)
                         else:
                             setattr(obj, attr.name, value)
@@ -513,6 +505,16 @@ class Reader(object):
 
         return errors
 
+    def get_model_sheet_name(self, reader, model):
+        sheet_names = set(reader.get_sheet_names())
+        possible_sheet_names = get_possible_model_sheet_names(model)
+        used_sheet_name = possible_sheet_names.intersection(sheet_names)
+        if len(list(used_sheet_name)) == 1:
+            return list(used_sheet_name)[0]
+        if len(list(used_sheet_name)) > 1:
+            raise ValueError('Model {} matches multiple sheets'.format(model.__name__))
+        return None
+
 
 def convert(source, destination, models=None):
     """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv)
@@ -527,13 +529,9 @@ def convert(source, destination, models=None):
     worksheet_order = []
     style = WorkbookStyle()
     for model in models:
-        if model.Meta.tabular_orientation == TabularOrientation.row:
-            name = model.Meta.verbose_name_plural
-        else:
-            name = model.Meta.verbose_name
-
-        worksheet_order.append(name)
-        style[name] = Writer.create_worksheet_style(model)
+        for name in get_possible_model_sheet_names(model):
+            worksheet_order.append(name)
+            style[name] = Writer.create_worksheet_style(model)
 
     base_convert(source, destination, worksheet_order=worksheet_order, style=style)
 
@@ -558,6 +556,7 @@ def create_template(path, models, title=None, description=None, keywords=None,
                  title=title, description=description, keywords=keywords,
                  version=version, language=language, creator=creator)
 
+
 def header_row_col_names(index, file_ext, tabular_orientation):
     """ Determine row and column names for header entries.
 
@@ -576,3 +575,14 @@ def header_row_col_names(index, file_ext, tabular_orientation):
     if 'xlsx' in file_ext:
         col = excel_col_name(col)
     return (row, col, hdr_entries)
+
+def get_possible_model_sheet_names(model):
+    """ Return set of possible sheet names for a model
+
+    Args:
+        model (:obj:`Model`): Model
+
+    Returns:
+        :obj:`set`: set of possible sheet names for a model
+    """
+    return set([model.__name__, model.Meta.verbose_name, model.Meta.verbose_name_plural])

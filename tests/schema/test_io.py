@@ -276,15 +276,15 @@ class TestIo(unittest.TestCase):
             "The model cannot be loaded because 'bad-headers.xlsx' contains error(s)",
             "Empty header field in row 1, col E - delete empty column(s)",
             "Header 'y' in row 1, col F does not match any attribute",
-            "Roots\n",
-            "Empty header field in row 3, col A - delete empty row(s)",]
+            "Empty header field in row 3, col A - delete empty row(s)",
+            ]
         self.check_reader_errors('bad-headers.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
 
         msgs = [
             "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
             "Header 'x' in row 5, col 1 does not match any attribute",
-            "Nodes\n",
-            "Empty header field in row 1, col 5 - delete empty column(s)",]
+            "Empty header field in row 1, col 5 - delete empty column(s)",
+            ]
         self.check_reader_errors('bad-headers-*.csv', msgs, [Root, Node, Leaf, OneToManyRow])
 
         '''
@@ -327,19 +327,20 @@ class TestIo(unittest.TestCase):
                 tabular_orientation = core.TabularOrientation.column
 
         RE_msgs = [
-            "Leaves\n +'id':''\n +invalid-data.xlsx:Leaves:A6\n +StringAttribute value for primary "
+            "Leaf\n +'id':''\n +invalid-data.xlsx:Leaves:A6\n +StringAttribute value for primary "
                 "attribute cannot be empty",
             "invalid-data.xlsx:'Normal records':B3",
-            "Transposeds\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2\n +Value must be at least "
-                "2 characters",]
+            "Transposed\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2\n +Value must be at least "
+                "2 characters",
+            ]
         self.check_reader_errors('invalid-data.xlsx', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
 
         RE_msgs = [
             "The model cannot be loaded because 'invalid-data-\*.csv' contains error",
-            "Leaves *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1\n +StringAttribute value for "
+            "Leaf *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1\n +StringAttribute value for "
                 "primary attribute cannot be empty",
-            "Transposeds\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3\n +Value must be at "
+            "Transposed\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3\n +Value must be at "
                 "least 2 characters",]
         self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
@@ -410,8 +411,8 @@ class TestIo(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             # raises extra sheet exception
             Reader().run(filename, [SimpleModel])
-        self.assertRegexpMatches(str(context.exception),
-            "'test_run_options.*': No match .* model names {''} .* names {'extra sheet'}")
+        self.assertEqual(str(context.exception),
+            "No matching models for worksheets/files {} / extra sheet".format(fixture_file))
 
         with self.assertRaises(ValueError) as context:
             # raises extra attribute exception

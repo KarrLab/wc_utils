@@ -201,7 +201,7 @@ class Writer(object):
 class Reader(object):
     """ Read model objects from file(s) """
 
-    def run(self, path, models, ignore_other_sheets=False, skip_missing_attributes=False):
+    def run(self, path, models, ignore_other_sheets=False, ignore_missing_attributes=False, ignore_extra_attributes=False):
         """ Read a set of model objects from file(s) and validate them
 
         File(s) may be a single Excel workbook with multiple sheets or a set of delimeter
@@ -212,7 +212,9 @@ class Reader(object):
             models (:obj:`list` of `class`): list of models
             ignore_other_sheets (:obj: `boolean`, optional): if true and all models found, ignore
                 other worksheets or files
-            skip_missing_attributes (:obj:`boolean`, optional): if set, do not report errors if
+            ignore_missing_attributes (:obj:`boolean`, optional): if false, report an error if the worksheet/files
+                don't have all of attributes in the model
+            ignore_extra_attributes (:obj:`boolean`, optional): if set, do not report errors if
                 attributes in the data are not in the model
 
         Returns:
@@ -230,9 +232,10 @@ class Reader(object):
         workbook = reader.initialize_workbook()
 
         # check that models are defined for each worksheet
+        sheet_names = reader.get_sheet_names()
         used_sheet_names = dict()
         for model in models:
-            model_sheet_name = self.get_model_sheet_name(reader, model)
+            model_sheet_name = get_model_sheet_name(sheet_names, model)
             if model_sheet_name:
                 used_sheet_names[model_sheet_name] = model
 
@@ -248,7 +251,8 @@ class Reader(object):
         objects = {}
         for model in models:
             model_attributes, model_data, model_errors, model_objects = self.read_model(reader, model,
-                                                                                        skip_missing_attributes=skip_missing_attributes)
+                                                                                        ignore_missing_attributes=ignore_missing_attributes,
+                                                                                        ignore_extra_attributes=ignore_extra_attributes)
             if model_attributes:
                 attributes[model] = model_attributes
             if model_data:
@@ -314,13 +318,15 @@ class Reader(object):
         # return
         return objects
 
-    def read_model(self, reader, model, skip_missing_attributes=False):
+    def read_model(self, reader, model, ignore_missing_attributes=False, ignore_extra_attributes=False):
         """ Instantiate a list of objects from data in a table in a file
 
         Args:
             reader (:obj:`BaseReader`): reader
             model (:obj:`class`): the model describing the objects' schema
-            skip_missing_attributes (:obj:`boolean`): if set, do not report errors if attributes
+            ignore_missing_attributes (:obj:`boolean`, optional): if false, report an error if the worksheet/files
+                don't have all of attributes in the model
+            ignore_extra_attributes (:obj:`boolean`): if set, do not report errors if attributes
                 in the data are not in the model
 
         Returns:
@@ -335,7 +341,7 @@ class Reader(object):
                 * constructed model objects
         """
         _, ext = splitext(reader.path)
-        sheet_name = self.get_model_sheet_name(reader, model)        
+        sheet_name = get_model_sheet_name(reader.get_sheet_names(), model)
         if not sheet_name:
             return ([], [], None, [])
 
@@ -365,21 +371,23 @@ class Reader(object):
 
         # acquire attributes by header order
         attributes = []
-        errors = []
         good_columns = []
-        for idx, verbose_name in enumerate(headings, start=1):
-            attr = utils.get_attribute_by_verbose_name(model, verbose_name)
+        errors = []
+        for idx, heading in enumerate(headings, start=1):
+            attr = utils.get_attribute_by_name(model, heading, case_insensitive=True) or \
+                utils.get_attribute_by_verbose_name(model, heading, case_insensitive=True)
+
             if attr is not None:
                 attributes.append(attr)
-            if attr is None and not skip_missing_attributes:
+            if attr is None and not ignore_extra_attributes:
                 row, col, hdr_entries = header_row_col_names(idx, ext, model.Meta.tabular_orientation)
-                if verbose_name is None or verbose_name == '':
+                if heading is None or heading == '':
                     errors.append("Empty header field in row {}, col {} - delete empty {}(s)".format(
                         row, col, hdr_entries))
                 else:
                     errors.append("Header '{}' in row {}, col {} does not match any attribute".format(
-                        verbose_name, row, col))
-            if skip_missing_attributes:
+                        heading, row, col))
+            if ignore_extra_attributes:
                 if attr is None:
                     good_columns.append(0)
                 else:
@@ -388,10 +396,16 @@ class Reader(object):
         if errors:
             return ([], [], errors, [])
 
+        # check that all attributes have column headings
+        # todo
+        if not ignore_missing_attributes:
+            pass
+
         # save model location in file
         attribute_seq = []
-        for verbose_name in headings:
-            attr = utils.get_attribute_by_verbose_name(model, verbose_name)
+        for heading in headings:
+            attr = utils.get_attribute_by_name(model, heading, case_insensitive=True) or \
+                utils.get_attribute_by_verbose_name(model, heading, case_insensitive=True)
             if attr is None:
                 attribute_seq.append('')
             else:
@@ -410,7 +424,7 @@ class Reader(object):
             obj.set_obj_num(obj_num)
 
             obj_errors = []
-            if skip_missing_attributes:
+            if ignore_extra_attributes:
                 obj_data = list(compress(obj_data, good_columns))
 
             for attr_num, (attr, attr_value) in enumerate(zip(attributes, obj_data), start=1):
@@ -505,16 +519,6 @@ class Reader(object):
 
         return errors
 
-    def get_model_sheet_name(self, reader, model):
-        sheet_names = set(reader.get_sheet_names())
-        possible_sheet_names = get_possible_model_sheet_names(model)
-        used_sheet_name = possible_sheet_names.intersection(sheet_names)
-        if len(list(used_sheet_name)) == 1:
-            return list(used_sheet_name)[0]
-        if len(list(used_sheet_name)) > 1:
-            raise ValueError('Model {} matches multiple sheets'.format(model.__name__))
-        return None
-
 
 def convert(source, destination, models=None):
     """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv)
@@ -526,13 +530,24 @@ def convert(source, destination, models=None):
     """
     models = models or []
 
+    # get used sheet names
+    _, ext = splitext(source)
+    reader_cls = get_reader(ext)
+    reader = reader_cls(source)
+    reader.initialize_workbook()
+    sheet_names = reader.get_sheet_names()
+    del(reader)
+
+    # determine order, style for sheets
     worksheet_order = []
     style = WorkbookStyle()
     for model in models:
-        for name in get_possible_model_sheet_names(model):
-            worksheet_order.append(name)
-            style[name] = Writer.create_worksheet_style(model)
+        sheet_name = get_model_sheet_name(sheet_names, model)
+        if sheet_name:
+            worksheet_order.append(sheet_name)
+            style[sheet_name] = Writer.create_worksheet_style(model)
 
+    # convert
     base_convert(source, destination, worksheet_order=worksheet_order, style=style)
 
 
@@ -575,6 +590,36 @@ def header_row_col_names(index, file_ext, tabular_orientation):
     if 'xlsx' in file_ext:
         col = excel_col_name(col)
     return (row, col, hdr_entries)
+
+
+def get_model_sheet_name(sheet_names, model):
+    """ Get the name of the worksheet/file which corresponds to a model
+
+    Args:
+        sheet_names (:obj:`list`): names of the sheets in the workbook/files
+        model (:obj:`Model`): model
+
+    Returns:
+        :obj:`str`: name of sheet corresponding to the model or `None` if there is no sheet for the model
+
+    Raises:
+        :obj:`ValueError`: if the model matches more than one sheet
+    """
+    used_sheet_names = []
+    possible_sheet_names = get_possible_model_sheet_names(model)
+    for sheet_name in sheet_names:
+        for possible_sheet_name in possible_sheet_names:
+            if sheet_name.lower() == possible_sheet_name.lower():
+                used_sheet_names.append(sheet_name)
+                break
+
+    used_sheet_names = list(set(used_sheet_names))
+    if len(used_sheet_names) == 1:
+        return used_sheet_names[0]
+    if len(used_sheet_names) > 1:
+        raise ValueError('Model {} matches multiple sheets'.format(model.__name__))
+    return None
+
 
 def get_possible_model_sheet_names(model):
     """ Return set of possible sheet names for a model

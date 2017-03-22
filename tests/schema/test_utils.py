@@ -40,9 +40,19 @@ class TestUtils(unittest.TestCase):
             Leaf(node=self.nodes[1], id='leaf-1-1'),
         ]
 
+    def test_get_attribute_by_name(self):
+        self.assertEqual(utils.get_attribute_by_name(Root, 'id'), Root.Meta.attributes['id'])
+        self.assertEqual(utils.get_attribute_by_name(Root, 'id2'), None)
+
+        self.assertEqual(utils.get_attribute_by_name(Root, 'ID', case_insensitive=True), Root.Meta.attributes['id'])
+        self.assertEqual(utils.get_attribute_by_name(Root, 'ID', case_insensitive=False), None)
+
     def test_get_attribute_by_verbose_name(self):
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'Identifier'), Root.Meta.attributes['id'])
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'Identifier2'), None)
+
+        self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'identifier', case_insensitive=True), Root.Meta.attributes['id'])
+        self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'identifier', case_insensitive=False), None)
 
     def test_group_objects_by_model(self):
         (root, nodes, leaves) = (self.root, self.nodes, self.leaves)

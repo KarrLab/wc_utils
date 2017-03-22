@@ -10,22 +10,48 @@ from __future__ import unicode_literals
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, InvalidObjectSet, InvalidObject, Validator
 
 
-def get_attribute_by_verbose_name(cls, verbose_name):
+def get_attribute_by_name(cls, name, case_insensitive=False):
+    """ Return the attribute of `Model` class `cls` with name `name`
+
+    Args:
+        cls (:obj:`class`): Model class
+        name (:obj:`str`): attribute name
+        case_insensitive (:obj:`bool`, optional): if True, ignore case
+
+    Returns:
+        :obj:`Attribute`: attribute with name equal to the value of `name` or `None`
+        if there is no matching attribute
+    """
+
+    if not name:
+        return None
+    for attr_name, attr in cls.Meta.attributes.items():
+        if not case_insensitive and attr_name == name:
+            return attr
+        if case_insensitive and attr_name.lower() == name.lower():
+            return attr
+    return None
+
+
+def get_attribute_by_verbose_name(cls, verbose_name, case_insensitive=False):
     """ Return the attribute of `Model` class `cls` with verbose name `verbose_name`
 
     Args:
         cls (:obj:`class`): Model class
         verbose_name (:obj:`str`): verbose attribute name
+        case_insensitive (:obj:`bool`, optional): if True, ignore case
 
     Returns:
         :obj:`Attribute`: attribute with verbose name equal to the value of `verbose_name` or `None`
         if there is no matching attribute
     """
 
-    if verbose_name is None:
+    if not verbose_name:
         return None
     for attr_name, attr in cls.Meta.attributes.items():
-        if attr.verbose_name.lower() == verbose_name.lower():
+        if not case_insensitive and attr.verbose_name == verbose_name:
+            return attr
+        if case_insensitive and attr.verbose_name.lower() == verbose_name.lower():
             return attr
     return None
 
@@ -81,5 +107,5 @@ def get_component_by_id(models, id, identifier='id'):
                 return model
         except AttributeError as e:
             raise AttributeError("{} does not have the attribute '{}'".format(model.__class__.__name__,
-                identifier))
+                                                                              identifier))
     return None

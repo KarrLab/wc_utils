@@ -7,9 +7,10 @@
 :License: MIT
 """
 
+from os.path import splitext
 from wc_utils.schema import core, utils
 from wc_utils.schema.io import Reader, Writer, convert, create_template
-from wc_utils.workbook.io import WorksheetStyle, read as read_workbook
+from wc_utils.workbook.io import WorksheetStyle, read as read_workbook, get_reader, get_writer
 import os
 import re
 import shutil
@@ -19,7 +20,7 @@ import unittest
 
 
 class MainRoot(core.Model):
-    id = core.StringAttribute(primary=True, unique=True)
+    id = core.StringAttribute(primary=True, unique=True, verbose_name='Identifier')
     name = core.StringAttribute()
 
     class Meta(core.Model.Meta):
@@ -169,14 +170,14 @@ class TestIo(unittest.TestCase):
         # unicode
         self.assertEqual(root2.name, u'\u20ac')
 
-    def test_read_fuzzy_worksheet_name_match(self):
+    def test_read_inexact_worksheet_name_match(self):
         filename = os.path.join(self.dirname, 'test-*.csv')
 
-        #write to file
+        # write to file
         Writer().run(filename, set((self.root,)), [MainRoot, Node, Leaf, ])
 
         """ test reading worksheet by the model's name """
-        #rename worksheet
+        # rename worksheet
         self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-Main root.csv')))
         os.rename(os.path.join(self.dirname, 'test-Main root.csv'), os.path.join(self.dirname, 'test-MainRoot.csv'))
 
@@ -186,17 +187,17 @@ class TestIo(unittest.TestCase):
         self.assertEqual(root, self.root)
 
         """ test reading worksheet by the model's verbose name """
-        #rename worksheet
+        # rename worksheet
         self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-Leaves.csv')))
         os.rename(os.path.join(self.dirname, 'test-Leaves.csv'), os.path.join(self.dirname, 'test-Leaf.csv'))
 
         objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)        
+        self.assertEqual(root, self.root)
 
         """ test reading worksheet by the model's plural verbose name """
-        #rename worksheet
+        # rename worksheet
         self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-MainRoot.csv')))
         os.rename(os.path.join(self.dirname, 'test-MainRoot.csv'), os.path.join(self.dirname, 'test-Main roots.csv'))
 
@@ -205,13 +206,74 @@ class TestIo(unittest.TestCase):
 
         self.assertEqual(root, self.root)
 
+        """ test reading worksheet by the model's plural verbose name, case-insensitive """
+        # rename worksheet
+        self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-Main roots.csv')))
+        os.rename(os.path.join(self.dirname, 'test-Main roots.csv'), os.path.join(self.dirname, 'test-main roots.csv'))
+
+        objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)
+
+    def test_read_inexact_attribute_name_match(self):
+        filename = os.path.join(self.dirname, 'test.xlsx')
+        filename2 = os.path.join(self.dirname, 'test2.xlsx')
+
+        # write to file
+        Writer().run(filename, set((self.root,)), [MainRoot, Node, Leaf, ])
+
+        """ test reading attributes by verbose name """
+        objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)
+
+        """ test reading attributes by name """
+        # setup reader, writer
+        _, ext = splitext(filename)
+        reader_cls = get_reader(ext)
+        writer_cls = get_writer(ext)
+        reader = reader_cls(filename)
+        writer = writer_cls(filename2)
+
+        # read workbook
+        workbook = reader.run()
+
+        # edit heading
+        headings = workbook['Main root'][0]
+        self.assertEqual(headings[0], 'Identifier')
+        workbook['Main root'][0][0] = 'id'
+
+        # write workbook
+        writer.run(workbook)
+
+        # check that attributes can be read by name
+        objects = Reader().run(filename2, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)
+
+        """ test case insensitivity """
+        # edit heading
+        workbook['Main root'][0][0] = 'ID'
+
+        # write workbook
+        writer.run(workbook)
+
+        # check that attributes can be read by name
+        objects = Reader().run(filename2, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)
+
     def test_validation(self):
         t = MainRoot(name='f')
         self.assertIn('value for primary attribute cannot be empty',
-            t.validate().attributes[0].messages[0])
+                      t.validate().attributes[0].messages[0])
 
     def check_reader_errors(self, fixture_file, expected_messages, models, use_re=False,
-        do_not_catch=False):
+                            do_not_catch=False):
         ''' Run Reader expecting an error; check that the exception message matches expected messages
 
         Args:
@@ -266,7 +328,7 @@ class TestIo(unittest.TestCase):
                 self.assertEqual(row, 3)
                 self.assertEqual(column, 'B')
                 self.assertEqual(obj.location_report('val'),
-                    ':'.join([file, obj.Meta.verbose_name_plural, "{}{}".format(column, row)]))
+                                 ':'.join([file, obj.Meta.verbose_name_plural, "{}{}".format(column, row)]))
 
         transposeds = models[Transposed]
         for obj in transposeds:
@@ -278,7 +340,7 @@ class TestIo(unittest.TestCase):
                 self.assertEqual(row, 2)
                 self.assertEqual(column, 'C')
                 self.assertEqual(obj.location_report('s'),
-                    ':'.join([file, obj.Meta.verbose_name, "{}{}".format(column, row)]))
+                                 ':'.join([file, obj.Meta.verbose_name, "{}{}".format(column, row)]))
 
         file = 'test-locations-*.csv'
         filename = os.path.join(os.path.dirname(__file__), 'fixtures', file)
@@ -294,7 +356,7 @@ class TestIo(unittest.TestCase):
                 self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
                 self.assertEqual(column, 2)
                 self.assertEqual(obj.location_report('val'),
-                    ':'.join([file, obj.Meta.verbose_name_plural, "{},{}".format(row, column)]))
+                                 ':'.join([file, obj.Meta.verbose_name_plural, "{},{}".format(row, column)]))
 
         transposeds = models[Transposed]
         for obj in transposeds:
@@ -306,7 +368,7 @@ class TestIo(unittest.TestCase):
                 self.assertEqual(row, 2)
                 self.assertEqual(column, 3)
                 self.assertEqual(obj.location_report('s'),
-                    ':'.join([file, obj.Meta.verbose_name, "{},{}".format(row, column)]))
+                                 ':'.join([file, obj.Meta.verbose_name, "{},{}".format(row, column)]))
 
     def test_read_bad_headers(self):
         msgs = [
@@ -314,14 +376,14 @@ class TestIo(unittest.TestCase):
             "Empty header field in row 1, col E - delete empty column(s)",
             "Header 'y' in row 1, col F does not match any attribute",
             "Empty header field in row 3, col A - delete empty row(s)",
-            ]
+        ]
         self.check_reader_errors('bad-headers.xlsx', msgs, [MainRoot, Node, Leaf, OneToManyRow])
 
         msgs = [
             "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
             "Header 'x' in row 5, col 1 does not match any attribute",
             "Empty header field in row 1, col 5 - delete empty column(s)",
-            ]
+        ]
         self.check_reader_errors('bad-headers-*.csv', msgs, [MainRoot, Node, Leaf, OneToManyRow])
 
         '''
@@ -341,11 +403,11 @@ class TestIo(unittest.TestCase):
                 attribute_order = ('id', 'float1', 'bool1', )
 
         msgs = ["The model cannot be loaded because 'uncaught-error.xlsx' contains error(s)",
-            "uncaught-error.xlsx:Tests:B5",
-            "float() argument must be a string or a number",
-            "uncaught-error.xlsx:Tests:C6",
-            "Value must be a `float`",
-            ]
+                "uncaught-error.xlsx:Tests:B5",
+                "float() argument must be a string or a number",
+                "uncaught-error.xlsx:Tests:C6",
+                "Value must be a `float`",
+                ]
         self.check_reader_errors('uncaught-error.xlsx', msgs, [MainRoot, Test])
 
     def test_read_invalid_data(self):
@@ -366,23 +428,23 @@ class TestIo(unittest.TestCase):
 
         RE_msgs = [
             "Leaf\n +'id':''\n +invalid-data.xlsx:Leaves:A6\n +StringAttribute value for primary "
-                "attribute cannot be empty",
+            "attribute cannot be empty",
             "invalid-data.xlsx:'Normal records':B3",
             "Transposed\n +'val':'x'\n +invalid-data.xlsx:Transposed:C2\n +Value must be at least "
-                "2 characters",
-            ]
+            "2 characters",
+        ]
         self.check_reader_errors('invalid-data.xlsx', RE_msgs, [Leaf, NormalRecord, Transposed],
-            use_re=True)
+                                 use_re=True)
 
         RE_msgs = [
             "The model cannot be loaded because 'invalid-data-\*.csv' contains error",
             "Leaf *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1\n +StringAttribute value for "
-                "primary attribute cannot be empty",
+            "primary attribute cannot be empty",
             "Transposed\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3\n +Value must be at "
-                "least 2 characters",
-                ]
+            "least 2 characters",
+        ]
         self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
-            use_re=True)
+                                 use_re=True)
 
     def test_reference_errors(self):
         class NodeFriend(core.Model):
@@ -398,18 +460,18 @@ class TestIo(unittest.TestCase):
             "reference-errors.xlsx:Leaves:B6\n +Unable to find Node with id='no such node'",
             "reference-errors.xlsx:Leaves:E7\n +Unable to find OneToManyRow with id='no such row'",
             "reference-errors.xlsx:'Node friends':B2\n +Unable to find Node with id=no_node",
-            ]
+        ]
         self.check_reader_errors('reference-errors.xlsx', RE_msgs, [MainRoot, Node, Leaf, OneToManyRow,
-            NodeFriend], use_re=True)
+                                                                    NodeFriend], use_re=True)
 
     def test_duplicate_primaries(self):
         RE_msgs = [
             "The model cannot be loaded because it fails to validate",
             "Node:\n +'id':\n +id values must be unique, but these values are repeated: node_2",
             "MainRoot:\n +'id':\n +id values must be unique, but these values are repeated: 'root 2'",
-            ]
+        ]
         self.check_reader_errors('duplicate-primaries.xlsx', RE_msgs, [MainRoot, Node, Leaf, OneToManyRow],
-            use_re=True)
+                                 use_re=True)
 
     def test_create_worksheet_style(self):
         self.assertIsInstance(Writer.create_worksheet_style(MainRoot), WorksheetStyle)
@@ -420,15 +482,15 @@ class TestIo(unittest.TestCase):
         filename_csv = os.path.join(self.dirname, 'test-*.csv')
 
         models = [MainRoot, Node, Leaf, OneToManyRow]
-        
+
         Writer().run(filename_xls1, set((self.root,)), models)
 
         convert(filename_xls1, filename_csv, models)
         convert(filename_csv, filename_xls2, models)
-        
+
         objects2 = Reader().run(filename_csv, models)
         self.assertEqual(self.root, list(objects2[MainRoot])[0])
-        
+
         objects2 = Reader().run(filename_xls2, models)
         self.assertEqual(self.root, list(objects2[MainRoot])[0])
 
@@ -453,38 +515,38 @@ class TestIo(unittest.TestCase):
             # raises extra sheet exception
             Reader().run(filename, [SimpleModel])
         self.assertEqual(str(context.exception),
-            "No matching models for worksheets/files {} / extra sheet".format(fixture_file))
+                         "No matching models for worksheets/files {} / extra sheet".format(fixture_file))
 
         with self.assertRaises(ValueError) as context:
             # raises extra attribute exception
             Reader().run(filename, [SimpleModel], ignore_other_sheets=True)
         self.assertRegexpMatches(str(context.exception),
-            "The model cannot be loaded because 'test_run_options.*' contains error.*")
+                                 "The model cannot be loaded because 'test_run_options.*' contains error.*")
         if 'xlsx' in fixture_file:
             col = 'B'
         elif 'csv' in fixture_file:
             col = '2'
         self.assertRegexpMatches(str(context.exception),
-            ".*Header 'extra' in row 1, col {} does not match any attribute.*".format(col))
+                                 ".*Header 'extra' in row 1, col {} does not match any attribute.*".format(col))
 
         with self.assertRaises(ValueError) as context:
             # raises validation exception on 'too short'
             Reader().run(filename, [SimpleModel], ignore_other_sheets=True,
-                skip_missing_attributes=True)
+                         ignore_extra_attributes=True)
         self.assertRegexpMatches(str(context.exception),
-            "The model cannot be loaded because 'test_run_options.*' contains error.*")
+                                 "The model cannot be loaded because 'test_run_options.*' contains error.*")
         if 'xlsx' in fixture_file:
             location = 'A3'
         elif 'csv' in fixture_file:
             location = '3,1'
         self.assertRegexpMatches(str(context.exception),
-            ".*'val':'too short'\n.*test_run_options.*:'Simple models':{}\n.*"
-                "Value must be at least 10 characters".format(location))
+                                 ".*'val':'too short'\n.*test_run_options.*:'Simple models':{}\n.*"
+                                 "Value must be at least 10 characters".format(location))
 
         class SimpleModel(core.Model):
             val = core.StringAttribute()
         model = Reader().run(filename, [SimpleModel], ignore_other_sheets=True,
-            skip_missing_attributes=True)
+                             ignore_extra_attributes=True)
         self.assertIn('too short', [r.val for r in model[SimpleModel]])
 
     def test_run_options(self):

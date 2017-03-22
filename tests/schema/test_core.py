@@ -199,7 +199,8 @@ class TestCore(unittest.TestCase):
     def test_attributes(self):
         root = Root()
         leaf = Leaf()
-        self.assertEqual(set(vars(root).keys()), set(('label', 'leaves', 'leaves2', )))
+
+        self.assertEqual(set(vars(root).keys()), set(('label', 'leaves', 'leaves2')))
         self.assertEqual(set(vars(leaf).keys()), set(('root', 'id', 'name')))
 
     def test_attribute_order(self):
@@ -699,6 +700,17 @@ class TestCore(unittest.TestCase):
         root.clean()
         self.assertNotEqual(root.validate(), None)
 
+    @unittest.expectedFailure
+    def test_related_no_double_default(self):
+        class RootDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='root0')
+
+        class LeafDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='leaf0')
+            root = core.OneToOneAttribute(RootDefault, related_name='leaf',
+                                          default=lambda: RootDefault(label='root0'),
+                                          related_default=lambda: LeafDefault(label='leaf0'))
+
     def test_onetoone_default(self):
         class RootDefault(core.Model):
             label = core.StringAttribute(primary=True, unique=True, default='root0')
@@ -713,17 +725,48 @@ class TestCore(unittest.TestCase):
         self.assertEqual(leaf0.root.label, 'root0')
         self.assertEqual(leaf0.root.leaf, leaf0)
 
-        leaf1 = LeafDefault(label='leaf1', root=RootDefault(label='root1'))
+        leaf1 = LeafDefault(label='leaf1')
         self.assertEqual(leaf1.label, 'leaf1')
         self.assertIsInstance(leaf1.root, RootDefault)
-        self.assertEqual(leaf1.root.label, 'root1')
+        self.assertEqual(leaf1.root.label, 'root2')
         self.assertEqual(leaf1.root.leaf, leaf1)
 
-        leaf2 = LeafDefault(label='leaf2')
+        leaf2 = LeafDefault(label='leaf2', root=RootDefault(label='root3'))
         self.assertEqual(leaf2.label, 'leaf2')
         self.assertIsInstance(leaf2.root, RootDefault)
-        self.assertEqual(leaf2.root.label, 'root2')
+        self.assertEqual(leaf2.root.label, 'root3')
         self.assertEqual(leaf2.root.leaf, leaf2)
+
+    def test_onetoone_related_default(self):
+        class RootDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='root0')
+
+        class LeafDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='leaf0')
+            root = core.OneToOneAttribute(RootDefault, related_name='leaf',
+                                          related_default=lambda: LeafDefault(label='leaf2'))
+
+        leaf0 = LeafDefault()
+        self.assertEqual(leaf0.label, 'leaf0')
+        self.assertEqual(leaf0.root, None)
+
+        root0 = RootDefault()
+        self.assertEqual(root0.label, 'root0')
+        self.assertIsInstance(root0.leaf, LeafDefault)
+        self.assertEqual(root0.leaf.label, 'leaf2')
+        self.assertEqual(root0.leaf.root, root0)
+
+        root1 = RootDefault(label='root1')
+        self.assertEqual(root1.label, 'root1')
+        self.assertIsInstance(root1.leaf, LeafDefault)
+        self.assertEqual(root1.leaf.label, 'leaf2')
+        self.assertEqual(root1.leaf.root, root1)
+
+        root2 = RootDefault(label='root2', leaf=LeafDefault(label='leaf3'))
+        self.assertEqual(root2.label, 'root2')
+        self.assertIsInstance(root2.leaf, LeafDefault)
+        self.assertEqual(root2.leaf.label, 'leaf3')
+        self.assertEqual(root2.leaf.root, root2)
 
     def test_onetomany_default(self):
         class LeafDefault(core.Model):
@@ -752,6 +795,40 @@ class TestCore(unittest.TestCase):
         self.assertEqual(set([l.label for l in root2.leaves]), set(['leaf20', 'leaf21']))
         self.assertEqual(set([l.root for l in root2.leaves]), set([root2]))
 
+    def test_onetomany_related_default(self):
+        class LeafDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='leaf22')
+
+        class RootDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='root0')
+            leaves = core.OneToManyAttribute(LeafDefault, related_name='root',
+                                             related_default=lambda: RootDefault(label='root1'))
+
+        root0 = RootDefault()
+        self.assertEqual(root0.label, 'root0')
+        self.assertEqual(root0.leaves, set())
+
+        leaf0 = LeafDefault()
+        self.assertEqual(leaf0.label, 'leaf22')
+        self.assertIsInstance(leaf0.root, RootDefault)
+        self.assertEqual(leaf0.root.label, 'root1')
+        self.assertEqual(len(list(leaf0.root.leaves)), 1)
+        self.assertEqual(list(leaf0.root.leaves)[0], leaf0)
+
+        leaf1 = LeafDefault(label='leaf33')
+        self.assertEqual(leaf1.label, 'leaf33')
+        self.assertIsInstance(leaf1.root, RootDefault)
+        self.assertEqual(leaf1.root.label, 'root1')
+        self.assertEqual(len(list(leaf1.root.leaves)), 1)
+        self.assertEqual(list(leaf1.root.leaves)[0], leaf1)
+
+        leaf2 = LeafDefault(label='leaf44', root=RootDefault(label='root2'))
+        self.assertEqual(leaf2.label, 'leaf44')
+        self.assertIsInstance(leaf2.root, RootDefault)
+        self.assertEqual(leaf2.root.label, 'root2')
+        self.assertEqual(len(list(leaf2.root.leaves)), 1)
+        self.assertEqual(list(leaf2.root.leaves)[0], leaf2)
+
     def test_manytoone_default(self):
         class RootDefault(core.Model):
             label = core.StringAttribute(primary=True, unique=True, default='root0')
@@ -777,6 +854,31 @@ class TestCore(unittest.TestCase):
         self.assertEqual(leaf2.root.label, 'root3')
         self.assertEqual(leaf2.root.leaves, set([leaf2]))
 
+    def test_manytoone_related_default(self):
+        class RootDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='root0')
+
+        class LeafDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='leaf2')
+            root = core.ManyToOneAttribute(RootDefault, related_name='leaves',
+                                           related_default=lambda: set([LeafDefault(label='leaf3'), LeafDefault(label='leaf4'), LeafDefault(label='leaf5')]))
+
+        leaf0 = LeafDefault()
+        self.assertEqual(leaf0.label, 'leaf2')
+        self.assertEqual(leaf0.root, None)
+
+        root1 = RootDefault()
+        self.assertEqual(root1.label, 'root0')
+        self.assertEqual(set([l.__class__ for l in root1.leaves]), set([LeafDefault]))
+        self.assertEqual(set([l.label for l in root1.leaves]), set(['leaf3', 'leaf4', 'leaf5']))
+        self.assertEqual(set([l.root for l in root1.leaves]), set([root1]))
+
+        root2 = RootDefault(label='root2', leaves=set([LeafDefault(label='leaf6'), LeafDefault(label='leaf7')]))
+        self.assertEqual(root2.label, 'root2')
+        self.assertEqual(set([l.__class__ for l in root2.leaves]), set([LeafDefault]))
+        self.assertEqual(set([l.label for l in root2.leaves]), set(['leaf6', 'leaf7']))
+        self.assertEqual(set([l.root for l in root2.leaves]), set([root2]))
+
     def test_manytomany_default(self):
         class RootDefault(core.Model):
             label = core.StringAttribute(primary=True, unique=True, default='root0')
@@ -788,7 +890,7 @@ class TestCore(unittest.TestCase):
 
         root0 = RootDefault()
         self.assertEqual(root0.label, 'root0')
-        self.assertEqual(len(list(root0.leaves)), 0)
+        self.assertEqual(root0.leaves, set())
 
         leaf1 = LeafDefault()
         self.assertEqual(leaf1.label, 'leaf0')
@@ -797,6 +899,27 @@ class TestCore(unittest.TestCase):
         self.assertEqual(set([r.label for r in leaf1.roots]), set(['root1', 'root2']))
         self.assertEqual(set([len(list(r.leaves)) for r in leaf1.roots]), set([1]))
         self.assertEqual(set([list(r.leaves)[0] for r in leaf1.roots]), set([leaf1]))
+
+    def test_manytomany_related_default(self):
+        class RootDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='root0')
+
+        class LeafDefault(core.Model):
+            label = core.StringAttribute(primary=True, unique=True, default='leaf0')
+            roots = core.ManyToManyAttribute(RootDefault, related_name='leaves', related_default=lambda: [
+                                             LeafDefault(label='leaf1'), LeafDefault(label='leaf2'), LeafDefault(label='leaf3')])
+
+        leaf0 = LeafDefault()
+        self.assertEqual(leaf0.label, 'leaf0')
+        self.assertEqual(leaf0.roots, set())
+
+        root1 = RootDefault()
+        self.assertEqual(root1.label, 'root0')
+        self.assertEqual(len(list(root1.leaves)), 3)
+        self.assertEqual(set([l.__class__ for l in root1.leaves]), set([LeafDefault]))
+        self.assertEqual(set([l.label for l in root1.leaves]), set(['leaf1', 'leaf2', 'leaf3']))
+        self.assertEqual(set([len(list(l.roots)) for l in root1.leaves]), set([1]))
+        self.assertEqual(set([list(l.roots)[0] for l in root1.leaves]), set([root1]))
 
     def test_validate_onetoone_attribute(self):
         root = OneToOneRoot(id='root')

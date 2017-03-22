@@ -247,6 +247,9 @@ class ModelMeta(type):
                 if not attr.verbose_name:
                     # todo: don't do this: it makes attribute names in data which EXACTLY matches
                     # the attribute name of a Model fail Reader().run()
+                    #
+                    # This should be handled in the Reader (i.e. the Reader should accept
+                    # either the name or the verbose name)
                     attr.verbose_name = sentencecase(attr_name)
                 cls.Meta.attributes[attr_name] = attr
 
@@ -522,13 +525,21 @@ class Model(with_metaclass(ModelMeta, object)):
 
         # related attributes
         for attr in self.Meta.related_attributes.values():
-            super(Model, self).__setattr__(attr.related_name, attr.get_init_related_value(self))
+            super(Model, self).__setattr__(attr.related_name, attr.get_related_init_value(self))
 
         """ set attribute values """
         # attributes
         for attr in self.Meta.attributes.values():
             if attr.name not in kwargs:
-                setattr(self, attr.name, attr.get_default_value(self))
+                default = attr.get_default(self)
+                setattr(self, attr.name, default)
+
+        # attributes
+        for attr in self.Meta.related_attributes.values():
+            if attr.related_name not in kwargs:                
+                default = attr.get_related_default(self)
+                if default:
+                    setattr(self, attr.related_name, default)
 
         # process arguments
         for attr_name, val in kwargs.items():
@@ -1270,8 +1281,8 @@ class Attribute(object):
 
         return make_copy(self.init_value)
 
-    def get_default_value(self, obj):
-        """ Get initial value for attribute
+    def get_default(self, obj):
+        """ Get default value for attribute
 
         Args:
             obj (:obj:`Model`): object whose attribute is being initialized
@@ -2396,32 +2407,51 @@ class RelatedAttribute(Attribute):
         related_class (:obj:`class`): related class
         related_name (:obj:`str`): name of related attribute on `related_class`
         verbose_related_name (:obj:`str`): verbose related name
-        related_init_value (:obj:`object`): default value of related attribute
+        related_init_value (:obj:`object`): initial value of related attribute
+        related_default (:obj:`object`): default value of related attribute
     """
 
-    def __init__(self, related_class, related_name='', default=None, verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='',
+                 init_value=None, default=None, related_init_value=None, related_default=None,
+                 verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
+            init_value (:obj:`object`, optional): initial value
             default (:obj:`object`, optional): default value
+            related_init_value (:obj:`object`, optional): related initial value
+            related_default (:obj:`object`, optional): related default value
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
+
+        Raises:
+            :obj:`ValueError`: If default or related_default is not None or a callable or default and related_default are both callables
         """
+
+        if default and not hasattr(default, '__call__'):
+            raise ValueError('Default must be None or a callable')
+
+        if related_default and not hasattr(related_default, '__call__'):
+            raise ValueError('Related default must be None or a callable')
+
+        if default and related_default:
+            raise ValueError('Default and related_default cannot both be used')
 
         if not verbose_related_name:
             verbose_related_name = sentencecase(related_name)
 
-        super(RelatedAttribute, self).__init__(default=default, verbose_name=verbose_name, help=help,
+        super(RelatedAttribute, self).__init__(init_value=init_value, default=default, verbose_name=verbose_name, help=help,
                                                primary=False, unique=False, unique_case_insensitive=False)
         self.primary_class = None
         self.related_class = related_class
         self.related_name = related_name
         self.verbose_related_name = verbose_related_name
-        self.related_init_value = None
+        self.related_init_value = related_init_value
+        self.related_default = related_default
 
-    def get_init_related_value(self, obj):
+    def get_related_init_value(self, obj):
         """ Get initial related value for attribute
 
         Args:
@@ -2435,7 +2465,25 @@ class RelatedAttribute(Attribute):
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
+        
         return make_copy(self.related_init_value)
+
+    def get_related_default(self, obj):
+        """ Get default related value for attribute
+
+        Args:
+            obj (:obj:`Model`): object whose attribute is being initialized
+
+        Returns:
+            :obj:`object`: initial value
+        """
+        if not self.related_name:
+            raise ValueError('Related property is not defined')
+
+        if self.related_default and hasattr(self.related_default, '__call__'):
+            return self.related_default()
+
+        return make_copy(self.related_default)
 
     def set_related_value(self, obj, new_values):
         """ Update the values of the related attributes of the attribute
@@ -2487,7 +2535,8 @@ class OneToOneAttribute(RelatedAttribute):
         related_none (:obj:`bool`): if true, the related attribute is invalid if its value is `None`
     """
 
-    def __init__(self, related_class, related_name='', none=True, related_none=True, default=None, verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='', none=True, related_none=True, default=None, related_default=None,
+                 verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
@@ -2495,6 +2544,7 @@ class OneToOneAttribute(RelatedAttribute):
             none (:obj:`bool`, optional): if true, the attribute is invalid if its value is `None`
             related_none (:obj:`bool`, optional): if true, the related attribute is invalid if its value is `None`
             default (:obj:`callable`, optional): callable which returns default value
+            related_default (:obj:`callable`, optional): callable which returns default related value 
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
@@ -2502,14 +2552,12 @@ class OneToOneAttribute(RelatedAttribute):
         Raises:
             :obj:`ValueError`: If default is not `None` or a callable
         """
-        if default and not hasattr(default, '__call__'):
-            raise ValueError('Default must be None or a callable')
-
-        super(OneToOneAttribute, self).__init__(related_class, related_name=related_name, default=default,
+        super(OneToOneAttribute, self).__init__(related_class, related_name=related_name,
+                                                init_value=None, default=default,
+                                                related_init_value=None, related_default=related_default,
                                                 verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
         self.none = none
         self.related_none = related_none
-        self.related_init_value = None
 
     def set_value(self, obj, new_value):
         """ Update the values of the related attributes of the attribute
@@ -2710,7 +2758,8 @@ class ManyToOneAttribute(RelatedAttribute):
         none (:obj:`bool`): if true, the attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', none=True, default=None,
+    def __init__(self, related_class, related_name='', none=True,
+                 default=None, related_default=set(),
                  verbose_name='', verbose_related_name='', help=''):
         """
         Args:
@@ -2718,19 +2767,18 @@ class ManyToOneAttribute(RelatedAttribute):
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
             none (:obj:`bool`, optional): if true, the attribute is invalid if its value is None
             default (:obj:`callable`, optional): callable which returns the default value
+            related_default (:obj:`callable`, optional): callable which returns the default related value
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
         """
-        if default and not hasattr(default, '__call__'):
-            raise ValueError('Default must be None or a callable')
-
-        super(ManyToOneAttribute, self).__init__(related_class, related_name=related_name, default=default,
+        super(ManyToOneAttribute, self).__init__(related_class, related_name=related_name,
+                                                 init_value=None, default=default,
+                                                 related_init_value=ManyToOneRelatedManager, related_default=related_default,
                                                  verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
         self.none = none
-        self.related_init_value = ManyToOneRelatedManager
 
-    def get_init_related_value(self, obj):
+    def get_related_init_value(self, obj):
         """ Get initial related value for attribute
 
         Args:
@@ -2744,6 +2792,7 @@ class ManyToOneAttribute(RelatedAttribute):
         """
         if not self.related_name:
             raise ValueError('Related property is undefined')
+
         return ManyToOneRelatedManager(obj, self)
 
     def set_value(self, obj, new_value):
@@ -2949,7 +2998,7 @@ class OneToManyAttribute(RelatedAttribute):
         related_none (:obj:`bool`): if true, the related attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', related_none=True, default=set(),
+    def __init__(self, related_class, related_name='', related_none=True, default=set(), related_default=None,
                  verbose_name='', verbose_related_name='', help=''):
         """
         Args:
@@ -2957,17 +3006,16 @@ class OneToManyAttribute(RelatedAttribute):
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
             related_none (:obj:`bool`, optional): if true, the related attribute is invalid if its value is None
             default (:obj:`callable`, optional): function which returns the default value
+            related_default (:obj:`callable`, optional): function which returns the default related value
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
         """
-        if default and not hasattr(default, '__call__'):
-            raise ValueError('Default must be a callable')
-
-        super(OneToManyAttribute, self).__init__(related_class, related_name=related_name, default=default,
+        super(OneToManyAttribute, self).__init__(related_class, related_name=related_name,
+                                                 init_value=OneToManyRelatedManager, default=default,
+                                                 related_init_value=None, related_default=related_default,
                                                  verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
         self.related_none = related_none
-        self.init_value = OneToManyRelatedManager
 
     def get_init_value(self, obj):
         """ Get initial value for attribute
@@ -3188,24 +3236,21 @@ class OneToManyAttribute(RelatedAttribute):
 class ManyToManyAttribute(RelatedAttribute):
     """ Represents a many-to-many relationship between two types of objects. """
 
-    def __init__(self, related_class, related_name='', default=set(), verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='', default=set(), related_default=set(), verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
             related_name (:obj:`str`, optional): name of related attribute on `related_class`
             default (:obj:`callable`, optional): function which returns the default values
+            related_default (:obj:`callable`, optional): function which returns the default related values
             verbose_name (:obj:`str`, optional): verbose name
             verbose_related_name (:obj:`str`, optional): verbose related name
             help (:obj:`str`, optional): help string
         """
-        if default and not hasattr(default, '__call__'):
-            raise ValueError('Default must be a callable')
-
-        super(ManyToManyAttribute, self).__init__(related_class, related_name=related_name, default=default,
+        super(ManyToManyAttribute, self).__init__(related_class, related_name=related_name,
+                                                  init_value=ManyToManyRelatedManager, default=default,
+                                                  related_init_value=ManyToManyRelatedManager, related_default=related_default,
                                                   verbose_name=verbose_name, help=help, verbose_related_name=verbose_related_name)
-
-        self.init_value = ManyToManyRelatedManager
-        self.related_init_value = ManyToManyRelatedManager
 
     def get_init_value(self, obj):
         """ Get initial value for attribute
@@ -3218,7 +3263,7 @@ class ManyToManyAttribute(RelatedAttribute):
         """
         return ManyToManyRelatedManager(obj, self, related=False)
 
-    def get_init_related_value(self, obj):
+    def get_related_init_value(self, obj):
         """ Get initial related value for attribute
 
         Args:

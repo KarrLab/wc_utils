@@ -536,7 +536,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         # attributes
         for attr in self.Meta.related_attributes.values():
-            if attr.related_name not in kwargs:                
+            if attr.related_name not in kwargs:
                 default = attr.get_related_default(self)
                 if default:
                     setattr(self, attr.related_name, default)
@@ -2465,7 +2465,7 @@ class RelatedAttribute(Attribute):
         """
         if not self.related_name:
             raise ValueError('Related property is not defined')
-        
+
         return make_copy(self.related_init_value)
 
     def get_related_default(self, obj):

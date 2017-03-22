@@ -543,7 +543,7 @@ def read(path):
     return reader.run()
 
 
-def convert(source, destination, worksheet_order=None, style=None):
+def convert(source, destination, worksheet_order=None, style=None, ignore_extra_sheets=True):
     """ Convert among Excel (.xlsx), comma separated (.csv), and tab separated formats (.tsv)
 
     Args:
@@ -551,6 +551,7 @@ def convert(source, destination, worksheet_order=None, style=None):
         destination (:obj:`str`): path to save converted file
         worksheet_order (:obj:`list` of `str`): worksheet order
         style (:obj:`WorkbookStyle`, optional): workbook style for Excel
+        ignore_extra_sheets (:obj:`bool`, optional): true/false should extra sheets in worksheet_order be ignored or should an error be thrown
 
     Raises:
         :obj:`ValueError`: if file extensions are not supported or file names are equal
@@ -587,12 +588,15 @@ def convert(source, destination, worksheet_order=None, style=None):
     workbook = read(source)
 
     ordered_workbook = Workbook()
-    worksheet_order = worksheet_order or []
-    difference = set(worksheet_order) - set(workbook.keys())
-    if difference:
-        raise ValueError("source '{}' missing worksheets: '{}'".format(source, difference))
+    worksheet_order = worksheet_order or []    
+    if not ignore_extra_sheets:
+        difference = set(worksheet_order) - set(workbook.keys())
+        if difference:
+            raise ValueError("source '{}' missing worksheets: '{}'".format(source, difference))
+
     for worksheet in chain(worksheet_order, workbook.keys()):
-        ordered_workbook[worksheet] = workbook[worksheet]
+        if worksheet in workbook:
+            ordered_workbook[worksheet] = workbook[worksheet]
 
     write(destination, ordered_workbook, style=style)
 

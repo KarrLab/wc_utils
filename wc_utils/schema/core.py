@@ -147,11 +147,12 @@ import re
 import warnings
 
 # todo: simplify primary attributes, deserialization
-# todo: memory efficient models
+# todo: improve memory efficiency
+# todo: improve run-time
+# todo: eliminate recursion in get_related, eq, difference, copy
 # todo: improve naming: on meaning for Model, clean -> convert, Slug -> id, etc.
-# todo: model migration
+# todo: implement schema migration
 # todo: ensure unique and unique_together properties always maintained: see schema/test_core.py::TestCore::test_maintain_unique
-# todo: improve errors: attach file location (if available) and value to each attribute; then use them
 
 
 class ModelMeta(type):

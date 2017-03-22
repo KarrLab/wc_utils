@@ -232,3 +232,15 @@ class TestIo(unittest.TestCase):
 
         # assert content is the same
         self.assertEqual(wk, self.wk)
+
+    def test_get_reader(self):
+        self.assertEqual(io.get_reader('.xlsx'), io.ExcelReader)
+        self.assertEqual(io.get_reader('.csv'), io.SeparatedValuesReader)
+        self.assertEqual(io.get_reader('.tsv'), io.SeparatedValuesReader)
+        self.assertRaises(ValueError, lambda: io.get_reader('.txt'))
+
+    def test_get_writer(self):
+        self.assertEqual(io.get_writer('.xlsx'), io.ExcelWriter)
+        self.assertEqual(io.get_writer('.csv'), io.SeparatedValuesWriter)
+        self.assertEqual(io.get_writer('.tsv'), io.SeparatedValuesWriter)
+        self.assertRaises(ValueError, lambda: io.get_writer('.txt'))

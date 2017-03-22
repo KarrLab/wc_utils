@@ -6,7 +6,8 @@
 :License: MIT
 """
 
-from wc_utils.utils.string import indent_forest, delete_trailing_blanks
+from wc_utils.util.string import indent_forest, delete_trailing_blanks
+import unittest
 
 
 class TestStringUtils(unittest.TestCase):

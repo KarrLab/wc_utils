@@ -18,7 +18,7 @@ import tempfile
 import unittest
 
 
-class Root(core.Model):
+class MainRoot(core.Model):
     id = core.StringAttribute(primary=True, unique=True)
     name = core.StringAttribute()
 
@@ -29,7 +29,7 @@ class Root(core.Model):
 
 class Node(core.Model):
     id = core.SlugAttribute(primary=True)
-    root = core.ManyToOneAttribute(Root, related_name='nodes')
+    root = core.ManyToOneAttribute(MainRoot, related_name='nodes')
     val1 = core.FloatAttribute()
     val2 = core.FloatAttribute()
 
@@ -94,7 +94,7 @@ class OneToManyInline(core.Model):
 class TestIo(unittest.TestCase):
 
     def setUp(self):
-        self.root = root = Root(id='root', name=u'\u20ac')
+        self.root = root = MainRoot(id='root', name=u'\u20ac')
         nodes = [
             Node(root=root, id='node_0', val1=1, val2=2),
             Node(root=root, id='node_1', val1=3, val2=4),
@@ -127,20 +127,21 @@ class TestIo(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.dirname)
 
-    def test_write_read(self):
+    def test_dummy_model(self):
         # test integrity of relationships
         for leaf in self.leaves:
             for row in leaf.onetomany_rows:
                 self.assertEqual(row.leaf, leaf)
 
+    def test_write_read(self):
         # write/read to/from Excel
         root = self.root
         objects = set((root, )) | root.get_related()
         objects = utils.group_objects_by_model(objects)
 
         filename = os.path.join(self.dirname, 'test.xlsx')
-        Writer().run(filename, set((root,)), [Root, Node, Leaf, ])
-        objects2 = Reader().run(filename, [Root, Node, Leaf, OneToManyRow])
+        Writer().run(filename, set((root,)), [MainRoot, Node, Leaf, ])
+        objects2 = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
 
         # validate
         all_objects2 = set()
@@ -154,10 +155,10 @@ class TestIo(unittest.TestCase):
                              msg='Different numbers of "{}" objects'.format(model.__name__))
         self.assertEqual(len(objects2), len(objects))
 
-        root2 = objects2[Root].pop()
+        root2 = objects2[MainRoot].pop()
 
         filename2 = os.path.join(self.dirname, 'test2.xlsx')
-        Writer().run(filename2, set((root2,)), [Root, Node, Leaf, ])
+        Writer().run(filename2, set((root2,)), [MainRoot, Node, Leaf, ])
         original = read_workbook(filename)
         copy = read_workbook(filename2)
         self.assertEqual(copy, original)
@@ -168,8 +169,44 @@ class TestIo(unittest.TestCase):
         # unicode
         self.assertEqual(root2.name, u'\u20ac')
 
+    def test_read_fuzzy_worksheet_name_match(self):
+        filename = os.path.join(self.dirname, 'test-*.csv')
+
+        #write to file
+        Writer().run(filename, set((self.root,)), [MainRoot, Node, Leaf, ])
+
+        """ test reading worksheet by the model's name """
+        #rename worksheet
+        self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-Main root.csv')))
+        os.rename(os.path.join(self.dirname, 'test-Main root.csv'), os.path.join(self.dirname, 'test-MainRoot.csv'))
+
+        objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)
+
+        """ test reading worksheet by the model's verbose name """
+        #rename worksheet
+        self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-Leaves.csv')))
+        os.rename(os.path.join(self.dirname, 'test-Leaves.csv'), os.path.join(self.dirname, 'test-Leaf.csv'))
+
+        objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)        
+
+        """ test reading worksheet by the model's plural verbose name """
+        #rename worksheet
+        self.assertTrue(os.path.isfile(os.path.join(self.dirname, 'test-MainRoot.csv')))
+        os.rename(os.path.join(self.dirname, 'test-MainRoot.csv'), os.path.join(self.dirname, 'test-Main roots.csv'))
+
+        objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
+        root = objects[MainRoot].pop()
+
+        self.assertEqual(root, self.root)
+
     def test_validation(self):
-        t = Root(name='f')
+        t = MainRoot(name='f')
         self.assertIn('value for primary attribute cannot be empty',
             t.validate().attributes[0].messages[0])
 
@@ -278,18 +315,18 @@ class TestIo(unittest.TestCase):
             "Header 'y' in row 1, col F does not match any attribute",
             "Empty header field in row 3, col A - delete empty row(s)",
             ]
-        self.check_reader_errors('bad-headers.xlsx', msgs, [Root, Node, Leaf, OneToManyRow])
+        self.check_reader_errors('bad-headers.xlsx', msgs, [MainRoot, Node, Leaf, OneToManyRow])
 
         msgs = [
             "The model cannot be loaded because 'bad-headers-*.csv' contains error(s)",
             "Header 'x' in row 5, col 1 does not match any attribute",
             "Empty header field in row 1, col 5 - delete empty column(s)",
             ]
-        self.check_reader_errors('bad-headers-*.csv', msgs, [Root, Node, Leaf, OneToManyRow])
+        self.check_reader_errors('bad-headers-*.csv', msgs, [MainRoot, Node, Leaf, OneToManyRow])
 
         '''
         msgs = [
-            "Duplicate, case insensitive, header fields: 'Root', 'root'",
+            "Duplicate, case insensitive, header fields: 'MainRoot', 'root'",
             "Duplicate, case insensitive, header fields: 'good val', 'Good val', 'Good VAL'"]
         self.check_reader_errors('duplicate-headers.xlsx', msgs, [Node])
         '''
@@ -307,8 +344,9 @@ class TestIo(unittest.TestCase):
             "uncaught-error.xlsx:Tests:B5",
             "float() argument must be a string or a number",
             "uncaught-error.xlsx:Tests:C6",
-            "Value must be a `float`",]
-        self.check_reader_errors('uncaught-error.xlsx', msgs, [Root, Test])
+            "Value must be a `float`",
+            ]
+        self.check_reader_errors('uncaught-error.xlsx', msgs, [MainRoot, Test])
 
     def test_read_invalid_data(self):
         class NormalRecord(core.Model):
@@ -341,7 +379,8 @@ class TestIo(unittest.TestCase):
             "Leaf *\n +'id':''\n +invalid-data-\*.csv:Leaves:6,1\n +StringAttribute value for "
                 "primary attribute cannot be empty",
             "Transposed\n +'val':'x'\n +invalid-data-\*.csv:Transposed:2,3\n +Value must be at "
-                "least 2 characters",]
+                "least 2 characters",
+                ]
         self.check_reader_errors('invalid-data-*.csv', RE_msgs, [Leaf, NormalRecord, Transposed],
             use_re=True)
 
@@ -355,30 +394,32 @@ class TestIo(unittest.TestCase):
                 attribute_order = ('id', 'val', 'node')
 
         RE_msgs = [
-            "reference-errors.xlsx:Nodes:B3\n +Unable to find Root with id='not root'",
+            "reference-errors.xlsx:Nodes:B3\n +Unable to find MainRoot with id='not root'",
             "reference-errors.xlsx:Leaves:B6\n +Unable to find Node with id='no such node'",
             "reference-errors.xlsx:Leaves:E7\n +Unable to find OneToManyRow with id='no such row'",
-            "reference-errors.xlsx:'Node friends':B2\n +Unable to find Node with id=no_node"]
-        self.check_reader_errors('reference-errors.xlsx', RE_msgs, [Root, Node, Leaf, OneToManyRow,
+            "reference-errors.xlsx:'Node friends':B2\n +Unable to find Node with id=no_node",
+            ]
+        self.check_reader_errors('reference-errors.xlsx', RE_msgs, [MainRoot, Node, Leaf, OneToManyRow,
             NodeFriend], use_re=True)
 
     def test_duplicate_primaries(self):
         RE_msgs = [
             "The model cannot be loaded because it fails to validate",
             "Node:\n +'id':\n +id values must be unique, but these values are repeated: node_2",
-            "Root:\n +'id':\n +id values must be unique, but these values are repeated: 'root 2'"]
-        self.check_reader_errors('duplicate-primaries.xlsx', RE_msgs, [Root, Node, Leaf, OneToManyRow],
+            "MainRoot:\n +'id':\n +id values must be unique, but these values are repeated: 'root 2'",
+            ]
+        self.check_reader_errors('duplicate-primaries.xlsx', RE_msgs, [MainRoot, Node, Leaf, OneToManyRow],
             use_re=True)
 
     def test_create_worksheet_style(self):
-        self.assertIsInstance(Writer.create_worksheet_style(Root), WorksheetStyle)
+        self.assertIsInstance(Writer.create_worksheet_style(MainRoot), WorksheetStyle)
 
     def test_convert(self):
         filename_xls1 = os.path.join(self.dirname, 'test1.xlsx')
         filename_xls2 = os.path.join(self.dirname, 'test2.xlsx')
         filename_csv = os.path.join(self.dirname, 'test-*.csv')
 
-        models = [Root, Node, Leaf, OneToManyRow]
+        models = [MainRoot, Node, Leaf, OneToManyRow]
         
         Writer().run(filename_xls1, set((self.root,)), models)
 
@@ -386,17 +427,17 @@ class TestIo(unittest.TestCase):
         convert(filename_csv, filename_xls2, models)
         
         objects2 = Reader().run(filename_csv, models)
-        self.assertEqual(self.root, list(objects2[Root])[0])
+        self.assertEqual(self.root, list(objects2[MainRoot])[0])
         
         objects2 = Reader().run(filename_xls2, models)
-        self.assertEqual(self.root, list(objects2[Root])[0])
+        self.assertEqual(self.root, list(objects2[MainRoot])[0])
 
     def test_create_template(self):
         filename = os.path.join(self.dirname, 'test3.xlsx')
-        create_template(filename, [Root, Node, Leaf])
-        objects = Reader().run(filename, [Root, Node, Leaf])
+        create_template(filename, [MainRoot, Node, Leaf])
+        objects = Reader().run(filename, [MainRoot, Node, Leaf])
         self.assertEqual(objects, {
-            Root: set(),
+            MainRoot: set(),
             Node: set(),
             Leaf: set(),
         })

@@ -245,11 +245,6 @@ class ModelMeta(type):
             if isinstance(attr, Attribute):
                 attr.name = attr_name
                 if not attr.verbose_name:
-                    # todo: don't do this: it makes attribute names in data which EXACTLY matches
-                    # the attribute name of a Model fail Reader().run()
-                    #
-                    # This should be handled in the Reader (i.e. the Reader should accept
-                    # either the name or the verbose name)
                     attr.verbose_name = sentencecase(attr_name)
                 cls.Meta.attributes[attr_name] = attr
 

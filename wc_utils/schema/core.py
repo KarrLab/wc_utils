@@ -1,4 +1,4 @@
-""" Standalone Django-like schema model
+""" Database-independent Django-like schema model
 
 This module allows developers to define standalone (separate from databases) schemas using a syntax similar to Django.
 The `io` module provides methods to serialize and deserialize schema objects to/from Excel, csv, and tsv file(s).

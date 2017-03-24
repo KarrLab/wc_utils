@@ -591,22 +591,12 @@ class Model(with_metaclass(ModelMeta, object)):
 
         _seen[(self, other)] = None
 
-        for attr_name, attr in self.Meta.attributes.items():
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
             if not self._eq_related_object(other, attr, attr_name, _seen):
                 _seen[(self, other)] = False
                 return False
 
-        for attr_name, attr in self.Meta.related_attributes.items():
-            if not self._eq_related_object(other, attr, attr_name, _seen):
-                _seen[(self, other)] = False
-                return False
-
-        for attr_name, attr in self.Meta.attributes.items():
-            if not self._eq_related_set(other, attr, attr_name, _seen):
-                _seen[(self, other)] = False
-                return False
-
-        for attr_name, attr in self.Meta.related_attributes.items():
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
             if not self._eq_related_set(other, attr, attr_name, _seen):
                 _seen[(self, other)] = False
                 return False

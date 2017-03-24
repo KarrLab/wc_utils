@@ -149,10 +149,11 @@ import warnings
 # todo: simplify primary attributes, deserialization
 # todo: improve memory efficiency
 # todo: improve run-time
-# todo: eliminate recursion in get_related, eq, difference, copy
+# todo: eliminate recursion in eq, difference
 # todo: improve naming: on meaning for Model, clean -> convert, Slug -> id, etc.
 # todo: implement schema migration
-# todo: ensure unique and unique_together properties always maintained: see schema/test_core.py::TestCore::test_maintain_unique
+# todo: ensure unique and unique_together properties always maintained:
+# see schema/test_core.py::TestCore::test_maintain_unique
 
 
 class ModelMeta(type):
@@ -1045,34 +1046,33 @@ class Model(with_metaclass(ModelMeta, object)):
         attr = cls.Meta.primary_attribute
         return (None, InvalidAttribute(attr, ['No object with primary attribute value "{}"'.format(value)]))
 
-    def get_related(self, _related_objects=None):
+    def get_related(self):
         """ Get all related objects
-
-        Args:
-            _related_objects (:obj:`set` of `Model`): preliminary set of related objects
 
         Returns:
             :obj:`set` of `Model`: related objects
         """
-        if _related_objects is None:
-            _related_objects = set()
+        related_objs = set()
+        objs_to_explore = [self]
+        init_iter = True
+        while objs_to_explore:
+            obj = objs_to_explore.pop()
+            if obj not in related_objs:
+                if not init_iter:
+                    related_objs.add(obj)
+                init_iter = False
 
-        cls = self.__class__
+                cls = obj.__class__
+                for attr_name, attr in chain(cls.Meta.attributes.items(), cls.Meta.related_attributes.items()):
+                    if isinstance(attr, RelatedAttribute):
+                        value = getattr(obj, attr_name)
 
-        for attr_name, attr in chain(cls.Meta.attributes.items(), cls.Meta.related_attributes.items()):
-            if isinstance(attr, RelatedAttribute):
-                value = getattr(self, attr_name)
+                        if isinstance(value, set):
+                            objs_to_explore.extend(value)
+                        elif value is not None:
+                            objs_to_explore.append(value)
 
-                if isinstance(value, set):
-                    for v in value:
-                        if v not in _related_objects:
-                            _related_objects.add(v)
-                            v.get_related(_related_objects)
-                elif value is not None and value not in _related_objects:
-                    _related_objects.add(value)
-                    value.get_related(_related_objects)
-
-        return _related_objects
+        return related_objs
 
     def clean(self):
         """ Clean all of this `Model`'s attributes

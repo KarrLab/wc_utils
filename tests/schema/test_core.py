@@ -1618,3 +1618,27 @@ class TestCore(unittest.TestCase):
                 delete object:
                     use a finalizer to remove object from the class dict
         '''
+
+    def test_sort(self):
+        roots = [
+            Root(label='c'),
+            Root(label='d'),
+            Root(label='a'),
+            Root(label='b'),
+        ]
+
+        roots2 = Root.sort(roots)
+        self.assertEqual(roots[0].label, 'c')
+        self.assertEqual(roots[1].label, 'd')
+        self.assertEqual(roots[2].label, 'a')
+        self.assertEqual(roots[3].label, 'b')
+
+        self.assertEqual(roots2[0].label, 'a')
+        self.assertEqual(roots2[1].label, 'b')
+        self.assertEqual(roots2[2].label, 'c')
+        self.assertEqual(roots2[3].label, 'd')
+
+        self.assertEqual(roots2[0], roots[2])
+        self.assertEqual(roots2[1], roots[3])
+        self.assertEqual(roots2[2], roots[0])
+        self.assertEqual(roots2[3], roots[1])

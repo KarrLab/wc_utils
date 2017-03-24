@@ -584,30 +584,10 @@ class Model(with_metaclass(ModelMeta, object)):
             _seen[(self, other)] = True
             return True
 
-        # different types
-        if not self.__class__ is other.__class__:
+        # check non-related attributes (without recusion)
+        if self.__eq__attributes(other) == False:
             _seen[(self, other)] = False
             return False
-
-        # check non-related attributes (without recusion)
-        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            val = getattr(self, attr_name)
-            other_val = getattr(other, attr_name)
-
-            if not isinstance(attr, RelatedAttribute):
-                if not attr.value_equal(val, other_val):
-                    _seen[(self, other)] = False
-                    return False
-
-            elif isinstance(val, RelatedManager):
-                if len(val) != len(other_val):
-                    _seen[(self, other)] = False
-                    return False
-
-            else:
-                if val is None and other_val is not None:
-                    _seen[(self, other)] = False
-                    return False
 
         _seen[(self, other)] = None
 
@@ -633,6 +613,42 @@ class Model(with_metaclass(ModelMeta, object)):
 
         # return `True` since there are no difference
         _seen[(self, other)] = True
+        return True
+
+    def __eq__attributes(self, other):
+        """ Determine if the attributes of two objects are semantically equal
+
+        Args:
+            other (:obj:`Model`): object to compare
+
+        Returns:
+            :obj:`bool`: `True` if the objects' attributes are semantically equal, else `False`
+        """
+        # objects are the same
+        if self is other:
+            return True
+
+        # check objects are of the same class
+        if not self.__class__ is other.__class__:
+            return False
+
+        # check that their non-related attributes are semantically equal
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
+            val = getattr(self, attr_name)
+            other_val = getattr(other, attr_name)
+
+            if not isinstance(attr, RelatedAttribute):
+                if not attr.value_equal(val, other_val):
+                    return False
+
+            elif isinstance(val, RelatedManager):
+                if len(val) != len(other_val):
+                    return False
+
+            else:
+                if val is None and other_val is not None:
+                    return False
+
         return True
 
     def _eq_related_object(self, other, attr, attr_name, _seen):

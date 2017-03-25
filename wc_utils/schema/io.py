@@ -51,12 +51,12 @@ class Writer(object):
         """
 
         # get related objects
-        more_objects = set()
+        more_objects = []
         for obj in objects:
-            more_objects.update(obj.get_related())
+            more_objects.extend(obj.get_related())
 
         # clean objects
-        all_objects = objects | more_objects
+        all_objects = list(set(objects + more_objects))
         error = Validator().run(all_objects)
 
         if error:
@@ -67,8 +67,9 @@ class Writer(object):
         grouped_objects = {}
         for obj in all_objects:
             if obj.__class__ not in grouped_objects:
-                grouped_objects[obj.__class__] = set()
-            grouped_objects[obj.__class__].add(obj)
+                grouped_objects[obj.__class__] = []
+            if obj not in grouped_objects[obj.__class__]:
+                grouped_objects[obj.__class__].append(obj)
 
         # get neglected models
         unordered_models = natsorted(set(grouped_objects.keys()).difference(set(models)),
@@ -89,19 +90,19 @@ class Writer(object):
             if model in grouped_objects:
                 objects = grouped_objects[model]
             else:
-                objects = set()
+                objects = []
 
             self.write_model(writer, model, objects)
 
         writer.finalize_workbook()
 
     def write_model(self, writer, model, objects):
-        """ Write a set of model objects to a file
+        """ Write a list of model objects to a file
 
         Args:
             writer (:obj:`BaseWriter`): io writer
             model (:obj:`class`): model
-            objects (:obj:`set` of `Model`): set of instances of `model`
+            objects (:obj:`list` of `Model`): list of instances of `model`
         """
 
         # attribute order
@@ -202,7 +203,7 @@ class Reader(object):
     """ Read model objects from file(s) """
 
     def run(self, path, models, ignore_other_sheets=False, ignore_missing_attributes=False, ignore_extra_attributes=False):
-        """ Read a set of model objects from file(s) and validate them
+        """ Read a list of model objects from file(s) and validate them
 
         File(s) may be a single Excel workbook with multiple sheets or a set of delimeter
         separated files encoded by a single path with a glob pattern.
@@ -291,19 +292,19 @@ class Reader(object):
         # convert to sets
         for model in models:
             if model in objects:
-                objects[model] = set(objects[model])
+                objects[model] = objects[model]
             else:
-                objects[model] = set()
+                objects[model] = []
 
         for model, model_objects in objects_by_primary_attribute.items():
             if model not in objects:
-                objects[model] = set()
-            objects[model].update(model_objects.values())
+                objects[model] = []
+            objects[model] = list(set(objects[model] + list(model_objects.values())))
 
         # validate
-        all_objects = set()
+        all_objects = []
         for model in models:
-            all_objects.update(objects[model])
+            all_objects.extend(objects[model])
 
         errors = Validator().clean(all_objects)
         if errors:
@@ -567,7 +568,7 @@ def create_template(path, models, title=None, description=None, keywords=None,
         language (:obj:`str`, optional): language
         creator (:obj:`str`, optional): creator
     """
-    Writer().run(path, set(), models,
+    Writer().run(path, [], models,
                  title=title, description=description, keywords=keywords,
                  version=version, language=language, creator=creator)
 

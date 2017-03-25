@@ -104,7 +104,7 @@ Equality, differencing
 =====================================
 To facilitate comparison between objects, the :obj:`Model` provides two methods
 
-* `__eq__`: returns :obj:`True` if two :obj:`Model` instances are semantically equal (all attribute values are recursively equal)
+* `is_equal`: returns :obj:`True` if two :obj:`Model` instances are semantically equal (all attribute values are recursively equal)
 * `difference`: returns a textual description of the difference(s) between two objects
 
 =====================================
@@ -564,7 +564,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         super(Model, self).__setattr__(attr_name, value)
 
-    def __eq__(self, other, _seen=None):
+    def is_equal(self, other, _seen=None):
         """ Determine if two objects are semantically equal
 
         Args:
@@ -585,19 +585,19 @@ class Model(with_metaclass(ModelMeta, object)):
             return True
 
         # check non-related attributes (without recusion)
-        if self.__eq__attributes(other) == False:
+        if self._is_equal_attributes(other) == False:
             _seen[(self, other)] = False
             return False
 
         _seen[(self, other)] = None
 
         for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if not self._eq_related_object(other, attr, attr_name, _seen):
+            if not self._is_equal_related_object(other, attr, attr_name, _seen):
                 _seen[(self, other)] = False
                 return False
 
         for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if not self._eq_related_set(other, attr, attr_name, _seen):
+            if not self._is_equal_related_set(other, attr, attr_name, _seen):
                 _seen[(self, other)] = False
                 return False
 
@@ -605,7 +605,7 @@ class Model(with_metaclass(ModelMeta, object)):
         _seen[(self, other)] = True
         return True
 
-    def __eq__attributes(self, other):
+    def _is_equal_attributes(self, other):
         """ Determine if the attributes of two objects are semantically equal
 
         Args:
@@ -641,7 +641,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         return True
 
-    def _eq_related_object(self, other, attr, attr_name, _seen):
+    def _is_equal_related_object(self, other, attr, attr_name, _seen):
         """ Get difference between attributes values of two objects
 
         Args:
@@ -657,16 +657,16 @@ class Model(with_metaclass(ModelMeta, object)):
             val = getattr(self, attr_name)
             if isinstance(val, Model):
                 other_val = getattr(other, attr_name)
-                if val.__eq__(other_val, _seen) == False:
+                if val.is_equal(other_val, _seen) == False:
                     return False
 
             elif isinstance(val, RelatedManager) and len(val) == 1:
                 other_val = getattr(other, attr_name)
-                if list(val)[0].__eq__(list(other_val)[0], _seen) == False:
+                if list(val)[0].is_equal(list(other_val)[0], _seen) == False:
                     return False
         return True
 
-    def _eq_related_set(self, other, attr, attr_name, _seen):
+    def _is_equal_related_set(self, other, attr, attr_name, _seen):
         """ Get difference between attributes values of two objects
 
         Args:
@@ -685,7 +685,7 @@ class Model(with_metaclass(ModelMeta, object)):
                 for v in val:
                     match = False
                     for i_ov, ov in enumerate(other_val):
-                        if v.__eq__(ov, _seen) != False:
+                        if v.is_equal(ov, _seen) != False:
                             match = True
                             other_val.pop(i_ov)
                             break
@@ -693,25 +693,6 @@ class Model(with_metaclass(ModelMeta, object)):
                         return False
 
         return True
-
-    def __ne__(self, other):
-        """ Determine if two objects are semantically unequal
-
-        Args:
-            other (:obj:`object`): object to compare
-
-        Returns:
-            :obj:`bool`: `False` if objects are semantically equal, else `True`
-        """
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        """ Returns a hash for a object
-
-        Returns:
-            :obj:`int`: hash code
-        """
-        return id(self)
 
     def __str__(self):
         """ Get the string representation of an object
@@ -1058,14 +1039,14 @@ class Model(with_metaclass(ModelMeta, object)):
         Returns:
             :obj:`set` of `Model`: related objects
         """
-        related_objs = set()
+        related_objs = list()
         objs_to_explore = [self]
         init_iter = True
         while objs_to_explore:
             obj = objs_to_explore.pop()
             if obj not in related_objs:
                 if not init_iter:
-                    related_objs.add(obj)
+                    related_objs.append(obj)
                 init_iter = False
 
                 cls = obj.__class__
@@ -1073,7 +1054,7 @@ class Model(with_metaclass(ModelMeta, object)):
                     if isinstance(attr, RelatedAttribute):
                         value = getattr(obj, attr_name)
 
-                        if isinstance(value, set):
+                        if isinstance(value, list):
                             objs_to_explore.extend(value)
                         elif value is not None:
                             objs_to_explore.append(value)
@@ -1133,7 +1114,7 @@ class Model(with_metaclass(ModelMeta, object)):
         """ Validate attribute uniqueness
 
         Args:
-            objects (:obj:`set` of `Model`): set of objects
+            objects (:obj:`list` of `Model`): list of objects
 
         Returns:
             :obj:`InvalidModel` or `None`: list of invalid attributes and their errors
@@ -1348,7 +1329,7 @@ class Attribute(object):
         """ Determine if the attribute values are unique
 
         Args:
-            objects (:obj:`set` of `Model`): set of `Model` objects
+            objects (:obj:`list` of `Model`): list of `Model` objects
             values (:obj:`list`): list of values
 
         Returns:
@@ -2509,7 +2490,7 @@ class RelatedAttribute(Attribute):
 
         Args:
             obj (:obj:`Model`): object to validate
-            value (:obj:`set`): value to validate
+            value (:obj:`list`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -2687,7 +2668,7 @@ class OneToOneAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`Model`): object being validated
-            value (:obj:`set` of `Model`): value to validate
+            value (:obj:`list` of `Model`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -2761,7 +2742,7 @@ class ManyToOneAttribute(RelatedAttribute):
     """
 
     def __init__(self, related_class, related_name='', none=True,
-                 default=None, related_default=set(),
+                 default=None, related_default=list(),
                  verbose_name='', verbose_related_name='', help=''):
         """
         Args:
@@ -2818,7 +2799,7 @@ class ManyToOneAttribute(RelatedAttribute):
 
             if new_value:
                 new_related = getattr(new_value, self.related_name)
-                new_related.add(obj, propagate=False)
+                new_related.append(obj, propagate=False)
 
         return new_value
 
@@ -2827,10 +2808,10 @@ class ManyToOneAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`object`): object whose attribute should be set
-            new_values (:obj:`set`): value of the attribute
+            new_values (:obj:`list`): value of the attribute
 
         Returns:
-            :obj:`set`: value of the attribute
+            :obj:`list`: value of the attribute
 
         Raises:
             :obj:`ValueError`: if related property is not defined
@@ -2842,7 +2823,7 @@ class ManyToOneAttribute(RelatedAttribute):
 
         cur_values = getattr(obj, self.related_name)
         cur_values.clear()
-        cur_values.update(new_values_copy)
+        cur_values.extend(new_values_copy)
 
         return cur_values
 
@@ -2866,8 +2847,8 @@ class ManyToOneAttribute(RelatedAttribute):
         """ Determine if attribute values are equal
 
         Args:
-            val1 (:obj:`set`): first value
-            val2 (:obj:`set`): second value
+            val1 (:obj:`list`): first value
+            val2 (:obj:`list`): second value
 
         Returns:
             :obj:`bool`: True if attribute values are equal
@@ -2909,8 +2890,8 @@ class ManyToOneAttribute(RelatedAttribute):
             errors.append('Value must be an instance of "{:s}" or `None`'.format(self.related_class.__name__))
         elif self.related_name:
             related_value = getattr(value, self.related_name)
-            if not isinstance(related_value, set):
-                errors.append('Related value must be a set')
+            if not isinstance(related_value, list):
+                errors.append('Related value must be a list')
             if obj not in related_value:
                 errors.append('Object must be in related values')
 
@@ -2923,7 +2904,7 @@ class ManyToOneAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`Model`): object being validated
-            value (:obj:`set` of `Model`): value to validate
+            value (:obj:`list` of `Model`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -2935,8 +2916,8 @@ class ManyToOneAttribute(RelatedAttribute):
             errors = []
 
         if self.related_name:
-            if not isinstance(value, set):
-                errors.append('Related value must be a set')
+            if not isinstance(value, list):
+                errors.append('Related value must be a list')
 
             for v in value:
                 if not isinstance(v, self.primary_class):
@@ -3000,7 +2981,7 @@ class OneToManyAttribute(RelatedAttribute):
         related_none (:obj:`bool`): if true, the related attribute is invalid if its value is None
     """
 
-    def __init__(self, related_class, related_name='', related_none=True, default=set(), related_default=None,
+    def __init__(self, related_class, related_name='', related_none=True, default=list(), related_default=None,
                  verbose_name='', verbose_related_name='', help=''):
         """
         Args:
@@ -3035,16 +3016,16 @@ class OneToManyAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`object`): object whose attribute should be set
-            new_values (:obj:`set`): value of the attribute
+            new_values (:obj:`list`): value of the attribute
 
         Returns:
-            :obj:`set`: value of the attribute
+            :obj:`list`: value of the attribute
         """
         new_values_copy = list(new_values)
 
         cur_values = getattr(obj, self.name)
         cur_values.clear()
-        cur_values.update(new_values_copy)
+        cur_values.extend(new_values_copy)
 
         return cur_values
 
@@ -3052,8 +3033,8 @@ class OneToManyAttribute(RelatedAttribute):
         """ Determine if attribute values are equal
 
         Args:
-            val1 (:obj:`set`): first value
-            val2 (:obj:`set`): second value
+            val1 (:obj:`list`): first value
+            val2 (:obj:`list`): second value
 
         Returns:
             :obj:`bool`: True if attribute values are equal
@@ -3114,7 +3095,7 @@ class OneToManyAttribute(RelatedAttribute):
 
         if new_value:
             new_related = getattr(new_value, self.name)
-            new_related.add(obj, propagate=False)
+            new_related.append(obj, propagate=False)
 
         return new_value
 
@@ -3123,7 +3104,7 @@ class OneToManyAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`Model`): object being validated
-            value (:obj:`set` of `Model`): value to validate
+            value (:obj:`list` of `Model`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -3134,8 +3115,8 @@ class OneToManyAttribute(RelatedAttribute):
         else:
             errors = []
 
-        if not isinstance(value, set):
-            errors.append('Related value must be a set')
+        if not isinstance(value, list):
+            errors.append('Related value must be a list')
 
         for v in value:
             if not isinstance(v, self.related_class):
@@ -3171,8 +3152,8 @@ class OneToManyAttribute(RelatedAttribute):
                 errors.append('Value must be an instance of "{:s}" or `None`'.format(self.primary_class.__name__))
             else:
                 related_value = getattr(value, self.name)
-                if not isinstance(related_value, set):
-                    errors.append('Related value must be a set')
+                if not isinstance(related_value, list):
+                    errors.append('Related value must be a list')
                 if obj not in related_value:
                     errors.append('Object must be in related values')
 
@@ -3184,7 +3165,7 @@ class OneToManyAttribute(RelatedAttribute):
         """ Serialize related object
 
         Args:
-            value (:obj:`set` of `Model`): Python representation
+            value (:obj:`list` of `Model`): Python representation
 
         Returns:
             :obj:`str`: simple Python representation
@@ -3209,9 +3190,9 @@ class OneToManyAttribute(RelatedAttribute):
             :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if not values:
-            return (set(), None)
+            return (list(), None)
 
-        deserialized_values = set()
+        deserialized_values = list()
         errors = []
         for value in values.split(','):
             value = value.strip()
@@ -3223,7 +3204,7 @@ class OneToManyAttribute(RelatedAttribute):
                     related_objs.append(objects[related_class][value])
 
             if len(related_objs) == 1:
-                deserialized_values.add(related_objs[0])
+                deserialized_values.append(related_objs[0])
             elif len(related_objs) == 0:
                 errors.append('Unable to find {} with {}={}'.format(
                     self.related_class.__name__, self.related_class.Meta.primary_attribute.name, quote(value)))
@@ -3238,7 +3219,7 @@ class OneToManyAttribute(RelatedAttribute):
 class ManyToManyAttribute(RelatedAttribute):
     """ Represents a many-to-many relationship between two types of objects. """
 
-    def __init__(self, related_class, related_name='', default=set(), related_default=set(), verbose_name='', verbose_related_name='', help=''):
+    def __init__(self, related_class, related_name='', default=list(), related_default=list(), verbose_name='', verbose_related_name='', help=''):
         """
         Args:
             related_class (:obj:`class`): related class
@@ -3286,16 +3267,16 @@ class ManyToManyAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`Model`): object
-            new_values (:obj:`set`): new attribute value
+            new_values (:obj:`list`): new attribute value
 
         Returns:
-            :obj:`set`: new attribute value
+            :obj:`list`: new attribute value
         """
         new_values_copy = list(new_values)
 
         cur_values = getattr(obj, self.name)
         cur_values.clear()
-        cur_values.update(new_values_copy)
+        cur_values.extend(new_values_copy)
 
         return cur_values
 
@@ -3304,10 +3285,10 @@ class ManyToManyAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`object`): object whose attribute should be set
-            new_values (:obj:`set`): value of the attribute
+            new_values (:obj:`list`): value of the attribute
 
         Returns:
-            :obj:`set`: value of the attribute
+            :obj:`list`: value of the attribute
 
         Raises:
             :obj:`ValueError`: if related property is not defined
@@ -3319,7 +3300,7 @@ class ManyToManyAttribute(RelatedAttribute):
 
         cur_values = getattr(obj, self.related_name)
         cur_values.clear()
-        cur_values.update(new_values_copy)
+        cur_values.extend(new_values_copy)
 
         return cur_values
 
@@ -3327,8 +3308,8 @@ class ManyToManyAttribute(RelatedAttribute):
         """ Determine if attribute values are equal
 
         Args:
-            val1 (:obj:`set`): first value
-            val2 (:obj:`set`): second value
+            val1 (:obj:`list`): first value
+            val2 (:obj:`list`): second value
 
         Returns:
             :obj:`bool`: True if attribute values are equal
@@ -3351,8 +3332,8 @@ class ManyToManyAttribute(RelatedAttribute):
         """ Determine if attribute values are equal
 
         Args:
-            val1 (:obj:`set`): first value
-            val2 (:obj:`set`): second value
+            val1 (:obj:`list`): first value
+            val2 (:obj:`list`): second value
 
         Returns:
             :obj:`bool`: True if attribute values are equal
@@ -3376,7 +3357,7 @@ class ManyToManyAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`Model`): object being validated
-            value (:obj:`set` of `Model`): value of attribute to validate
+            value (:obj:`list` of `Model`): value of attribute to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -3387,17 +3368,17 @@ class ManyToManyAttribute(RelatedAttribute):
         else:
             errors = []
 
-        if not isinstance(value, set):
-            errors.append('Value must be a `set`')
+        if not isinstance(value, list):
+            errors.append('Value must be a `list`')
         else:
             for v in value:
                 if not isinstance(v, self.related_class):
-                    errors.append('Value must be a `set` of "{:s}"'.format(self.related_class.__name__))
+                    errors.append('Value must be a `list` of "{:s}"'.format(self.related_class.__name__))
 
                 if self.related_name:
                     related_v = getattr(v, self.related_name)
-                    if not isinstance(related_v, set):
-                        errors.append('Related value must be a set')
+                    if not isinstance(related_v, list):
+                        errors.append('Related value must be a list')
                     if obj not in related_v:
                         errors.append('Object must be in related values')
 
@@ -3410,7 +3391,7 @@ class ManyToManyAttribute(RelatedAttribute):
 
         Args:
             obj (:obj:`Model`): object being validated
-            value (:obj:`set` of `Model`): value to validate
+            value (:obj:`list` of `Model`): value to validate
 
         Returns:
             :obj:`InvalidAttribute` or None: None if attribute is valid, other return list of errors as an instance of `InvalidAttribute`
@@ -3422,8 +3403,8 @@ class ManyToManyAttribute(RelatedAttribute):
             errors = []
 
         if self.related_name:
-            if not isinstance(value, set):
-                errors.append('Related value must be a set')
+            if not isinstance(value, list):
+                errors.append('Related value must be a list')
 
             for v in value:
                 if not isinstance(v, self.primary_class):
@@ -3439,7 +3420,7 @@ class ManyToManyAttribute(RelatedAttribute):
         """ Serialize related object
 
         Args:
-            value (:obj:`set` of `Model`): Python representation
+            value (:obj:`list` of `Model`): Python representation
 
         Returns:
             :obj:`str`: simple Python representation
@@ -3464,9 +3445,9 @@ class ManyToManyAttribute(RelatedAttribute):
             :obj:`tuple` of `object`, `InvalidAttribute` or `None`: tuple of cleaned value and cleaning error
         """
         if not values:
-            return (set(), None)
+            return (list(), None)
 
-        deserialized_values = set()
+        deserialized_values = list()
         errors = []
         for value in values.split(','):
             value = value.strip()
@@ -3478,7 +3459,7 @@ class ManyToManyAttribute(RelatedAttribute):
                     related_objs.append(objects[related_class][value])
 
             if len(related_objs) == 1:
-                deserialized_values.add(related_objs[0])
+                deserialized_values.append(related_objs[0])
             elif len(related_objs) == 0:
                 primary_attr = self.related_class.Meta.primary_attribute
                 errors.append('Unable to find {} with {}={}'.format(
@@ -3491,7 +3472,7 @@ class ManyToManyAttribute(RelatedAttribute):
         return (deserialized_values, None)
 
 
-class RelatedManager(set):
+class RelatedManager(list):
     """ Represent values and related values of related attributes
 
     Attributes:
@@ -3506,13 +3487,13 @@ class RelatedManager(set):
             object (:obj:`Model`): model instance
             attribute (:obj:`Attribute`): attribute
         """
-        super(set, self).__init__()
+        super(RelatedManager, self).__init__()
         self.object = object
         self.attribute = attribute
         self.related = related
 
     def create(self, **kwargs):
-        """ Create instance of primary class and add to set
+        """ Create instance of primary class and add to list 
 
         Args:
             kwargs (:obj:`dict` of `str`: `object`): dictionary of attribute name/value pairs
@@ -3535,12 +3516,20 @@ class RelatedManager(set):
                     self.attribute.related_name, self.__class__.__name__, self.attribute.primary_class.__name__))
             obj = self.attribute.related_class(**kwargs)
 
-        self.add(obj)
+        self.append(obj)
 
         return obj
 
+    def add(self, value, **kwargs):
+        """ Add value to list
+
+        Args:
+            value (:obj:`object`): value
+        """
+        self.append(value, **kwargs)
+
     def discard(self, value):
-        """ Remove value from set if value in set
+        """ Remove value from list if value in list
 
         Args:
             value (:obj:`object`): value
@@ -3549,59 +3538,71 @@ class RelatedManager(set):
             self.remove(value)
 
     def clear(self):
-        """ Remove all elements from set """
-        for value in list(self):
+        """ Remove all elements from list """
+        for value in reversed(self):
             self.remove(value)
 
-    def pop(self):
-        """ Remove an arbitrary element from the set """
-        value = super(set, self).pop()
-        self.remove(value, update_set=False)
+    def pop(self, i=-1):
+        """ Remove an arbitrary element from the list 
+
+        Args:
+            i (:obj:`int`, optional): index of element to remove
+        """
+        value = super(RelatedManager, self).pop(i)
+        self.remove(value, update_list=False)
 
     def update(self, values):
-        """ Add values to set
+        """ Add values to list
 
         Args:
-            values (:obj:`set`): values to add to set
+            values (:obj:`list`): values to add to list
+        """
+        self.extend(values)
+
+    def extend(self, values):
+        """ Add values to list
+
+        Args:
+            values (:obj:`list`): values to add to list
         """
         for value in values:
-            self.add(value)
+            self.append(value)
 
     def intersection_update(self, values):
-        """ Retain only intersection of set and `values`
+        """ Retain only intersection of list and `values`
 
         Args:
-            values (:obj:`set`): values to intersect with set
+            values (:obj:`list`): values to intersect with list
         """
-        for value in list(self):
+        for value in reversed(self):
             if value not in values:
                 self.remove(value)
 
     def difference_update(self, values):
-        """ Retain only values of set not in `values`
+        """ Retain only values of list not in `values`
 
         Args:
-            values (:obj:`set`): values to difference with set
+            values (:obj:`list`): values to difference with list
         """
-        for value in list(values):
+        for value in reversed(values):
             if value in self:
                 self.remove(value)
 
     def symmetric_difference_update(self, values):
-        """ Retain values in only one of set and `values`
+        """ Retain values in only one of list and `values`
 
         Args:
-            values (:obj:`set`): values to difference with set
+            values (:obj:`list`): values to difference with list
         """
-        self_copy = set(self)
-        values_copy = set(values)
+        self_copy = make_copy(self)
+        values_copy = make_copy(values)
 
         for value in chain(self_copy, values_copy):
             if value in self_copy:
                 if value in values_copy:
                     self.remove(value)
             else:
-                self.add(value)
+                self.append(value)
 
     def get(self, **kwargs):
         """ Get related objects by attribute/value pairs
@@ -3635,9 +3636,9 @@ class RelatedManager(set):
                 objects
 
         Returns:
-            :obj:`set` of `Model`: matching instances of `Model`
+            :obj:`list` of `Model`: matching instances of `Model`
         """
-        matches = set()
+        matches = []
 
         for obj in self:
             is_match = True
@@ -3647,7 +3648,7 @@ class RelatedManager(set):
                     break
 
             if is_match:
-                matches.add(obj)
+                matches.append(obj)
 
         return matches
 
@@ -3676,7 +3677,7 @@ class RelatedManager(set):
             if len(args) > 1:
                 raise ValueError('At most one argument can be provided')
 
-            return list(self).index(args[0])
+            return super(RelatedManager, self).index(args[0])
 
         else:
             match = None
@@ -3711,8 +3712,8 @@ class ManyToOneRelatedManager(RelatedManager):
         """
         super(ManyToOneRelatedManager, self).__init__(object, attribute, related=True)
 
-    def add(self, value, propagate=True):
-        """ Add value to set
+    def append(self, value, propagate=True):
+        """ Add value to list
 
         Args:
             value (:obj:`object`): value
@@ -3721,18 +3722,18 @@ class ManyToOneRelatedManager(RelatedManager):
         if value in self:
             return
 
-        super(ManyToOneRelatedManager, self).add(value)
+        super(ManyToOneRelatedManager, self).append(value)
         if propagate:
             value.__setattr__(self.attribute.name, self.object, propagate=True)
 
-    def remove(self, value, update_set=True, propagate=True):
-        """ Remove value from set
+    def remove(self, value, update_list=True, propagate=True):
+        """ Remove value from list
 
         Args:
             value (:obj:`object`): value
             propagate (:obj:`bool`, optional): propagate change to related attribute
         """
-        if update_set:
+        if update_list:
             super(ManyToOneRelatedManager, self).remove(value)
         if propagate:
             value.__setattr__(self.attribute.name, None, propagate=False)
@@ -3749,8 +3750,8 @@ class OneToManyRelatedManager(RelatedManager):
         """
         super(OneToManyRelatedManager, self).__init__(object, attribute, related=False)
 
-    def add(self, value, propagate=True):
-        """ Add value to set
+    def append(self, value, propagate=True):
+        """ Add value to list
 
         Args:
             value (:obj:`object`): value
@@ -3759,18 +3760,18 @@ class OneToManyRelatedManager(RelatedManager):
         if value in self:
             return
 
-        super(OneToManyRelatedManager, self).add(value)
+        super(OneToManyRelatedManager, self).append(value)
         if propagate:
             value.__setattr__(self.attribute.related_name, self.object, propagate=True)
 
-    def remove(self, value, update_set=True, propagate=True):
-        """ Remove value from set
+    def remove(self, value, update_list=True, propagate=True):
+        """ Remove value from list
 
         Args:
             value (:obj:`object`): value
             propagate (:obj:`bool`, optional): propagate change to related attribute
         """
-        if update_set:
+        if update_list:
             super(OneToManyRelatedManager, self).remove(value)
         if propagate:
             value.__setattr__(self.attribute.related_name, None, propagate=False)
@@ -3779,8 +3780,8 @@ class OneToManyRelatedManager(RelatedManager):
 class ManyToManyRelatedManager(RelatedManager):
     """ Represent values and related values of related attributes """
 
-    def add(self, value, propagate=True):
-        """ Add value to set
+    def append(self, value, propagate=True):
+        """ Add value to list
 
         Args:
             value (:obj:`object`): value
@@ -3789,22 +3790,22 @@ class ManyToManyRelatedManager(RelatedManager):
         if value in self:
             return
 
-        super(ManyToManyRelatedManager, self).add(value)
+        super(ManyToManyRelatedManager, self).append(value)
         if propagate:
             if self.related:
-                getattr(value, self.attribute.name).add(self.object, propagate=False)
+                getattr(value, self.attribute.name).append(self.object, propagate=False)
             else:
-                getattr(value, self.attribute.related_name).add(self.object, propagate=False)
+                getattr(value, self.attribute.related_name).append(self.object, propagate=False)
 
-    def remove(self, value, update_set=True, propagate=True):
-        """ Remove value from set
+    def remove(self, value, update_list=True, propagate=True):
+        """ Remove value from list
 
         Args:
             value (:obj:`object`): value
-            update_set (:obj:`bool`, optional): update set
+            update_list (:obj:`bool`, optional): update list
             propagate (:obj:`bool`, optional): propagate change to related attribute
         """
-        if update_set:
+        if update_list:
             super(ManyToManyRelatedManager, self).remove(value)
         if propagate:
             if self.related:

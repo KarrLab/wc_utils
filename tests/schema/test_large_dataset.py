@@ -95,8 +95,7 @@ class TestLargeDataset(unittest.TestCase):
     def test_eq(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
         model2 = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
-        self.assertTrue(model2 == model)
-        self.assertEqual(model2, model)
+        self.assertTrue(model2.is_equal(model))
 
     @unittest.skip('implement me')
     def test_difference(self):

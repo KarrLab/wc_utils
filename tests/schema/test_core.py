@@ -230,23 +230,28 @@ class TestCore(unittest.TestCase):
 
     def test_memory_use(self):
         ''' Not a test; rather a measurement of the memory use by schema objects for monitoring '''
-        root = Root()
+        root = Root(label='root')
         n = 100
+        iter = 0
+        n_leaves = 0
         while n <= 10000:
             start_RAM = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             for i in range(n):
-                Leaf(root=root, id=str(i), name="leaf_{}".format(i))
+                Leaf(root=root, id=str(i), name="leaf_{}_{}".format(iter, i))
             print("{} {} objects: {} KB/obj".format(n, 'Leaf',
                                                     (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_RAM) / n))
+            n_leaves += n
+            self.assertEqual(len(set(root.leaves)), n_leaves)
+            iter += 1
             n *= 4
 
     def test_set_related(self):
-        root1 = Root()
-        root2 = Root()
+        root1 = Root(label='root1')
+        root2 = Root(label='root2')
 
-        leaf1 = Leaf()
-        leaf2 = Leaf()
-        leaf3 = Leaf()
+        leaf1 = Leaf(id='leaf1')
+        leaf2 = Leaf(id='leaf2')
+        leaf3 = Leaf(id='leaf3')
         self.assertEqual(leaf1.root, None)
         self.assertEqual(leaf2.root, None)
         self.assertEqual(leaf3.root, None)
@@ -257,20 +262,20 @@ class TestCore(unittest.TestCase):
         self.assertEqual(leaf1.root, root1)
         self.assertEqual(leaf2.root, root1)
         self.assertEqual(leaf3.root, root2)
-        self.assertEqual(root1.leaves, set((leaf1, leaf2)))
-        self.assertEqual(root2.leaves, set((leaf3, )))
+        self.assertEqual(set(root1.leaves), set((leaf1, leaf2)))
+        self.assertEqual(root2.leaves, [leaf3])
 
         leaf2.root = root2
         leaf3.root = root1
         self.assertEqual(leaf1.root, root1)
         self.assertEqual(leaf2.root, root2)
         self.assertEqual(leaf3.root, root1)
-        self.assertEqual(root1.leaves, set((leaf1, leaf3, )))
-        self.assertEqual(root2.leaves, set((leaf2, )))
+        self.assertEqual(set(root1.leaves), set((leaf1, leaf3, )))
+        self.assertEqual(root2.leaves, [leaf2])
 
         leaf4 = Leaf(root=root1)
         self.assertEqual(leaf4.root, root1)
-        self.assertEqual(root1.leaves, set((leaf1, leaf3, leaf4)))
+        self.assertEqual(set(root1.leaves), set((leaf1, leaf3, leaf4)))
 
     def test_get_related(self):
         g0 = Grandparent(id='root-0')
@@ -297,13 +302,13 @@ class TestCore(unittest.TestCase):
             Child(parent=p1[1], id='leaf-1-1-1'),
         ]
 
-        self.assertEqual(g0.get_related(), set((g0,)) | set(p0) | set(c0))
-        self.assertEqual(p0[0].get_related(), set((g0,)) | set(p0) | set(c0))
-        self.assertEqual(c0[0].get_related(), set((g0,)) | set(p0) | set(c0))
+        self.assertEqual(set(g0.get_related()), set((g0,)) | set(p0) | set(c0))
+        self.assertEqual(set(p0[0].get_related()), set((g0,)) | set(p0) | set(c0))
+        self.assertEqual(set(c0[0].get_related()), set((g0,)) | set(p0) | set(c0))
 
-        self.assertEqual(g1.get_related(), set((g1,)) | set(p1) | set(c1))
-        self.assertEqual(p1[0].get_related(), set((g1,)) | set(p1) | set(c1))
-        self.assertEqual(c1[0].get_related(), set((g1,)) | set(p1) | set(c1))
+        self.assertEqual(set(g1.get_related()), set((g1,)) | set(p1) | set(c1))
+        self.assertEqual(set(p1[0].get_related()), set((g1,)) | set(p1) | set(c1))
+        self.assertEqual(set(c1[0].get_related()), set((g1,)) | set(p1) | set(c1))
 
     def test_equal(self):
         root1 = Root(label='a')
@@ -318,23 +323,15 @@ class TestCore(unittest.TestCase):
         self.assertFalse(leaf1 is leaf3)
         self.assertFalse(leaf2 is leaf3)
 
-        self.assertTrue(leaf1 == leaf2)
-        self.assertFalse(leaf1 == leaf3)
-        self.assertTrue(leaf1 != leaf3)
-        self.assertFalse(leaf1 != leaf2)
-
-        self.assertEqual(leaf1, leaf2)
-        self.assertNotEqual(leaf1, leaf3)
-
-        self.assertNotEqual(leaf3, leaf4)
-        self.assertTrue(leaf3 != leaf4)
-        self.assertFalse(leaf3 == leaf4)
+        self.assertTrue(leaf1.is_equal(leaf2))
+        self.assertFalse(leaf1.is_equal(leaf3))        
+        self.assertFalse(leaf3.is_equal(leaf4))
 
     def test_hash(self):
-        self.assertEqual(len(set((Root(), ))), 1)
-        self.assertEqual(len(set((Leaf(), Leaf(), ))), 2)
-        self.assertEqual(len(set((UnrootedLeaf(), UnrootedLeaf()))), 2)
-        self.assertEqual(len(set((Leaf3(), Leaf3(), Leaf3(), ))), 3)
+        self.assertEqual(len([Root()]), 1)
+        self.assertEqual(len([Leaf(), Leaf()]), 2)
+        self.assertEqual(len([UnrootedLeaf(), UnrootedLeaf()]), 2)
+        self.assertEqual(len([Leaf3(), Leaf3(), Leaf3()]), 3)
 
     def test___str__(self):
         root = Root(label='test label')
@@ -774,24 +771,24 @@ class TestCore(unittest.TestCase):
 
         class RootDefault(core.Model):
             label = core.StringAttribute(primary=True, unique=True, default='root0')
-            leaves = core.OneToManyAttribute(LeafDefault, related_name='root', default=lambda: set(
-                [LeafDefault(label='leaf00'), LeafDefault(label='leaf01')]))
+            leaves = core.OneToManyAttribute(LeafDefault, related_name='root', default=lambda: [
+                LeafDefault(label='leaf00'), LeafDefault(label='leaf01')])
 
         root0 = RootDefault()
         self.assertEqual(root0.label, 'root0')
-        self.assertEqual(len(list(root0.leaves)), 2)
+        self.assertEqual(len(root0.leaves), 2)
         self.assertEqual(set([l.label for l in root0.leaves]), set(['leaf00', 'leaf01']))
         self.assertEqual(set([l.root for l in root0.leaves]), set([root0]))
 
         root1 = RootDefault(leaves=[LeafDefault(), LeafDefault()])
         self.assertEqual(root1.label, 'root0')
-        self.assertEqual(len(list(root1.leaves)), 2)
+        self.assertEqual(len(root1.leaves), 2)
         self.assertEqual(set([l.label for l in root1.leaves]), set(['leaf22', 'leaf22']))
         self.assertEqual(set([l.root for l in root1.leaves]), set([root1]))
 
         root2 = RootDefault(label='root2', leaves=[LeafDefault(label='leaf20'), LeafDefault(label='leaf21')])
         self.assertEqual(root2.label, 'root2')
-        self.assertEqual(len(list(root2.leaves)), 2)
+        self.assertEqual(len(root2.leaves), 2)
         self.assertEqual(set([l.label for l in root2.leaves]), set(['leaf20', 'leaf21']))
         self.assertEqual(set([l.root for l in root2.leaves]), set([root2]))
 
@@ -806,28 +803,28 @@ class TestCore(unittest.TestCase):
 
         root0 = RootDefault()
         self.assertEqual(root0.label, 'root0')
-        self.assertEqual(root0.leaves, set())
+        self.assertEqual(root0.leaves, [])
 
         leaf0 = LeafDefault()
         self.assertEqual(leaf0.label, 'leaf22')
         self.assertIsInstance(leaf0.root, RootDefault)
         self.assertEqual(leaf0.root.label, 'root1')
-        self.assertEqual(len(list(leaf0.root.leaves)), 1)
-        self.assertEqual(list(leaf0.root.leaves)[0], leaf0)
+        self.assertEqual(len(leaf0.root.leaves), 1)
+        self.assertEqual(leaf0.root.leaves[0], leaf0)
 
         leaf1 = LeafDefault(label='leaf33')
         self.assertEqual(leaf1.label, 'leaf33')
         self.assertIsInstance(leaf1.root, RootDefault)
         self.assertEqual(leaf1.root.label, 'root1')
-        self.assertEqual(len(list(leaf1.root.leaves)), 1)
-        self.assertEqual(list(leaf1.root.leaves)[0], leaf1)
+        self.assertEqual(len(leaf1.root.leaves), 1)
+        self.assertEqual(leaf1.root.leaves[0], leaf1)
 
         leaf2 = LeafDefault(label='leaf44', root=RootDefault(label='root2'))
         self.assertEqual(leaf2.label, 'leaf44')
         self.assertIsInstance(leaf2.root, RootDefault)
         self.assertEqual(leaf2.root.label, 'root2')
-        self.assertEqual(len(list(leaf2.root.leaves)), 1)
-        self.assertEqual(list(leaf2.root.leaves)[0], leaf2)
+        self.assertEqual(len(leaf2.root.leaves), 1)
+        self.assertEqual(leaf2.root.leaves[0], leaf2)
 
     def test_manytoone_default(self):
         class RootDefault(core.Model):
@@ -840,19 +837,19 @@ class TestCore(unittest.TestCase):
 
         root0 = RootDefault()
         self.assertEqual(root0.label, 'root0')
-        self.assertEqual(len(list(root0.leaves)), 0)
+        self.assertEqual(len(root0.leaves), 0)
 
         leaf1 = LeafDefault()
         self.assertEqual(leaf1.label, 'leaf2')
         self.assertIsInstance(leaf1.root, RootDefault)
         self.assertEqual(leaf1.root.label, 'root1')
-        self.assertEqual(leaf1.root.leaves, set([leaf1]))
+        self.assertEqual(leaf1.root.leaves, [leaf1])
 
         leaf2 = LeafDefault(label='leaf4', root=RootDefault(label='root3'))
         self.assertEqual(leaf2.label, 'leaf4')
         self.assertIsInstance(leaf2.root, RootDefault)
         self.assertEqual(leaf2.root.label, 'root3')
-        self.assertEqual(leaf2.root.leaves, set([leaf2]))
+        self.assertEqual(leaf2.root.leaves, [leaf2])
 
     def test_manytoone_related_default(self):
         class RootDefault(core.Model):
@@ -861,7 +858,7 @@ class TestCore(unittest.TestCase):
         class LeafDefault(core.Model):
             label = core.StringAttribute(primary=True, unique=True, default='leaf2')
             root = core.ManyToOneAttribute(RootDefault, related_name='leaves',
-                                           related_default=lambda: set([LeafDefault(label='leaf3'), LeafDefault(label='leaf4'), LeafDefault(label='leaf5')]))
+                                           related_default=lambda: [LeafDefault(label='leaf3'), LeafDefault(label='leaf4'), LeafDefault(label='leaf5')])
 
         leaf0 = LeafDefault()
         self.assertEqual(leaf0.label, 'leaf2')
@@ -873,7 +870,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(set([l.label for l in root1.leaves]), set(['leaf3', 'leaf4', 'leaf5']))
         self.assertEqual(set([l.root for l in root1.leaves]), set([root1]))
 
-        root2 = RootDefault(label='root2', leaves=set([LeafDefault(label='leaf6'), LeafDefault(label='leaf7')]))
+        root2 = RootDefault(label='root2', leaves=[LeafDefault(label='leaf6'), LeafDefault(label='leaf7')])
         self.assertEqual(root2.label, 'root2')
         self.assertEqual(set([l.__class__ for l in root2.leaves]), set([LeafDefault]))
         self.assertEqual(set([l.label for l in root2.leaves]), set(['leaf6', 'leaf7']))
@@ -890,15 +887,15 @@ class TestCore(unittest.TestCase):
 
         root0 = RootDefault()
         self.assertEqual(root0.label, 'root0')
-        self.assertEqual(root0.leaves, set())
+        self.assertEqual(root0.leaves, [])
 
         leaf1 = LeafDefault()
         self.assertEqual(leaf1.label, 'leaf0')
-        self.assertEqual(len(list(leaf1.roots)), 2)
+        self.assertEqual(len(leaf1.roots), 2)
         self.assertEqual(set([r.__class__ for r in leaf1.roots]), set([RootDefault]))
         self.assertEqual(set([r.label for r in leaf1.roots]), set(['root1', 'root2']))
-        self.assertEqual(set([len(list(r.leaves)) for r in leaf1.roots]), set([1]))
-        self.assertEqual(set([list(r.leaves)[0] for r in leaf1.roots]), set([leaf1]))
+        self.assertEqual(set([len(r.leaves) for r in leaf1.roots]), set([1]))
+        self.assertEqual(set([r.leaves[0] for r in leaf1.roots]), set([leaf1]))
 
     def test_manytomany_related_default(self):
         class RootDefault(core.Model):
@@ -911,15 +908,15 @@ class TestCore(unittest.TestCase):
 
         leaf0 = LeafDefault()
         self.assertEqual(leaf0.label, 'leaf0')
-        self.assertEqual(leaf0.roots, set())
+        self.assertEqual(leaf0.roots, [])
 
         root1 = RootDefault()
         self.assertEqual(root1.label, 'root0')
-        self.assertEqual(len(list(root1.leaves)), 3)
+        self.assertEqual(len(root1.leaves), 3)
         self.assertEqual(set([l.__class__ for l in root1.leaves]), set([LeafDefault]))
         self.assertEqual(set([l.label for l in root1.leaves]), set(['leaf1', 'leaf2', 'leaf3']))
-        self.assertEqual(set([len(list(l.roots)) for l in root1.leaves]), set([1]))
-        self.assertEqual(set([list(l.roots)[0] for l in root1.leaves]), set([root1]))
+        self.assertEqual(set([len(l.roots) for l in root1.leaves]), set([1]))
+        self.assertEqual(set([l.roots[0] for l in root1.leaves]), set([root1]))
 
     def test_validate_onetoone_attribute(self):
         root = OneToOneRoot(id='root')
@@ -952,7 +949,7 @@ class TestCore(unittest.TestCase):
         self.assertNotIn('roots', [x.attribute.name for x in leaf.validate().attributes])
 
         root.leaf = leaf
-        self.assertEqual(leaf.roots, set((root, )))
+        self.assertEqual(leaf.roots, [root])
         self.assertNotIn('leaf', [x.attribute.name for x in root.validate().attributes])
         self.assertNotIn('roots', [x.attribute.name for x in leaf.validate().attributes])
 
@@ -969,10 +966,10 @@ class TestCore(unittest.TestCase):
             ManyToManyLeaf(roots=roots[2:4], id='leaf_2'),
         ]
 
-        self.assertEqual(roots[0].leaves, set((leaves[0],)))
-        self.assertEqual(roots[1].leaves, set(leaves[0:2]))
-        self.assertEqual(roots[2].leaves, set(leaves[1:3]))
-        self.assertEqual(roots[3].leaves, set((leaves[2],)))
+        self.assertEqual(roots[0].leaves, leaves[0:1])
+        self.assertEqual(set(roots[1].leaves), set(leaves[0:2]))
+        self.assertEqual(set(roots[2].leaves), set(leaves[1:3]))
+        self.assertEqual(roots[3].leaves, leaves[2:3])
 
         # self.assertRaises(Exception, lambda: leaves[0].roots.add(roots[2]))
 
@@ -998,185 +995,185 @@ class TestCore(unittest.TestCase):
 
     def test_manytoone_set_related(self):
         roots = [
-            ManyToOneRoot(),
-            ManyToOneRoot(),
+            ManyToOneRoot(id='root0'),
+            ManyToOneRoot(id='root1'),
         ]
         leaves = [
-            ManyToOneLeaf(),
-            ManyToOneLeaf(),
+            ManyToOneLeaf(id='leaf0'),
+            ManyToOneLeaf(id='leaf1'),
         ]
 
         leaves[0].root = roots[0]
-        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+        self.assertEqual(roots[0].leaves, leaves[0:1])
 
         leaves[1].root = roots[0]
-        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+        self.assertEqual(set(roots[0].leaves), set(leaves[0:2]))
 
         leaves[0].root = None
-        self.assertEqual(roots[0].leaves, set(leaves[1:2]))
+        self.assertEqual(roots[0].leaves, leaves[1:2])
 
-        roots[0].leaves = set()
-        self.assertEqual(roots[0].leaves, set())
+        roots[0].leaves = []
+        self.assertEqual(roots[0].leaves, [])
         self.assertEqual(leaves[1].root, None)
 
         roots[0].leaves.add(leaves[0])
-        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+        self.assertEqual(roots[0].leaves, leaves[0:1])
         self.assertEqual(leaves[0].root, roots[0])
 
         roots[0].leaves.update(leaves[1:2])
-        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+        self.assertEqual(set(roots[0].leaves), set(leaves[0:2]))
         self.assertEqual(leaves[1].root, roots[0])
 
         roots[0].leaves.remove(leaves[0])
-        self.assertEqual(roots[0].leaves, set(leaves[1:2]))
+        self.assertEqual(roots[0].leaves, leaves[1:2])
         self.assertEqual(leaves[0].root, None)
 
-        roots[0].leaves = set()
+        roots[0].leaves = []
         leaves[0].root = roots[0]
         leaves[0].root = roots[1]
-        self.assertEqual(roots[0].leaves, set())
-        self.assertEqual(roots[1].leaves, set(leaves[0:1]))
+        self.assertEqual(roots[0].leaves, [])
+        self.assertEqual(roots[1].leaves, leaves[0:1])
 
         roots[0].leaves = leaves[0:1]
-        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
-        self.assertEqual(roots[1].leaves, set())
+        self.assertEqual(roots[0].leaves, leaves[0:1])
+        self.assertEqual(roots[1].leaves, [])
         self.assertEqual(leaves[0].root, roots[0])
 
         roots[1].leaves = leaves[0:2]
-        self.assertEqual(roots[0].leaves, set())
-        self.assertEqual(roots[1].leaves, set(leaves[0:2]))
+        self.assertEqual(roots[0].leaves, [])
+        self.assertEqual(set(roots[1].leaves), set(leaves[0:2]))
         self.assertEqual(leaves[0].root, roots[1])
         self.assertEqual(leaves[1].root, roots[1])
 
     def test_onetomany_set_related(self):
         roots = [
-            OneToManyRoot(),
-            OneToManyRoot(),
+            OneToManyRoot(id='root0'),
+            OneToManyRoot(id='root1'),
         ]
         leaves = [
-            OneToManyLeaf(),
-            OneToManyLeaf(),
+            OneToManyLeaf(id='leaf0'),
+            OneToManyLeaf(id='leaf1'),
         ]
 
         roots[0].leaf = leaves[0]
-        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+        self.assertEqual(leaves[0].roots, roots[0:1])
 
         roots[1].leaf = leaves[0]
-        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+        self.assertEqual(set(leaves[0].roots), set(roots[0:2]))
 
         roots[0].leaf = None
-        self.assertEqual(leaves[0].roots, set(roots[1:2]))
+        self.assertEqual(leaves[0].roots, roots[1:2])
 
-        leaves[0].roots = set()
-        self.assertEqual(leaves[0].roots, set())
+        leaves[0].roots = []
+        self.assertEqual(leaves[0].roots, [])
         self.assertEqual(roots[1].leaf, None)
 
         leaves[0].roots.add(roots[0])
-        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+        self.assertEqual(leaves[0].roots, roots[0:1])
         self.assertEqual(roots[0].leaf, leaves[0])
 
         leaves[0].roots.update(roots[1:2])
-        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+        self.assertEqual(set(leaves[0].roots), set(roots[0:2]))
         self.assertEqual(roots[1].leaf, leaves[0])
 
         leaves[0].roots.remove(roots[0])
-        self.assertEqual(leaves[0].roots, set(roots[1:2]))
+        self.assertEqual(leaves[0].roots, roots[1:2])
         self.assertEqual(roots[0].leaf, None)
 
-        leaves[0].roots = set()
+        leaves[0].roots = []
         roots[0].leaf = leaves[0]
         roots[0].leaf = leaves[1]
-        self.assertEqual(leaves[0].roots, set())
-        self.assertEqual(leaves[1].roots, set(roots[0:1]))
+        self.assertEqual(leaves[0].roots, [])
+        self.assertEqual(leaves[1].roots, roots[0:1])
 
         leaves[0].roots = roots[0:1]
-        self.assertEqual(leaves[0].roots, set(roots[0:1]))
-        self.assertEqual(leaves[1].roots, set())
+        self.assertEqual(leaves[0].roots, roots[0:1])
+        self.assertEqual(leaves[1].roots, [])
         self.assertEqual(roots[0].leaf, leaves[0])
 
         leaves[1].roots = roots[0:2]
-        self.assertEqual(leaves[0].roots, set())
-        self.assertEqual(leaves[1].roots, set(roots[0:2]))
+        self.assertEqual(leaves[0].roots, [])
+        self.assertEqual(set(leaves[1].roots), set(roots[0:2]))
         self.assertEqual(roots[0].leaf, leaves[1])
         self.assertEqual(roots[1].leaf, leaves[1])
 
     def test_manytomany_set_related(self):
         roots = [
-            ManyToManyRoot(),
-            ManyToManyRoot(),
+            ManyToManyRoot(id='root0'),
+            ManyToManyRoot(id='root1'),
         ]
         leaves = [
-            ManyToManyLeaf(),
-            ManyToManyLeaf(),
+            ManyToManyLeaf(id='leaf0'),
+            ManyToManyLeaf(id='leaf1'),
         ]
 
         roots[0].leaves.add(leaves[0])
-        self.assertEqual(leaves[0].roots, set(roots[0:1]))
+        self.assertEqual(leaves[0].roots, roots[0:1])
 
         roots[0].leaves.remove(leaves[0])
-        self.assertEqual(leaves[0].roots, set())
+        self.assertEqual(leaves[0].roots, [])
 
         roots[0].leaves.add(leaves[0])
         roots[1].leaves.add(leaves[0])
-        self.assertEqual(leaves[0].roots, set(roots[0:2]))
+        self.assertEqual(set(leaves[0].roots), set(roots[0:2]))
 
         roots[0].leaves.clear()
         roots[1].leaves.clear()
-        self.assertEqual(leaves[0].roots, set())
-        self.assertEqual(leaves[1].roots, set())
+        self.assertEqual(leaves[0].roots, [])
+        self.assertEqual(leaves[1].roots, [])
 
         roots[0].leaves = leaves
         roots[1].leaves = leaves
-        self.assertEqual(leaves[0].roots, set(roots[0:2]))
-        self.assertEqual(leaves[1].roots, set(roots[0:2]))
+        self.assertEqual(set(leaves[0].roots), set(roots[0:2]))
+        self.assertEqual(set(leaves[1].roots), set(roots[0:2]))
 
         # reverse
         roots[0].leaves.clear()
         roots[1].leaves.clear()
 
         leaves[0].roots.add(roots[0])
-        self.assertEqual(roots[0].leaves, set(leaves[0:1]))
+        self.assertEqual(roots[0].leaves, leaves[0:1])
 
         leaves[0].roots.remove(roots[0])
-        self.assertEqual(roots[0].leaves, set())
+        self.assertEqual(roots[0].leaves, [])
 
         leaves[0].roots.add(roots[0])
         leaves[1].roots.add(roots[0])
-        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
+        self.assertEqual(set(roots[0].leaves), set(leaves[0:2]))
 
         leaves[0].roots.clear()
         leaves[1].roots.clear()
-        self.assertEqual(roots[0].leaves, set())
-        self.assertEqual(roots[1].leaves, set())
+        self.assertEqual(roots[0].leaves, [])
+        self.assertEqual(roots[1].leaves, [])
 
         leaves[0].roots = roots
         leaves[1].roots = roots
-        self.assertEqual(roots[0].leaves, set(leaves[0:2]))
-        self.assertEqual(roots[1].leaves, set(leaves[0:2]))
+        self.assertEqual(set(roots[0].leaves), set(leaves[0:2]))
+        self.assertEqual(set(roots[1].leaves), set(leaves[0:2]))
 
     def test_related_set_create(self):
         # many to one
         root = ManyToOneRoot()
         leaf = root.leaves.create(id='leaf')
-        self.assertEqual(root.leaves, set((leaf,)))
+        self.assertEqual(root.leaves, [leaf])
         self.assertEqual(leaf.root, root)
 
         # one to many
         leaf = OneToManyLeaf()
         root = leaf.roots.create(id='root')
-        self.assertEqual(leaf.roots, set((root,)))
+        self.assertEqual(leaf.roots, [root])
         self.assertEqual(root.leaf, leaf)
 
         # many to many
         root_0 = ManyToManyRoot(id='root_0')
 
         leaf_0 = root_0.leaves.create(id='leaf_0')
-        self.assertEqual(root_0.leaves, set((leaf_0, )))
-        self.assertEqual(leaf_0.roots, set((root_0,)))
+        self.assertEqual(root_0.leaves, [leaf_0])
+        self.assertEqual(leaf_0.roots, [root_0])
 
         root_1 = leaf_0.roots.create(id='root_1')
-        self.assertEqual(root_1.leaves, set((leaf_0,)))
-        self.assertEqual(leaf_0.roots, set((root_0, root_1)))
+        self.assertEqual(root_1.leaves, [leaf_0])
+        self.assertEqual(set(leaf_0.roots), set((root_0, root_1)))
 
     def test_related_set_filter_and_get_indedx(self):
         # many to one
@@ -1189,9 +1186,9 @@ class TestCore(unittest.TestCase):
         ]
         root.leaves = leaves
 
-        self.assertEqual(root.leaves.filter(id='leaf_0'), set(leaves[0:1]))
-        self.assertEqual(root.leaves.filter(id='leaf_1'), set(leaves[1:3]))
-        self.assertEqual(root.leaves.filter(id='leaf_2'), set(leaves[3:4]))
+        self.assertEqual(root.leaves.filter(id='leaf_0'), leaves[0:1])
+        self.assertEqual(set(root.leaves.filter(id='leaf_1')), set(leaves[1:3]))
+        self.assertEqual(root.leaves.filter(id='leaf_2'), leaves[3:4])
 
         self.assertEqual(root.leaves.get(id='leaf_0'), leaves[0])
         self.assertRaises(ValueError, lambda: root.leaves.get(id='leaf_1'))
@@ -1217,9 +1214,9 @@ class TestCore(unittest.TestCase):
         ]
         leaf.roots = roots
 
-        self.assertEqual(leaf.roots.filter(id='root_0'), set(roots[0:1]))
-        self.assertEqual(leaf.roots.filter(id='root_1'), set(roots[1:3]))
-        self.assertEqual(leaf.roots.filter(id='root_2'), set(roots[3:4]))
+        self.assertEqual(leaf.roots.filter(id='root_0'), roots[0:1])
+        self.assertEqual(set(leaf.roots.filter(id='root_1')), set(roots[1:3]))
+        self.assertEqual(leaf.roots.filter(id='root_2'), roots[3:4])
 
         self.assertEqual(leaf.roots.get(id='root_0'), roots[0])
         self.assertRaises(ValueError, lambda: leaf.roots.get(id='root_1'))
@@ -1234,9 +1231,9 @@ class TestCore(unittest.TestCase):
         ]
         leaf = ManyToManyLeaf(roots=roots)
 
-        self.assertEqual(leaf.roots.filter(id='root_0'), set(roots[0:1]))
-        self.assertEqual(leaf.roots.filter(id='root_1'), set(roots[1:3]))
-        self.assertEqual(leaf.roots.filter(id='root_2'), set(roots[3:4]))
+        self.assertEqual(leaf.roots.filter(id='root_0'), roots[0:1])
+        self.assertEqual(set(leaf.roots.filter(id='root_1')), set(roots[1:3]))
+        self.assertEqual(leaf.roots.filter(id='root_2'), roots[3:4])
 
         self.assertEqual(leaf.roots.get(id='root_0'), roots[0])
         self.assertRaises(ValueError, lambda: leaf.roots.get(id='root_1'))
@@ -1307,7 +1304,7 @@ class TestCore(unittest.TestCase):
 
         self.assertEqual(leaf.root, root)
         self.assertEqual(unrooted_leaf.root, root)
-        self.assertEqual(root.leaves, set((leaf, unrooted_leaf, )))
+        self.assertEqual(set(root.leaves), set((leaf, unrooted_leaf, )))
 
     def test_attribute_inheritance(self):
         X = type('X', (core.Model, ), {'label': core.StringAttribute()})
@@ -1334,15 +1331,15 @@ class TestCore(unittest.TestCase):
             UniqueTogetherRoot(val0='a', val1='b', val2='a'),
             UniqueTogetherRoot(val0='a', val1='c', val2='a'),
         ]
-        errors = set([x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes])
-        self.assertEqual(errors, set(('val0',)))
+        errors = [x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes]
+        self.assertEqual(errors, ['val0'])
 
         roots = [
             UniqueTogetherRoot(val0='a', val1='a', val2='a'),
             UniqueTogetherRoot(val0='b', val1='a', val2='a'),
             UniqueTogetherRoot(val0='c', val1='c', val2='a'),
         ]
-        errors = set([x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes])
+        errors = [x.attribute.name for x in UniqueTogetherRoot.validate_unique(roots).attributes]
         self.assertNotIn('val0', errors)
         self.assertEqual(len(errors), 1)
 
@@ -1361,7 +1358,7 @@ class TestCore(unittest.TestCase):
 
         copy = g1.copy()
         self.assertFalse(copy is g1)
-        self.assertEqual(copy, g1)
+        self.assertTrue(g1.is_equal(copy))
 
     def test_diff(self):
         g = [
@@ -1385,7 +1382,7 @@ class TestCore(unittest.TestCase):
             Child(parent=p[3], id='c_1_1', val='child_1_1'),
         ]
 
-        self.assertEqual(g[1], g[0])
+        self.assertTrue(g[1].is_equal(g[0]))
         self.assertEqual(g[0].difference(g[1]), '')
 
         g[1].val = 'gparent_1'
@@ -1394,7 +1391,7 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
-        self.assertNotEqual(g[1], g[0])
+        self.assertFalse(g[1].is_equal(g[0]))
         self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_1'
@@ -1404,7 +1401,7 @@ class TestCore(unittest.TestCase):
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
-        self.assertNotEqual(g[1], g[0])
+        self.assertFalse(g[1].is_equal(g[0]))
         self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_0'
@@ -1420,7 +1417,7 @@ class TestCore(unittest.TestCase):
             '              `val` are not equal:\n'
             '                child_0_0 != child_3_0'
         )
-        self.assertNotEqual(g[1], g[0])
+        self.assertFalse(g[1].is_equal(g[0]))
         self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_0'
@@ -1441,7 +1438,7 @@ class TestCore(unittest.TestCase):
             '              `val` are not equal:\n'
             '                child_0_1 != child_3_1'
         )
-        self.assertNotEqual(g[1], g[0])
+        self.assertFalse(g[1].is_equal(g[0]))
         self.assertEqual(g[0].difference(g[1]), msg)
 
         g[1].val = 'gparent_0'
@@ -1458,7 +1455,7 @@ class TestCore(unittest.TestCase):
             '          No matching element c_0_0\n'
             '          No matching element c_0_1'
         )
-        self.assertNotEqual(g[1], g[0])
+        self.assertFalse(g[1].is_equal(g[0]))
         self.assertEqual(g[0].difference(g[1]), msg)
 
     def test_invalid_attribute_str(self):

@@ -137,17 +137,17 @@ class TestIo(unittest.TestCase):
     def test_write_read(self):
         # write/read to/from Excel
         root = self.root
-        objects = set((root, )) | root.get_related()
+        objects = list(set([root] + root.get_related()))
         objects = utils.group_objects_by_model(objects)
 
         filename = os.path.join(self.dirname, 'test.xlsx')
-        Writer().run(filename, set((root,)), [MainRoot, Node, Leaf, ])
+        Writer().run(filename, [root], [MainRoot, Node, Leaf, ])
         objects2 = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
 
         # validate
-        all_objects2 = set()
+        all_objects2 = []
         for model, model_objects in objects2.items():
-            all_objects2.update(model_objects)
+            all_objects2.extend(model_objects)
         self.assertEqual(core.Validator().run(all_objects2), None)
 
         # test objects saved and loaded correctly
@@ -159,13 +159,13 @@ class TestIo(unittest.TestCase):
         root2 = objects2[MainRoot].pop()
 
         filename2 = os.path.join(self.dirname, 'test2.xlsx')
-        Writer().run(filename2, set((root2,)), [MainRoot, Node, Leaf, ])
+        Writer().run(filename2, [root2], [MainRoot, Node, Leaf, ])
         original = read_workbook(filename)
         copy = read_workbook(filename2)
         self.assertEqual(copy, original)
 
         self.assertEqual(set([x.id for x in root2.nodes]), set([x.id for x in root.nodes]))
-        self.assertEqual(root2, root)
+        self.assertTrue(root2.is_equal(root))
 
         # unicode
         self.assertEqual(root2.name, u'\u20ac')
@@ -174,7 +174,7 @@ class TestIo(unittest.TestCase):
         filename = os.path.join(self.dirname, 'test-*.csv')
 
         # write to file
-        Writer().run(filename, set((self.root,)), [MainRoot, Node, Leaf, ])
+        Writer().run(filename, [self.root], [MainRoot, Node, Leaf, ])
 
         """ test reading worksheet by the model's name """
         # rename worksheet
@@ -184,7 +184,7 @@ class TestIo(unittest.TestCase):
         objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
         """ test reading worksheet by the model's verbose name """
         # rename worksheet
@@ -194,7 +194,7 @@ class TestIo(unittest.TestCase):
         objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
         """ test reading worksheet by the model's plural verbose name """
         # rename worksheet
@@ -204,7 +204,7 @@ class TestIo(unittest.TestCase):
         objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
         """ test reading worksheet by the model's plural verbose name, case-insensitive """
         # rename worksheet
@@ -214,20 +214,20 @@ class TestIo(unittest.TestCase):
         objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
     def test_read_inexact_attribute_name_match(self):
         filename = os.path.join(self.dirname, 'test.xlsx')
         filename2 = os.path.join(self.dirname, 'test2.xlsx')
 
         # write to file
-        Writer().run(filename, set((self.root,)), [MainRoot, Node, Leaf, ])
+        Writer().run(filename, [self.root], [MainRoot, Node, Leaf, ])
 
         """ test reading attributes by verbose name """
         objects = Reader().run(filename, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
         """ test reading attributes by name """
         # setup reader, writer
@@ -252,7 +252,7 @@ class TestIo(unittest.TestCase):
         objects = Reader().run(filename2, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
         """ test case insensitivity """
         # edit heading
@@ -265,7 +265,7 @@ class TestIo(unittest.TestCase):
         objects = Reader().run(filename2, [MainRoot, Node, Leaf, OneToManyRow])
         root = objects[MainRoot].pop()
 
-        self.assertEqual(root, self.root)
+        self.assertTrue(root.is_equal(self.root))
 
     def test_validation(self):
         t = MainRoot(name='f')
@@ -483,25 +483,25 @@ class TestIo(unittest.TestCase):
 
         models = [MainRoot, Node, Leaf, OneToManyRow]
 
-        Writer().run(filename_xls1, set((self.root,)), models)
+        Writer().run(filename_xls1, [self.root], models)
 
         convert(filename_xls1, filename_csv, models)
         convert(filename_csv, filename_xls2, models)
 
         objects2 = Reader().run(filename_csv, models)
-        self.assertEqual(self.root, list(objects2[MainRoot])[0])
+        self.assertTrue(self.root.is_equal(objects2[MainRoot][0]))
 
         objects2 = Reader().run(filename_xls2, models)
-        self.assertEqual(self.root, list(objects2[MainRoot])[0])
+        self.assertTrue(self.root.is_equal(objects2[MainRoot][0]))
 
     def test_create_template(self):
         filename = os.path.join(self.dirname, 'test3.xlsx')
         create_template(filename, [MainRoot, Node, Leaf])
         objects = Reader().run(filename, [MainRoot, Node, Leaf])
         self.assertEqual(objects, {
-            MainRoot: set(),
-            Node: set(),
-            Leaf: set(),
+            MainRoot: [],
+            Node: [],
+            Leaf: [],
         })
         self.assertEqual(core.Validator().run([]), None)
 

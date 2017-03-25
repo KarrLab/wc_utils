@@ -68,8 +68,9 @@ def group_objects_by_model(objects):
     grouped_objects = {}
     for obj in objects:
         if not obj.__class__ in grouped_objects:
-            grouped_objects[obj.__class__] = set()
-        grouped_objects[obj.__class__].add(obj)
+            grouped_objects[obj.__class__] = []
+        if obj not in grouped_objects[obj.__class__]:
+            grouped_objects[obj.__class__].append(obj)
     return grouped_objects
 
 
@@ -82,7 +83,9 @@ def get_related_errors(object):
     Returns:
         :obj:`InvalidObjectSet`: set of errors
     """
-    objects = set((object,)) | object.get_related()
+    objects = object.get_related()
+    if object not in objects:
+        objects.append(object)
     return Validator().run(objects)
 
 

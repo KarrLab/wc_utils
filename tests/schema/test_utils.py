@@ -51,18 +51,17 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'Identifier'), Root.Meta.attributes['id'])
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'Identifier2'), None)
 
-        self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'identifier', case_insensitive=True), Root.Meta.attributes['id'])
+        self.assertEqual(utils.get_attribute_by_verbose_name(
+            Root, 'identifier', case_insensitive=True), Root.Meta.attributes['id'])
         self.assertEqual(utils.get_attribute_by_verbose_name(Root, 'identifier', case_insensitive=False), None)
 
     def test_group_objects_by_model(self):
         (root, nodes, leaves) = (self.root, self.nodes, self.leaves)
-        objects = set((root,)) | set(nodes) | set(leaves)
+        objects = [root] + nodes + leaves
         grouped_objects = utils.group_objects_by_model(objects)
-        self.assertEqual(grouped_objects, {
-            Root: set((root, )),
-            Node: set(nodes),
-            Leaf: set(leaves),
-        })
+        self.assertEqual(grouped_objects[Root], [root])
+        self.assertEqual(set(grouped_objects[Node]), set(nodes))
+        self.assertEqual(set(grouped_objects[Leaf]), set(leaves))
 
     def test_get_related_errors(self):
         (root, nodes, leaves) = (self.root, self.nodes, self.leaves)
@@ -89,5 +88,5 @@ class TestUtils(unittest.TestCase):
 
         test = Test(val='x')
         self.assertRaises(AttributeError,
-            lambda: utils.get_component_by_id([test], 'x'))
+                          lambda: utils.get_component_by_id([test], 'x'))
         self.assertEqual(utils.get_component_by_id([test], 'x', identifier='val'), test)

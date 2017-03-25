@@ -1,3 +1,9 @@
+# editor configuration
+.idea/
+
+# profiling data
+prof/
+
 # Compiled source #
 ###################
 *.pyc

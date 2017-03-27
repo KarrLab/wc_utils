@@ -9,5 +9,6 @@ pyexcel
 pyexcel-io
 python-dateutil
 PyYAML
+qualname
 six
 stringcase

@@ -1639,3 +1639,43 @@ class TestCore(unittest.TestCase):
         self.assertEqual(roots2[1], roots[3])
         self.assertEqual(roots2[2], roots[0])
         self.assertEqual(roots2[3], roots[1])
+
+    def test_normalize(self):
+        class NormNodeLevel0(core.Model):
+            label = core.StringAttribute(primary=True, unique=True)
+
+        class NormNodeLevel1(core.Model):
+            label = core.StringAttribute(primary=True, unique=True)
+            parent = core.ManyToOneAttribute(NormNodeLevel0, related_name='children')
+
+        class NormNodeLevel2(core.Model):
+            label = core.StringAttribute(primary=True, unique=True)
+            parent = core.ManyToOneAttribute(NormNodeLevel1, related_name='children')
+
+        #example
+        node_0 = NormNodeLevel0()
+
+        node_0_c = node_0.children.create(label='c')
+        node_0_a = node_0.children.create(label='a')
+        node_0_b = node_0.children.create(label='b')
+
+        node_0_a_a = node_0_a.children.create(label='a_a')
+        node_0_a_c = node_0_a.children.create(label='a_c')
+        node_0_a_b = node_0_a.children.create(label='a_b')
+
+        node_0_b_a = node_0_b.children.create(label='b_a')
+        node_0_b_c = node_0_b.children.create(label='b_c')
+        node_0_b_b = node_0_b.children.create(label='b_b')
+
+        node_0_c_a = node_0_c.children.create(label='c_a')
+        node_0_c_c = node_0_c.children.create(label='c_c')
+        node_0_c_b = node_0_c.children.create(label='c_b')
+
+        #test
+        node_0.normalize()
+
+        self.assertEqual(node_0.children, [node_0_a, node_0_b, node_0_c])
+
+        self.assertEqual(node_0.children[0].children, [node_0_a_a, node_0_a_b, node_0_a_c])                         
+        self.assertEqual(node_0.children[1].children, [node_0_b_a, node_0_b_b, node_0_b_c])
+        self.assertEqual(node_0.children[2].children, [node_0_c_a, node_0_c_b, node_0_c_c])

@@ -134,13 +134,14 @@ from enum import Enum
 from itertools import chain
 from math import floor, isnan
 from natsort import natsort_keygen, natsorted, ns
-from operator import attrgetter
+from operator import attrgetter, methodcaller
 from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
 from os.path import basename, dirname, splitext
-from wc_utils.util.types import get_subclasses, get_superclasses
+from wc_utils.util.introspection import get_class_that_defined_function
 from wc_utils.util.misc import quote
 from wc_utils.util.string import indent_forest
+from wc_utils.util.types import get_subclasses, get_superclasses
 import dateutil.parser
 import inflect
 import re
@@ -226,7 +227,7 @@ class ModelMeta(type):
         """ Check attribute inheritance
 
         Raises:
-            :obj:`ValueError`: if subclass overrides a superclass attribute (instance of Attribute) with an incompatible 
+            :obj:`ValueError`: if subclass overrides a superclass attribute (instance of Attribute) with an incompatible
                 attribute (i.e. an attribute that is not a subclass of the class of the super class' attribute)
         """
         for attr_name, attr in namespace.items():
@@ -290,14 +291,14 @@ class ModelMeta(type):
                         elif not related_class.Meta.primary_attribute:
                             if related_class.Meta.tabular_orientation == TabularOrientation.inline:
                                 warnings.warn('Primary class: {}: Related class {} must have a primary attribute'.format(
-                                    attr.primary_class.__name__, related_class.__name__))
+                                    attr.primary_class.__name__, related_class.__name__), SchemaWarning)
                             else:
                                 raise ValueError('Related class {} must have a primary attribute'.format(
                                     related_class.__name__))
                         elif not related_class.Meta.primary_attribute.unique:
                             if related_class.Meta.tabular_orientation == TabularOrientation.inline:
                                 warnings.warn('Primary attribute {} of related class {} must be unique'.format(
-                                    related_class.Meta.primary_attribute.name, related_class.__name__))
+                                    related_class.Meta.primary_attribute.name, related_class.__name__), SchemaWarning)
                             else:
                                 raise ValueError('Primary attribute {} of related class {} must be unique'.format(
                                     related_class.Meta.primary_attribute.name, related_class.__name__))
@@ -416,47 +417,6 @@ class ModelMeta(type):
         if len(set(cls.Meta.unique_together)) < len(cls.Meta.unique_together):
             raise ValueError('`unique_together` cannot contain repeated tuples')
 
-    @staticmethod
-    def validate_related_attributes(cls):
-        """ Validate attribute values
-
-        Raises:
-            :obj:`ValueError`: if related attributes are not valid (e.g. if a class that is the subject of a relationship does not have a primary attribute)
-        """
-
-        for attr_name, attr in cls.Meta.attributes.items():
-            if isinstance(attr, RelatedAttribute) and not (isinstance(attr.related_class, type) and issubclass(attr.related_class, Model)):
-                raise ValueError('Related class {} of {}.{} must be defined'.format(
-                    attr.related_class, attr.primary_class.__name__, attr_name))
-
-        # tabular orientation
-        if cls.Meta.tabular_orientation == TabularOrientation.inline:
-            for attr in cls.Meta.related_attributes.values():
-                if attr in [OneToManyAttribute, OneToManyAttribute, ManyToOneAttribute, ManyToManyAttribute]:
-                    raise ValueError(
-                        'Inline model "{}" must define their own serialization/deserialization methods'.format(cls.__name__))
-
-                if 'deserialize' not in attr.__class__.__dict__:
-                    raise ValueError(
-                        'Inline model "{}" must define their own serialization/deserialization methods'.format(cls.__name__))
-
-            if len(cls.Meta.related_attributes) == 0:
-                raise ValueError(
-                    'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
-            elif len(cls.Meta.related_attributes) == 1:
-                attr = list(cls.Meta.related_attributes.values())[0]
-
-                if not isinstance(attr, (OneToOneAttribute, OneToManyAttribute)):
-                    warnings.warn(
-                        'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
-
-                elif attr.related_none:
-                    warnings.warn(
-                        'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
-            else:
-                warnings.warn(
-                    'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
-
 
 class TabularOrientation(Enum):
     """ Describes a table's orientation
@@ -513,7 +473,9 @@ class Model(with_metaclass(ModelMeta, object)):
         """
 
         """ check that related classes of attributes are defined """
-        self.__class__.validate_related_attributes(self.__class__)
+        self.validate_related_attributes()
+
+        self.validate_normalizable(warn=True)
 
         """ initialize attributes """
         # attributes
@@ -545,6 +507,117 @@ class Model(with_metaclass(ModelMeta, object)):
                     attr_name, self.__class__.__name__))
             setattr(self, attr_name, val)
 
+    @classmethod
+    def validate_related_attributes(cls):
+        """ Validate attribute values
+
+        Raises:
+            :obj:`ValueError`: if related attributes are not valid (e.g. if a class that is the subject of a relationship does not have a primary attribute)
+        """
+
+        for attr_name, attr in cls.Meta.attributes.items():
+            if isinstance(attr, RelatedAttribute) and not (isinstance(attr.related_class, type) and issubclass(attr.related_class, Model)):
+                raise ValueError('Related class {} of {}.{} must be defined'.format(
+                    attr.related_class, attr.primary_class.__name__, attr_name))
+
+        # tabular orientation
+        if cls.Meta.tabular_orientation == TabularOrientation.inline:
+            for attr in cls.Meta.related_attributes.values():
+                if attr in [OneToManyAttribute, OneToManyAttribute, ManyToOneAttribute, ManyToManyAttribute]:
+                    raise ValueError(
+                        'Inline model "{}" must define their own serialization/deserialization methods'.format(cls.__name__))
+
+                if 'deserialize' not in attr.__class__.__dict__:
+                    raise ValueError(
+                        'Inline model "{}" must define their own serialization/deserialization methods'.format(cls.__name__))
+
+            if len(cls.Meta.related_attributes) == 0:
+                raise ValueError(
+                    'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__))
+            elif len(cls.Meta.related_attributes) == 1:
+                attr = list(cls.Meta.related_attributes.values())[0]
+
+                if not isinstance(attr, (OneToOneAttribute, OneToManyAttribute)):
+                    warnings.warn(
+                        'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__), SchemaWarning)
+
+                elif attr.related_none:
+                    warnings.warn(
+                        'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__), SchemaWarning)
+            else:
+                warnings.warn(
+                    'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__), SchemaWarning)
+
+    @classmethod
+    def validate_normalizable(cls, warn=False):
+        """ Check that class is normalizable. This means that at least one of following conditions is satisified:
+
+        * At least one attribute is unique
+        * There is at least one group of attributes that are unique_together
+
+        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
+        limited definition of normalizability.
+
+        This must performed during object construction because related classes are not resolved until object construction so that
+        attribute definitions can refer to classes that haven't yet been constructed by a string of their name.
+
+        Args:
+            warn (:obj:`bool`): if true, issue warnings instead of errors
+        """
+        for attr_name, attr in cls.Meta.attributes.items():
+            if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
+                other_cls = attr.related_class
+                other_cls.validate_reproducibly_orderable(warn=warn)
+            if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
+                cls.validate_reproducibly_orderable(warn=warn)
+
+        for attr_name, attr in cls.Meta.related_attributes.items():
+            if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
+                other_cls = attr.primary_class
+                other_cls.validate_reproducibly_orderable(warn=warn)
+            if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
+                cls.validate_reproducibly_orderable(warn=warn)
+
+    @classmethod
+    def validate_reproducibly_orderable(cls, warn=False):
+        """ Check that a class can be reproducibly ordered. This means that at least one of the following is satisifed:
+
+        * At least one attribute is unique
+        * At least one unique_together is defined
+        * A custom validate_unique method is defined
+        * Serialization and deserialization methods are defined
+
+        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
+        limited definition of reproducible ordering.
+
+        Args:
+            warn (:obj:`bool`): if true, issue warnings instead of errors
+
+        Raises:
+            :obj:`ValueError`: if the class cannot be reproducibly ordered
+        """
+
+        if cls.Meta.unique_together:
+            return
+
+        if get_class_that_defined_function(cls.validate_unique) is not Model:
+            return
+
+        for attr_name, attr in cls.Meta.attributes.items():
+            if attr.unique:
+                return
+
+        if get_class_that_defined_function(cls.serialize) is not Model and \
+                get_class_that_defined_function(cls.deserialize) is not Model:
+            return
+
+        msg = 'Class {} cannot be reproducibly ordered'.format(cls.__name__)
+        if warn:
+            warnings.warn(msg, SchemaWarning)
+        else:
+            raise ValueError(msg)
+
+
     def __setattr__(self, attr_name, value, propagate=True):
         """ Set attribute
 
@@ -563,6 +636,46 @@ class Model(with_metaclass(ModelMeta, object)):
                 value = attr.set_related_value(self, value)
 
         super(Model, self).__setattr__(attr_name, value)
+
+    def normalize(self, _normalized=None):
+        """ Normalize an object into a canonical form. Specifically, this method sorts the RelatedManagers into a canonical order because their 
+        order has no semantic meaning. Importantly, this canonical form is reproducible. Thus, this canonical form facilitates reproducible
+        computations on top of :obj:`Model` objects.
+
+        Args:
+            _normalized (:obj:`list`): list of objects that have already been normalized
+        """
+
+        self.validate_normalizable(self.__class__)
+
+        if _normalized is None:
+            _normalized = []
+
+        if self in _normalized:
+            return
+
+        _normalized.append(self)        
+
+        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
+            if isinstance(attr, RelatedAttribute):
+                val = getattr(self, attr_name)
+                if isinstance(val, list) and len(val) > 1:
+                    # normalize children
+                    for v in val:
+                        v.normalize(_normalized)
+
+                    # sort
+                    if attr_name in self.Meta.attributes:
+                        cls = attr.related_class
+                    else:
+                        cls = attr.primary_class
+
+                    if cls.Meta.primary_attribute:
+                        key = attrgetter(cls.Meta.primary_attribute.name)
+                    else:
+                        key = methodcaller('serialize')
+
+                    val.sort(key=key)
 
     def is_equal(self, other, _seen=None):
         """ Determine if two objects are semantically equal
@@ -1137,7 +1250,19 @@ class Model(with_metaclass(ModelMeta, object)):
             vals = set()
             rep_vals = set()
             for obj in objects:
-                val = tuple([getattr(obj, attr_name) for attr_name in unique_together])
+                val = []
+                for attr_name in unique_together:
+                    attr_val = getattr(obj, attr_name)
+
+                    if isinstance(attr_val, RelatedManager):
+                        raise ValueError(
+                            'Values of attributes in {}.unique_together must be scalars'.format(cls.__name__))
+                    elif isinstance(attr_val, Model):
+                        val.append(attr_val.serialize() or '')
+                    else:
+                        val.append(attr_val or '')
+                val = tuple(val)
+
                 if val in vals:
                     rep_vals.add(val)
                 else:
@@ -4175,3 +4300,8 @@ class InvalidWorksheet(object):
         error_forest = ["'{}':'{}':".format(self.filename, self.name)]
         error_forest.append(self.errors)
         return indent_forest(error_forest)
+
+
+class SchemaWarning(UserWarning):
+    """ Schema warning """
+    pass

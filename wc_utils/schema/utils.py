@@ -7,6 +7,8 @@
 """
 
 from __future__ import unicode_literals
+from itertools import chain
+from random import shuffle
 from wc_utils.schema.core import Model, Attribute, RelatedAttribute, InvalidObjectSet, InvalidObject, Validator
 
 
@@ -112,3 +114,28 @@ def get_component_by_id(models, id, identifier='id'):
             raise AttributeError("{} does not have the attribute '{}'".format(model.__class__.__name__,
                                                                               identifier))
     return None
+
+
+def randomize_object_graph(obj):
+    """ Randomize the order of the edges (RelatedManagers) in the object's object graph.
+
+    Args:
+        obj (:obj:`Model`): instance of :obj:`Model`
+    """
+    randomized_objs = []
+    objs_to_randomize = [obj]
+
+    while objs_to_randomize:
+        obj = objs_to_randomize.pop()
+        if obj not in randomized_objs:
+            randomized_objs.append(obj)
+
+            for attr_name, attr in chain(obj.Meta.attributes.items(), obj.Meta.related_attributes.items()):
+                if isinstance(attr, RelatedAttribute):
+                    val = getattr(obj, attr_name)
+                    if isinstance(val, list) and len(val) > 1:
+                        # randomize children
+                        objs_to_randomize.extend(val)
+
+                        # shuffle related manager
+                        shuffle(val)

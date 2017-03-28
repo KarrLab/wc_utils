@@ -90,3 +90,66 @@ class TestUtils(unittest.TestCase):
         self.assertRaises(AttributeError,
                           lambda: utils.get_component_by_id([test], 'x'))
         self.assertEqual(utils.get_component_by_id([test], 'x', identifier='val'), test)
+
+    def test_randomize(self):
+        class NormNodeLevel0(core.Model):
+            label = core.StringAttribute(primary=True, unique=True)
+
+        class NormNodeLevel1(core.Model):
+            label = core.StringAttribute(primary=True, unique=True)
+            parents = core.ManyToManyAttribute(NormNodeLevel0, related_name='children')
+
+        class NormNodeLevel2(core.Model):
+            label = core.StringAttribute(primary=True, unique=True)
+            parents = core.ManyToManyAttribute(NormNodeLevel1, related_name='children')
+
+        nodes0 = []
+        nodes1 = []
+        nodes2 = []
+        for i in range(5):
+            nodes0.append(NormNodeLevel0(label='node_0_{}'.format(i)))
+
+        for i in range(5):
+            nodes1.append(NormNodeLevel1(label='node_1_{}'.format(i), parents=[
+                          nodes0[(i) % 5], nodes0[(i + 1) % 5], nodes0[(i + 2) % 5], ]))
+
+        for i in range(5):
+            nodes2.append(NormNodeLevel2(label='node_2_{}'.format(i), parents=[
+                          nodes1[(i) % 5], nodes1[(i + 1) % 5], nodes1[(i + 2) % 5], ]))
+
+        def check_sorted():
+            for i in range(5):
+                i_childs = sorted([(i - 2) % 5, (i - 1) % 5, (i - 0) % 5, ])
+                for i_child, child in zip(i_childs, nodes0[i].children):
+                    if child.label != 'node_1_{}'.format(i_child):
+                        return False
+
+                i_parents = sorted([(i + 0) % 5, (i + 1) % 5, (i + 2) % 5, ])
+                for i_parent, parent in zip(i_parents, nodes1[i].parents):
+                    if parent.label != 'node_0_{}'.format(i_parent):
+                        return False
+
+                i_childs = sorted([(i - 2) % 5, (i - 1) % 5, (i - 0) % 5, ])
+                for i_child, child in zip(i_childs, nodes1[i].children):
+                    if child.label != 'node_2_{}'.format(i_child):
+                        return False
+
+                i_parents = sorted([(i + 0) % 5, (i + 1) % 5, (i + 2) % 5, ])
+                for i_parent, parent in zip(i_parents, nodes2[i].parents):
+                    if parent.label != 'node_1_{}'.format(i_parent):
+                        return False
+
+                return True
+
+        # sort and check sorted
+        nodes0[0].normalize()
+        self.assertTrue(check_sorted())
+
+        # randomize
+        for i in range(5):
+            utils.randomize_object_graph(nodes0[i])
+        self.assertFalse(check_sorted())
+
+        # sort and check sorted
+        nodes0[0].normalize()
+        self.assertTrue(check_sorted())

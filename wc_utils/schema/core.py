@@ -617,7 +617,6 @@ class Model(with_metaclass(ModelMeta, object)):
         else:
             raise ValueError(msg)
 
-
     def __setattr__(self, attr_name, value, propagate=True):
         """ Set attribute
 
@@ -646,36 +645,38 @@ class Model(with_metaclass(ModelMeta, object)):
             _normalized (:obj:`list`): list of objects that have already been normalized
         """
 
-        self.validate_normalizable(self.__class__)
+        validated_cls = []
+        normalized_objs = []
+        objs_to_normalize = [self]
 
-        if _normalized is None:
-            _normalized = []
+        while objs_to_normalize:
+            obj = objs_to_normalize.pop()
+            if obj not in normalized_objs:
+                normalized_objs.append(obj)
 
-        if self in _normalized:
-            return
+                if obj.__class__ not in validated_cls:
+                    obj.validate_normalizable()
+                    validated_cls.append(obj.__class__)
 
-        _normalized.append(self)        
+                for attr_name, attr in chain(obj.Meta.attributes.items(), obj.Meta.related_attributes.items()):
+                    if isinstance(attr, RelatedAttribute):
+                        val = getattr(obj, attr_name)
+                        if isinstance(val, list) and len(val) > 1:
+                            # normalize children
+                            objs_to_normalize.extend(val)
 
-        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if isinstance(attr, RelatedAttribute):
-                val = getattr(self, attr_name)
-                if isinstance(val, list) and len(val) > 1:
-                    # normalize children
-                    for v in val:
-                        v.normalize(_normalized)
+                            # sort
+                            if attr_name in obj.Meta.attributes:
+                                cls = attr.related_class
+                            else:
+                                cls = attr.primary_class
 
-                    # sort
-                    if attr_name in self.Meta.attributes:
-                        cls = attr.related_class
-                    else:
-                        cls = attr.primary_class
+                            if cls.Meta.primary_attribute:
+                                key = attrgetter(cls.Meta.primary_attribute.name)
+                            else:
+                                key = methodcaller('serialize')
 
-                    if cls.Meta.primary_attribute:
-                        key = attrgetter(cls.Meta.primary_attribute.name)
-                    else:
-                        key = methodcaller('serialize')
-
-                    val.sort(key=key)
+                            val.sort(key=key)
 
     def is_equal(self, other, _seen=None):
         """ Determine if two objects are semantically equal

@@ -324,7 +324,7 @@ class TestCore(unittest.TestCase):
         self.assertFalse(leaf2 is leaf3)
 
         self.assertTrue(leaf1.is_equal(leaf2))
-        self.assertFalse(leaf1.is_equal(leaf3))        
+        self.assertFalse(leaf1.is_equal(leaf3))
         self.assertFalse(leaf3.is_equal(leaf4))
 
     def test_hash(self):
@@ -1652,7 +1652,7 @@ class TestCore(unittest.TestCase):
             label = core.StringAttribute(primary=True, unique=True)
             parent = core.ManyToOneAttribute(NormNodeLevel1, related_name='children')
 
-        #example
+        # example
         node_0 = NormNodeLevel0()
 
         node_0_c = node_0.children.create(label='c')
@@ -1671,11 +1671,11 @@ class TestCore(unittest.TestCase):
         node_0_c_c = node_0_c.children.create(label='c_c')
         node_0_c_b = node_0_c.children.create(label='c_b')
 
-        #test
+        # test
         node_0.normalize()
 
         self.assertEqual(node_0.children, [node_0_a, node_0_b, node_0_c])
 
-        self.assertEqual(node_0.children[0].children, [node_0_a_a, node_0_a_b, node_0_a_c])                         
+        self.assertEqual(node_0.children[0].children, [node_0_a_a, node_0_a_b, node_0_a_c])
         self.assertEqual(node_0.children[1].children, [node_0_b_a, node_0_b_b, node_0_b_c])
         self.assertEqual(node_0.children[2].children, [node_0_c_a, node_0_c_b, node_0_c_c])

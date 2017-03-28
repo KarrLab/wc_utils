@@ -577,6 +577,9 @@ class Model(with_metaclass(ModelMeta, object)):
             :obj:`ValueError`: if object is not reproducibly normalizable
         """
 
+        if not self.is_normalizable():
+            raise ValueError('Class {} cannot be reproducibly normalized'.format(self.__class__.__name__))
+
         norm_keys = {}
         normalized_objs = []
         objs_to_normalize = [self]
@@ -608,13 +611,118 @@ class Model(with_metaclass(ModelMeta, object)):
                             val.sort(key=key)
 
     @classmethod
+    def is_normalizable(cls):
+        """ Check that class is normalizable. This means that at each component RelatedManager must be reproducibly sortable.
+
+        Returns:
+            :obj:`bool`: whether or not the class can be reproducibly normalized
+        """
+
+        validated_classes = []
+        classes_to_validate = [cls]
+        while classes_to_validate:
+            cls = classes_to_validate.pop()
+            if cls not in validated_classes:
+                validated_classes.append(cls)
+
+                if not is_sorted(cls.Meta.attributes.keys()):
+                    return False
+
+                if not is_sorted(cls.Meta.related_attributes.keys()):
+                    return False
+
+                for attr_name, attr in cls.Meta.attributes.items():
+                    if isinstance(attr, RelatedAttribute):
+                        other_cls = attr.related_class
+                        classes_to_validate.append(other_cls)
+
+                        if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
+                            if not other_cls.is_reproducibly_orderable():
+                                return False
+                        if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
+                            if not cls.is_reproducibly_orderable():
+                                return False
+
+                for attr_name, attr in cls.Meta.related_attributes.items():
+                    other_cls = attr.primary_class
+                    classes_to_validate.append(other_cls)
+
+                    if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
+                        if not other_cls.is_reproducibly_orderable():
+                            return False
+                    if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
+                        if not cls.is_reproducibly_orderable():
+                            return False
+
+        return True
+
+    @classmethod
+    def is_reproducibly_orderable(cls):
+        """ Check that a class can be reproducibly ordered. This means that at least one of the following is satisifed:
+
+        * At least one attribute is unique
+        * At least one unique_together is defined
+        * A custom validate_unique method is defined
+        * Serialization and deserialization methods are defined
+        
+        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
+        limited definition of reproducible ordering.
+        
+        Returns:
+            :obj:`bool`: whether or not the class can be reproducibly ordered
+        """
+
+        # todo: check custom validate_unique
+
+        # single unique attribute        
+        for attr_name, attr in cls.Meta.attributes.items():
+            if attr.unique:
+                return True
+
+        # tuple of attributes that are unique together
+        if cls.Meta.unique_together:
+            return True
+
+        # serialization function that represents value
+        if get_class_that_defined_function(cls.serialize) is not Model and \
+                get_class_that_defined_function(cls.deserialize) is not Model:
+            return True
+
+        for attr_name, attr in cls.Meta.attributes.items():
+            if isinstance(attr, RelatedAttribute):
+                related_cls = attr.related_class
+                if related_cls.Meta.primary_attribute and related_cls.Meta.primary_attribute.unique:
+                    pass
+                elif get_class_that_defined_function(related_cls.serialize) is not Model and \
+                    get_class_that_defined_function(related_cls.serialize) is not Model:
+                    pass
+                else:
+                    False
+
+        # include all attributes
+        for attr_name, attr in cls.Meta.related_attributes.items():
+            if isinstance(attr, RelatedAttribute):
+                related_cls = attr.primary_class
+                if related_cls.Meta.primary_attribute and related_cls.Meta.primary_attribute.unique:
+                    pass
+                elif get_class_that_defined_function(related_cls.serialize) is not Model and \
+                    get_class_that_defined_function(related_cls.serialize) is not Model:
+                    pass
+                else:
+                    False
+
+        return True
+
+    @classmethod
     def _normalize_key_generator(cls):
         """ Generates key for sorting the class """
+
+        # todo: use custom validate_unique
 
         # single unique attribute
         for attr_name, attr in cls.Meta.attributes.items():
             if attr.unique:
-                return attrgetter(cls.Meta.primary_attribute.name)
+                return attrgetter(attr_name)
 
         # tuple of attributes that are unique together
         if cls.Meta.unique_together:

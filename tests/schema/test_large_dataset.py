@@ -72,7 +72,7 @@ def generate_model(n_gene, n_rna, n_prot, n_met):
     return model
 
 
-class TestLargeDataset(unittest.TestCase):
+class TestMediumDataset(unittest.TestCase):
     """ Test that the methods work on reasonably sized datasets """
 
     n_gene = 50
@@ -132,8 +132,16 @@ class TestLargeDataset(unittest.TestCase):
         pass
 
 
-@unittest.skip("showing class skipping")
-class TestVeryLargeDataset(TestLargeDataset):
+@unittest.skip("Skipping because test is long")
+class TestLargeDataset(TestMediumDataset):
+    n_gene = 1000
+    n_rna = 3
+    n_prot = 3
+    n_met = 800
+
+
+@unittest.skip("Skipped because test is long")
+class TestHugeDataset(TestMediumDataset):
     n_gene = 30000
     n_rna = 3
     n_prot = 3

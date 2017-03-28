@@ -7,6 +7,8 @@
 """
 
 from wc_utils.schema import core
+from wc_utils.schema import utils
+from wc_utils.util.list import is_sorted
 import sys
 import unittest
 
@@ -90,6 +92,26 @@ class TestLargeDataset(unittest.TestCase):
         objects = model.get_related()
         self.assertEqual(len(objects), 1 + self.n_gene + self.n_gene * self.n_rna +
                          2 * self.n_gene * self.n_rna * self.n_prot + self.n_met)
+
+    def test_normalize(self):
+        model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        utils.randomize_object_graph(model)
+        model.normalize()
+
+        self.assertTrue(is_sorted([gene.id for gene in model.genes]))
+        self.assertTrue(is_sorted([rna.id for rna in model.rna]))
+        self.assertTrue(is_sorted([prot.id for prot in model.proteins]))
+        self.assertTrue(is_sorted([met.id for met in model.metabolites]))
+        self.assertTrue(is_sorted([rxn.id for rxn in model.reactions]))
+
+        for met in model.metabolites:
+            self.assertTrue(is_sorted([rxn.id for rxn in met.reactions]))
+
+        for prot in model.proteins:
+            self.assertTrue(is_sorted([rxn.id for rxn in prot.reactions]))
+
+        for rxn in model.reactions:
+            self.assertTrue(is_sorted([met.id for met in rxn.metabolites]))
 
     @unittest.skip('get me working')
     def test_eq(self):

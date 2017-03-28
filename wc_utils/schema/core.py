@@ -139,6 +139,7 @@ from six import integer_types, string_types, with_metaclass
 from stringcase import sentencecase
 from os.path import basename, dirname, splitext
 from wc_utils.util.introspection import get_class_that_defined_function
+from wc_utils.util.list import is_sorted
 from wc_utils.util.misc import quote
 from wc_utils.util.string import indent_forest
 from wc_utils.util.types import get_subclasses, get_superclasses
@@ -202,7 +203,7 @@ class ModelMeta(type):
 
         metacls.init_primary_attribute(cls)
 
-        cls.Meta.related_attributes = {}
+        cls.Meta.related_attributes = OrderedDict()
         for model in get_subclasses(Model):
             metacls.init_related_attributes(model)
 
@@ -241,8 +242,8 @@ class ModelMeta(type):
     def init_attributes(cls):
         """ Initialize attributes """
 
-        cls.Meta.attributes = dict()
-        for attr_name in dir(cls):
+        cls.Meta.attributes = OrderedDict()
+        for attr_name in sorted(dir(cls)):
             attr = getattr(cls, attr_name)
 
             if isinstance(attr, Attribute):
@@ -323,6 +324,8 @@ class ModelMeta(type):
 
                         # add attribute to dictionary of related attributes
                         related_class.Meta.related_attributes[attr.related_name] = attr
+                        related_class.Meta.related_attributes = OrderedDict(sorted(related_class.Meta.related_attributes.items(), key=lambda x: x[0]))
+
 
     def init_primary_attribute(cls):
         """ Initialize the primary attribute of a model
@@ -598,25 +601,20 @@ class Model(with_metaclass(ModelMeta, object)):
                             else:
                                 cls = attr.primary_class
 
-                            if cls.Meta.primary_attribute:
-                                key = attrgetter(cls.Meta.primary_attribute.name)
-                            else:
-                                key = methodcaller('serialize')
+                            val.sort(key=cls._normalize_sort_key())
 
-                            val.sort(key=key)
+    @classmethod
+    def _normalize_sort_key(cls):
+        if cls.Meta.primary_attribute:
+            key = attrgetter(cls.Meta.primary_attribute.name)
+        else:
+            key = methodcaller('serialize')
+
+        return key
 
     @classmethod
     def is_reproducibly_normalizable(cls):
-        """ Check that class is normalizable. This means that at least one of following conditions is satisified:
-
-        * At least one attribute is unique
-        * There is at least one group of attributes that are unique_together
-
-        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
-        limited definition of normalizability.
-
-        This must performed during object construction because related classes are not resolved until object construction so that
-        attribute definitions can refer to classes that haven't yet been constructed by a string of their name.
+        """ Check that class is normalizable. This means that at each component RelatedManager must be reproducibly sortable.
 
         Returns:
             :obj:`bool`: whether or not the class can be reproducibly normalized
@@ -628,6 +626,12 @@ class Model(with_metaclass(ModelMeta, object)):
             cls = classes_to_validate.pop()
             if cls not in validated_classes:
                 validated_classes.append(cls)
+
+                if not is_sorted(cls.Meta.attributes.keys()):
+                    return False
+
+                if not is_sorted(cls.Meta.related_attributes.keys()):
+                    return False
 
                 for attr_name, attr in cls.Meta.attributes.items():
                     if isinstance(attr, RelatedAttribute):
@@ -685,6 +689,16 @@ class Model(with_metaclass(ModelMeta, object)):
             return True
 
         return False
+
+    def is_equal_flat(self, other):
+        """ Determine if two objects are semantically equal
+
+        Args:
+            other (:obj:`Model`): object to compare
+
+        Returns:
+            :obj:`bool`: `True` if objects are semantically equal, else `False`
+        """
 
     def is_equal(self, other, _seen=None):
         """ Determine if two objects are semantically equal

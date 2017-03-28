@@ -7,6 +7,21 @@
 """
 
 
+def is_sorted(lst, le_cmp=None):
+    """ Check if a list is sorted
+
+    Args:
+        lst (:obj:`list`): list to check
+        le_cmp (:obj:`function`, optional): less than equals comparison function
+
+    Returns
+        :obj:`bool`: true if the list is sorted
+    """
+    if le_cmp:
+        return all(le_cmp(a, b) for a, b in zip(lst[:-1], lst[1:]))
+    return all(a <= b for a, b in zip(lst[:-1], lst[1:]))
+
+
 def transpose(lst):
     """ Swaps the first two dimensions of a two (or more) dimensional list
 

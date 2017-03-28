@@ -6,11 +6,21 @@
 :License: MIT
 """
 
-from wc_utils.util.list import transpose
+from wc_utils.util.list import is_sorted, transpose
 import unittest
 
 
 class TestTranspose(unittest.TestCase):
+
+    def test_is_sorted(self):
+        self.assertTrue(is_sorted([1, 2, 3]))
+        self.assertFalse(is_sorted([2, 1, 3]))
+
+        self.assertTrue(is_sorted(['a', 'b', 'c']))
+        self.assertFalse(is_sorted(['c', 'b', 'a']))
+
+        self.assertTrue(is_sorted([1, 2, 3], le_cmp=lambda x, y: x <= y))
+        self.assertFalse(is_sorted([2, 1, 3], le_cmp=lambda x, y: x <= y))
 
     def test_transpose(self):
         lst = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]

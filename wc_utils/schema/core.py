@@ -636,13 +636,10 @@ class Model(with_metaclass(ModelMeta, object)):
 
         super(Model, self).__setattr__(attr_name, value)
 
-    def normalize(self, _normalized=None):
+    def normalize(self):
         """ Normalize an object into a canonical form. Specifically, this method sorts the RelatedManagers into a canonical order because their 
         order has no semantic meaning. Importantly, this canonical form is reproducible. Thus, this canonical form facilitates reproducible
         computations on top of :obj:`Model` objects.
-
-        Args:
-            _normalized (:obj:`list`): list of objects that have already been normalized
         """
 
         validated_cls = []

@@ -1652,6 +1652,9 @@ class TestCore(unittest.TestCase):
             label = core.StringAttribute(primary=True, unique=True)
             parent = core.ManyToOneAttribute(NormNodeLevel1, related_name='children')
 
+        class NormNodeLevel3(core.Model):
+            label = core.StringAttribute()
+
         # example
         node_0 = NormNodeLevel0()
 
@@ -1672,6 +1675,16 @@ class TestCore(unittest.TestCase):
         node_0_c_b = node_0_c.children.create(label='c_b')
 
         # test
+        self.assertEqual(NormNodeLevel0.is_reproducibly_orderable(), True)
+        self.assertEqual(NormNodeLevel1.is_reproducibly_orderable(), True)
+        self.assertEqual(NormNodeLevel2.is_reproducibly_orderable(), True)
+        self.assertEqual(NormNodeLevel3.is_reproducibly_orderable(), False)
+
+        self.assertEqual(NormNodeLevel0.is_reproducibly_normalizable(), True)
+        self.assertEqual(NormNodeLevel1.is_reproducibly_normalizable(), True)
+        self.assertEqual(NormNodeLevel2.is_reproducibly_normalizable(), True)
+        self.assertEqual(NormNodeLevel3.is_reproducibly_normalizable(), True)
+
         node_0.normalize()
 
         self.assertEqual(node_0.children, [node_0_a, node_0_b, node_0_c])

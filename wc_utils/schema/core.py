@@ -475,8 +475,6 @@ class Model(with_metaclass(ModelMeta, object)):
         """ check that related classes of attributes are defined """
         self.validate_related_attributes()
 
-        self.validate_normalizable(warn=True)
-
         """ initialize attributes """
         # attributes
         for attr in self.Meta.attributes.values():
@@ -548,75 +546,6 @@ class Model(with_metaclass(ModelMeta, object)):
                 warnings.warn(
                     'Inline model "{}" should have a single required related one-to-one or one-to-many attribute'.format(cls.__name__), SchemaWarning)
 
-    @classmethod
-    def validate_normalizable(cls, warn=False):
-        """ Check that class is normalizable. This means that at least one of following conditions is satisified:
-
-        * At least one attribute is unique
-        * There is at least one group of attributes that are unique_together
-
-        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
-        limited definition of normalizability.
-
-        This must performed during object construction because related classes are not resolved until object construction so that
-        attribute definitions can refer to classes that haven't yet been constructed by a string of their name.
-
-        Args:
-            warn (:obj:`bool`): if true, issue warnings instead of errors
-        """
-        for attr_name, attr in cls.Meta.attributes.items():
-            if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
-                other_cls = attr.related_class
-                other_cls.validate_reproducibly_orderable(warn=warn)
-            if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
-                cls.validate_reproducibly_orderable(warn=warn)
-
-        for attr_name, attr in cls.Meta.related_attributes.items():
-            if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
-                other_cls = attr.primary_class
-                other_cls.validate_reproducibly_orderable(warn=warn)
-            if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
-                cls.validate_reproducibly_orderable(warn=warn)
-
-    @classmethod
-    def validate_reproducibly_orderable(cls, warn=False):
-        """ Check that a class can be reproducibly ordered. This means that at least one of the following is satisifed:
-
-        * At least one attribute is unique
-        * At least one unique_together is defined
-        * A custom validate_unique method is defined
-        * Serialization and deserialization methods are defined
-
-        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
-        limited definition of reproducible ordering.
-
-        Args:
-            warn (:obj:`bool`): if true, issue warnings instead of errors
-
-        Raises:
-            :obj:`ValueError`: if the class cannot be reproducibly ordered
-        """
-
-        if cls.Meta.unique_together:
-            return
-
-        if get_class_that_defined_function(cls.validate_unique) is not Model:
-            return
-
-        for attr_name, attr in cls.Meta.attributes.items():
-            if attr.unique:
-                return
-
-        if get_class_that_defined_function(cls.serialize) is not Model and \
-                get_class_that_defined_function(cls.deserialize) is not Model:
-            return
-
-        msg = 'Class {} cannot be reproducibly ordered'.format(cls.__name__)
-        if warn:
-            warnings.warn(msg, SchemaWarning)
-        else:
-            raise ValueError(msg)
-
     def __setattr__(self, attr_name, value, propagate=True):
         """ Set attribute
 
@@ -640,9 +569,14 @@ class Model(with_metaclass(ModelMeta, object)):
         """ Normalize an object into a canonical form. Specifically, this method sorts the RelatedManagers into a canonical order because their 
         order has no semantic meaning. Importantly, this canonical form is reproducible. Thus, this canonical form facilitates reproducible
         computations on top of :obj:`Model` objects.
+
+        Raises:
+            :obj:`ValueError`: if object is not reproducibly normalizable
         """
 
-        validated_cls = []
+        if not self.is_reproducibly_normalizable():
+            raise ValueError('Class {} cannot be reproducibly normalized'.format(self.__class__.__name__))
+
         normalized_objs = []
         objs_to_normalize = [self]
 
@@ -650,10 +584,6 @@ class Model(with_metaclass(ModelMeta, object)):
             obj = objs_to_normalize.pop()
             if obj not in normalized_objs:
                 normalized_objs.append(obj)
-
-                if obj.__class__ not in validated_cls:
-                    obj.validate_normalizable()
-                    validated_cls.append(obj.__class__)
 
                 for attr_name, attr in chain(obj.Meta.attributes.items(), obj.Meta.related_attributes.items()):
                     if isinstance(attr, RelatedAttribute):
@@ -674,6 +604,87 @@ class Model(with_metaclass(ModelMeta, object)):
                                 key = methodcaller('serialize')
 
                             val.sort(key=key)
+
+    @classmethod
+    def is_reproducibly_normalizable(cls):
+        """ Check that class is normalizable. This means that at least one of following conditions is satisified:
+
+        * At least one attribute is unique
+        * There is at least one group of attributes that are unique_together
+
+        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
+        limited definition of normalizability.
+
+        This must performed during object construction because related classes are not resolved until object construction so that
+        attribute definitions can refer to classes that haven't yet been constructed by a string of their name.
+
+        Returns:
+            :obj:`bool`: whether or not the class can be reproducibly normalized
+        """
+
+        validated_classes = []
+        classes_to_validate = [cls]
+        while classes_to_validate:
+            cls = classes_to_validate.pop()
+            if cls not in validated_classes:
+                validated_classes.append(cls)
+
+                for attr_name, attr in cls.Meta.attributes.items():
+                    if isinstance(attr, RelatedAttribute):
+                        other_cls = attr.related_class
+                        classes_to_validate.append(other_cls)
+
+                        if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
+                            if not other_cls.is_reproducibly_orderable():
+                                return False
+                        if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
+                            if not cls.is_reproducibly_orderable():
+                                return False
+
+                for attr_name, attr in cls.Meta.related_attributes.items():
+                    other_cls = attr.primary_class
+                    classes_to_validate.append(other_cls)
+
+                    if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
+                        if not other_cls.is_reproducibly_orderable():
+                            return False
+                    if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
+                        if not cls.is_reproducibly_orderable():
+                            return False
+
+        return True
+
+    @classmethod
+    def is_reproducibly_orderable(cls):
+        """ Check that a class can be reproducibly ordered. This means that at least one of the following is satisifed:
+
+        * At least one attribute is unique
+        * At least one unique_together is defined
+        * A custom validate_unique method is defined
+        * Serialization and deserialization methods are defined
+
+        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
+        limited definition of reproducible ordering.
+
+        Returns:
+            :obj:`bool`: whether or not the class can be reproducibly ordered
+        """
+
+        if cls.Meta.unique_together:
+            return True
+
+        if get_class_that_defined_function(cls.validate_unique) is not Model:
+            return True
+
+        for attr_name, attr in cls.Meta.attributes.items():
+            if attr.unique:
+                return True
+
+        if get_class_that_defined_function(cls.serialize) is not Model and \
+                get_class_that_defined_function(cls.deserialize) is not Model:
+            return True
+
+        return False
 
     def is_equal(self, other, _seen=None):
         """ Determine if two objects are semantically equal

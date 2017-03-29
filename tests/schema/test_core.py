@@ -1360,7 +1360,7 @@ class TestCore(unittest.TestCase):
         self.assertFalse(copy is g1)
         self.assertTrue(g1.is_equal(copy))
 
-    def test_diff(self):
+    def test_difference(self):
         g = [
             Grandparent(id='g', val='gparent_0'),
             Grandparent(id='g', val='gparent_0'),
@@ -1398,11 +1398,19 @@ class TestCore(unittest.TestCase):
         c[4].val = 'child_3_0'
         msg = (
             'Objects ("g", "g") have different attribute values:\n'
+            '  `children` are not equal:\n'
+            '    element: "p_0" != element: "p_0"\n'
+            '      Objects ("p_0", "p_0") have different attribute values:\n'
+            '        `children` are not equal:\n'
+            '          element: "c_0_0" != element: "c_0_0"\n'
+            '            Objects ("c_0_0", "c_0_0") have different attribute values:\n'
+            '              `val` are not equal:\n'
+            '                child_0_0 != child_3_0\n'
             '  `val` are not equal:\n'
             '    gparent_0 != gparent_1'
         )
         self.assertFalse(g[1].is_equal(g[0]))
-        self.assertEqual(g[0].difference(g[1]), msg)
+        self.assertEqual(g[0].difference(g[1]), msg, '\n\n' + g[0].difference(g[1]) + '\n\n' + msg)
 
         g[1].val = 'gparent_0'
         c[4].val = 'child_3_0'

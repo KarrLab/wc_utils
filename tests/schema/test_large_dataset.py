@@ -8,8 +8,12 @@
 
 from wc_utils.schema import core
 from wc_utils.schema import utils
+from wc_utils.schema.io import Reader, Writer
 from wc_utils.util.list import is_sorted
+import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 
@@ -48,7 +52,6 @@ class Reaction(core.Model):
 
 def generate_model(n_gene, n_rna, n_prot, n_met):
     model = Model(id='model')
-
     for i_gene in range(1, n_gene + 1):
         gene = model.genes.create(id='Gene_{}'.format(i_gene))
         for i_rna in range(1, n_rna + 1):
@@ -82,10 +85,14 @@ class TestMediumDataset(unittest.TestCase):
 
     def setUp(self):
         self.regular_recursion_limit = sys.getrecursionlimit()
-        sys.setrecursionlimit(100)
+        sys.setrecursionlimit(200)
+
+        self.dirname = tempfile.mkdtemp()
 
     def tearDown(self):
         sys.setrecursionlimit(self.regular_recursion_limit)
+
+        shutil.rmtree(self.dirname)
 
     def test_get_related(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
@@ -113,8 +120,7 @@ class TestMediumDataset(unittest.TestCase):
         for rxn in model.reactions:
             self.assertTrue(is_sorted([met.id for met in rxn.metabolites]))
 
-    @unittest.skip('get me working')
-    def test_eq(self):
+    def test_is_equal(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
         model2 = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
         self.assertTrue(model2.is_equal(model))
@@ -123,13 +129,20 @@ class TestMediumDataset(unittest.TestCase):
     def test_difference(self):
         pass
 
-    @unittest.skip('implement me')
     def test_validate(self):
-        pass
+        model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        errors = core.Validator().run(model)
+        self.assertEqual(errors, None)
 
-    @unittest.skip('implement me')
     def test_read_write(self):
-        pass
+        model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+
+        filename = os.path.join(self.dirname, 'test.xlsx')
+        Writer().run(filename, [model], [Model, Gene, Rna, Protein, Metabolite, Reaction, ])
+        objects2 = Reader().run(filename, [Model, Gene, Rna, Protein, Metabolite, Reaction, ])
+
+        model2 = objects2[Model].pop()
+        self.assertTrue(model2.is_equal(model))
 
 
 @unittest.skip("Skipping because test is long")
@@ -139,9 +152,16 @@ class TestLargeDataset(TestMediumDataset):
     n_prot = 3
     n_met = 800
 
+    def test_read_write(self):
+        model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+
+        filename = os.path.join(self.dirname, 'test.xlsx')
+        Writer().run(filename, [model], [Model, Gene, Rna, Protein, Metabolite, Reaction, ])
+        objects2 = Reader().run(filename, [Model, Gene, Rna, Protein, Metabolite, Reaction, ])
+
 
 @unittest.skip("Skipped because test is long")
-class TestHugeDataset(TestMediumDataset):
+class TestHugeDataset(TestLargeDataset):
     n_gene = 30000
     n_rna = 3
     n_prot = 3

@@ -4137,15 +4137,25 @@ def get_model(name, module=None):
 class Validator(object):
     """ Engine to validate sets of objects """
 
-    def run(self, objects):
+    def run(self, objects, get_related=False):
         """ Validate a list of objects and return their errors
 
         Args:
-            objects (:obj:`list` of `Model`): list of objects
+            objects (:obj:`Model` or `list` of `Model`): object or list of objects
+            get_related (:obj:`bool`): if true, get all related objects
 
         Returns:
             :obj:`InvalidObjectSet` or `None`: list of invalid objects/models and their errors
         """
+        if isinstance(objects, Model):
+            objects = [objects]
+
+        if get_related:
+            all_objects = []
+            for obj in objects:
+                all_objects.extend(obj.get_related())
+            objects = list(set(all_objects))
+
         error = self.clean(objects)
         if error:
             return error

@@ -97,8 +97,8 @@ class TestMediumDataset(unittest.TestCase):
     def test_get_related(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
         objects = model.get_related()
-        self.assertEqual(len(objects), 1 + self.n_gene + self.n_gene * self.n_rna +
-                         2 * self.n_gene * self.n_rna * self.n_prot + self.n_met)
+        self.assertEqual(set(objects), set([model]) | set(model.genes) | set(
+            model.rna) | set(model.proteins) | set(model.metabolites) | set(model.reactions))
 
     def test_normalize(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
@@ -123,11 +123,14 @@ class TestMediumDataset(unittest.TestCase):
     def test_is_equal(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
         model2 = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        utils.randomize_object_graph(model2)
         self.assertTrue(model2.is_equal(model))
 
-    @unittest.skip('implement me')
     def test_difference(self):
-        pass
+        model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        model2 = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        utils.randomize_object_graph(model2)
+        self.assertEqual(model2.difference(model), '')
 
     def test_validate(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)

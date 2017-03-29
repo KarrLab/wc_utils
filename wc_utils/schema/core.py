@@ -140,7 +140,7 @@ from stringcase import sentencecase
 from os.path import basename, dirname, splitext
 from wc_utils.util.introspection import get_class_that_defined_function
 from wc_utils.util.list import is_sorted
-from wc_utils.util.misc import quote
+from wc_utils.util.misc import quote, OrderableNone
 from wc_utils.util.string import indent_forest
 from wc_utils.util.types import get_subclasses, get_superclasses
 import dateutil.parser
@@ -577,10 +577,8 @@ class Model(with_metaclass(ModelMeta, object)):
             :obj:`ValueError`: if object is not reproducibly normalizable
         """
 
-        if not self.is_normalizable():
-            raise ValueError('Class {} cannot be reproducibly normalized'.format(self.__class__.__name__))
+        self._generate_normalize_sort_keys()
 
-        norm_keys = {}
         normalized_objs = []
         objs_to_normalize = [self]
 
@@ -602,119 +600,30 @@ class Model(with_metaclass(ModelMeta, object)):
                             else:
                                 cls = attr.primary_class
 
-                            if cls in norm_keys:
-                                key = norm_keys[cls]
-                            else:
-                                key = cls._normalize_key_generator()
-                                norm_keys[cls] = key
-
-                            val.sort(key=key)
+                            val.sort(key=cls._normalize_sort_key)
 
     @classmethod
-    def is_normalizable(cls):
-        """ Check that class is normalizable. This means that at each component RelatedManager must be reproducibly sortable.
+    def _generate_normalize_sort_keys(cls):
+        """ Generates key for sorting the class """
+        generated_keys = []
+        keys_to_generate = [cls]
+        while keys_to_generate:
+            cls = keys_to_generate.pop()
+            if cls not in generated_keys:
+                generated_keys.append(cls)
 
-        Returns:
-            :obj:`bool`: whether or not the class can be reproducibly normalized
-        """
+                cls._normalize_sort_key = cls._generate_normalize_sort_key()
 
-        validated_classes = []
-        classes_to_validate = [cls]
-        while classes_to_validate:
-            cls = classes_to_validate.pop()
-            if cls not in validated_classes:
-                validated_classes.append(cls)
-
-                if not is_sorted(cls.Meta.attributes.keys()):
-                    return False
-
-                if not is_sorted(cls.Meta.related_attributes.keys()):
-                    return False
-
-                for attr_name, attr in cls.Meta.attributes.items():
+                for attr in cls.Meta.attributes.values():
                     if isinstance(attr, RelatedAttribute):
-                        other_cls = attr.related_class
-                        classes_to_validate.append(other_cls)
+                        keys_to_generate.append(attr.related_class)
 
-                        if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
-                            if not other_cls.is_reproducibly_orderable():
-                                return False
-                        if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
-                            if not cls.is_reproducibly_orderable():
-                                return False
-
-                for attr_name, attr in cls.Meta.related_attributes.items():
-                    other_cls = attr.primary_class
-                    classes_to_validate.append(other_cls)
-
-                    if isinstance(attr, (ManyToOneAttribute, ManyToManyAttribute)):
-                        if not other_cls.is_reproducibly_orderable():
-                            return False
-                    if isinstance(attr, (OneToManyAttribute, ManyToManyAttribute)):
-                        if not cls.is_reproducibly_orderable():
-                            return False
-
-        return True
+                for attr in cls.Meta.related_attributes.values():
+                    if isinstance(attr, RelatedAttribute):
+                        keys_to_generate.append(attr.primary_class)
 
     @classmethod
-    def is_reproducibly_orderable(cls):
-        """ Check that a class can be reproducibly ordered. This means that at least one of the following is satisifed:
-
-        * At least one attribute is unique
-        * At least one unique_together is defined
-        * A custom validate_unique method is defined
-        * Serialization and deserialization methods are defined
-        
-        Note: To enable each RelatedManager to be normalized on its own (instead of its entire subgraph), this is intentionally a
-        limited definition of reproducible ordering.
-        
-        Returns:
-            :obj:`bool`: whether or not the class can be reproducibly ordered
-        """
-
-        # todo: check custom validate_unique
-
-        # single unique attribute        
-        for attr_name, attr in cls.Meta.attributes.items():
-            if attr.unique:
-                return True
-
-        # tuple of attributes that are unique together
-        if cls.Meta.unique_together:
-            return True
-
-        # serialization function that represents value
-        if get_class_that_defined_function(cls.serialize) is not Model and \
-                get_class_that_defined_function(cls.deserialize) is not Model:
-            return True
-
-        for attr_name, attr in cls.Meta.attributes.items():
-            if isinstance(attr, RelatedAttribute):
-                related_cls = attr.related_class
-                if related_cls.Meta.primary_attribute and related_cls.Meta.primary_attribute.unique:
-                    pass
-                elif get_class_that_defined_function(related_cls.serialize) is not Model and \
-                    get_class_that_defined_function(related_cls.serialize) is not Model:
-                    pass
-                else:
-                    False
-
-        # include all attributes
-        for attr_name, attr in cls.Meta.related_attributes.items():
-            if isinstance(attr, RelatedAttribute):
-                related_cls = attr.primary_class
-                if related_cls.Meta.primary_attribute and related_cls.Meta.primary_attribute.unique:
-                    pass
-                elif get_class_that_defined_function(related_cls.serialize) is not Model and \
-                    get_class_that_defined_function(related_cls.serialize) is not Model:
-                    pass
-                else:
-                    False
-
-        return True
-
-    @classmethod
-    def _normalize_key_generator(cls):
+    def _generate_normalize_sort_key(cls):
         """ Generates key for sorting the class """
 
         # todo: use custom validate_unique
@@ -722,16 +631,21 @@ class Model(with_metaclass(ModelMeta, object)):
         # single unique attribute
         for attr_name, attr in cls.Meta.attributes.items():
             if attr.unique:
-                return attrgetter(attr_name)
+                def key(obj):
+                    val = getattr(obj, attr_name)
+                    if val is None:
+                        return OrderableNone
+                    return val
+                return key
 
         # tuple of attributes that are unique together
         if cls.Meta.unique_together:
-            lens = (len(x) for tuple in cls.Meta.unique_together)
-            i_shortest = lens.index(min(unique_together_lens))
+            lens = [len(x) for x in cls.Meta.unique_together]
+            i_shortest = lens.index(min(lens))
 
             def key(obj):
                 vals = []
-                for attr_name in cls.unique_together[i_shortest]:
+                for attr_name in cls.Meta.unique_together[i_shortest]:
                     val = getattr(obj, attr_name)
                     if isinstance(val, RelatedManager):
                         vals.append((subval.serialize() for subval in val))
@@ -742,26 +656,27 @@ class Model(with_metaclass(ModelMeta, object)):
                 return tuple(vals)
             return key
 
-        # serialization function that represents value
-        if get_class_that_defined_function(cls.serialize) is not Model and \
-                get_class_that_defined_function(cls.deserialize) is not Model:
-            return lambda obj: obj.serialize()
-
         # include all attributes
         def key(obj):
             vals = []
-            for attr_name in chain(cls.attributes.keys(), cls.related_attributes.keys()):
+            for attr_name in chain(cls.Meta.attributes.keys(), cls.Meta.related_attributes.keys()):
                 val = getattr(obj, attr_name)
                 if isinstance(val, RelatedManager):
-                    vals.append((subval.serialize() for subval in val))
+                    subvals_serial = []
+                    for subval in val:
+                        subval_serial = subval.__class__._normalize_sort_key(subval)
+                        if subval_serial is None:
+                            subval_serial = OrderableNone
+                        subvals_serial.append(subval_serial)
+                    vals.append(tuple(sorted(subvals_serial)))
                 elif isinstance(val, Model):
-                    vals.append(val.serialize())
+                    vals.append(val.__class__._normalize_sort_key(val))
                 else:
-                    vals.append(val)
+                    vals.append(OrderableNone if val is None else val)
             return tuple(vals)
         return key
 
-    def is_equal_flat(self, other):
+    def is_equal(self, other):
         """ Determine if two objects are semantically equal
 
         Args:
@@ -771,45 +686,47 @@ class Model(with_metaclass(ModelMeta, object)):
             :obj:`bool`: `True` if objects are semantically equal, else `False`
         """
 
-    def is_equal(self, other, _seen=None):
-        """ Determine if two objects are semantically equal
+        self._generate_normalize_sort_keys()
 
-        Args:
-            other (:obj:`Model`): object to compare
-            _seen (:obj:`dict`, optional): pairs of objects that have already been compared
+        checked_pairs = []
+        pairs_to_check = [(self, other, )]
+        while pairs_to_check:
+            pair = pairs_to_check.pop()
+            obj, other_obj = pair
+            if pair not in checked_pairs:
+                checked_pairs.append(pair)
 
-        Returns:
-            :obj:`bool`: `True` if objects are semantically equal, else `False`
-        """
-        if _seen is None:
-            _seen = {}
-        if (self, other) in _seen:
-            return _seen[(self, other)]
+                # non-related attributes
+                if not obj._is_equal_attributes(other_obj):
+                    return False
 
-        # already seen
-        if self is other:
-            _seen[(self, other)] = True
-            return True
+                # related attributes
+                for attr_name, attr in chain(obj.Meta.attributes.items(), obj.Meta.related_attributes.items()):
+                    if isinstance(attr, RelatedAttribute):
+                        val = getattr(obj, attr_name)
+                        other_val = getattr(other_obj, attr_name)
 
-        # check non-related attributes (without recusion)
-        if self._is_equal_attributes(other) == False:
-            _seen[(self, other)] = False
-            return False
+                        if val.__class__ != other_val.__class__:
+                            return False
 
-        _seen[(self, other)] = None
+                        if val is None:
+                            pass
+                        elif isinstance(val, Model):
+                            pairs_to_check.append((val, other_val, ))
+                        elif len(val) != len(other_val):
+                            return False
+                        else:
+                            if attr_name in obj.Meta.attributes:
+                                cls = attr.related_class
+                            else:
+                                cls = attr.primary_class
 
-        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if not self._is_equal_related_object(other, attr, attr_name, _seen):
-                _seen[(self, other)] = False
-                return False
+                            val = sorted(val, key=cls._normalize_sort_key)
+                            other_val = sorted(other_val, key=cls._normalize_sort_key)
 
-        for attr_name, attr in chain(self.Meta.attributes.items(), self.Meta.related_attributes.items()):
-            if not self._is_equal_related_set(other, attr, attr_name, _seen):
-                _seen[(self, other)] = False
-                return False
+                            for v, ov in zip(val, other_val):
+                                pairs_to_check.append((v, ov, ))
 
-        # return `True` since there are no difference
-        _seen[(self, other)] = True
         return True
 
     def _is_equal_attributes(self, other):
@@ -845,59 +762,6 @@ class Model(with_metaclass(ModelMeta, object)):
             else:
                 if val is None and other_val is not None:
                     return False
-
-        return True
-
-    def _is_equal_related_object(self, other, attr, attr_name, _seen):
-        """ Get difference between attributes values of two objects
-
-        Args:
-            other (:obj:`Model`) other model object
-            attr (:obj:`Attribute`): attribute
-            attr_name (:obj:`str`): attribute name
-            _seen (:obj:`dict`): pairs of objects that have already been compared
-
-        Returns:
-            :obj:`bool`: true if related objects are equal
-        """
-        if isinstance(attr, RelatedAttribute):
-            val = getattr(self, attr_name)
-            if isinstance(val, Model):
-                other_val = getattr(other, attr_name)
-                if val.is_equal(other_val, _seen) == False:
-                    return False
-
-            elif isinstance(val, RelatedManager) and len(val) == 1:
-                other_val = getattr(other, attr_name)
-                if list(val)[0].is_equal(list(other_val)[0], _seen) == False:
-                    return False
-        return True
-
-    def _is_equal_related_set(self, other, attr, attr_name, _seen):
-        """ Get difference between attributes values of two objects
-
-        Args:
-            other (:obj:`Model`) other model object
-            attr (:obj:`Attribute`): attribute
-            attr_name (:obj:`str`): attribute name
-            _seen (:obj:`dict`): pairs of objects that have already been compared
-
-        Returns:
-            :obj:`bool`: true if related object sets are equal
-        """
-        if isinstance(attr, RelatedAttribute):
-            val = getattr(self, attr_name)
-            if isinstance(val, RelatedManager) and len(val) > 1:
-                other_val = list(getattr(other, attr_name))
-                for v in val:
-                    match = False
-                    for i_ov, ov in enumerate(other_val):
-                        if v.is_equal(ov, _seen) != False:
-                            match = True
-                            other_val.pop(i_ov)
-                            break
-                    if not match:
-                        return False
 
         return True
 
@@ -1347,11 +1211,10 @@ class Model(with_metaclass(ModelMeta, object)):
                 val = []
                 for attr_name in unique_together:
                     attr_val = getattr(obj, attr_name)
-
                     if isinstance(attr_val, RelatedManager):
-                        val.append((sub_val.serialize() for sub_val in attr_val))
+                        val.append(tuple(sorted((id(sub_val) for sub_val in attr_val))))
                     elif isinstance(attr_val, Model):
-                        val.append(attr_val.serialize())
+                        val.append(id(attr_val))
                     else:
                         val.append(attr_val)
                 val = tuple(val)
@@ -1365,7 +1228,7 @@ class Model(with_metaclass(ModelMeta, object)):
                 msg = 'Combinations of ({}) must be unique. The following combinations are repeated:'.format(
                     ', '.join(unique_together))
                 for rep_val in rep_vals:
-                    msg += '\n  {}'.format(', '.join(rep_val))
+                    msg += '\n  {}'.format(', '.join((str(x) for x in rep_val)))
                 attr = cls.Meta.attributes[list(unique_together)[0]]
                 errors.append(InvalidAttribute(attr, [msg]))
 

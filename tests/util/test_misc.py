@@ -7,7 +7,7 @@
 '''
 
 import unittest
-from wc_utils.util.misc import most_qual_cls_name, round_direct
+from wc_utils.util.misc import most_qual_cls_name, round_direct, OrderableNone
 from wc_utils.util.stats import ExponentialMovingAverage
 
 class C(object):
@@ -40,3 +40,11 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(round_direct(3.011), '3.01+')
         self.assertEqual(round_direct(3.01, 1), '3.0+')
         self.assertEqual(round_direct(2.99, 1), '3.0-')
+
+    def test_orderable_none(self):
+        x = [1, 3, 2, OrderableNone]
+        y = sorted(x)
+        self.assertEqual(x[0], OrderableNone)
+        self.assertEqual(x[1], 1)
+        self.assertEqual(x[2], 2)
+        self.assertEqual(x[3], 3)

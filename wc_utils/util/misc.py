@@ -7,7 +7,9 @@
 :License: MIT
 """
 
+from functools import total_ordering
 import sys
+
 
 def isclass(cls, cls_info):
     """Compares a class with classes in `cls_info`.
@@ -47,6 +49,7 @@ def isclass_by_name(cls_name, cls_info):
 
     return False
 
+
 def most_qual_cls_name(obj):
     """Obtain the most qualified class name available for `obj`.
 
@@ -65,23 +68,24 @@ def most_qual_cls_name(obj):
     else:
         cls = obj.__class__
 
-    if (3,3) <= sys.version_info:
+    if (3, 3) <= sys.version_info:
         return cls.__module__ + '.' + cls.__qualname__
     else:
         return cls.__module__ + '.' + cls.__name__
 
+
 def round_direct(value, precision=2):
     '''Convert `value` to rounded string with appended sign indicating the rounding direction.
-    
+
     Append '+' to indicate that `value` has been rounded down, and '-' to indicate rounding up.
     For example, 
     round_direct(3.01, 2) == '3.01'
     round_direct(3.01, 1) == '3.0+'
     round_direct(2.99, 1) == '3.0-'
-    
+
     This function helps display simulation times that have been slightly increased or decreased to
     control order execution.
-    
+
     Args:
         value (float): the value to round.
         precision (int): the precision with which to round `value`.
@@ -93,8 +97,9 @@ def round_direct(value, precision=2):
         return str(round(value, precision))
     elif round(value, precision) < value:
         return '{}+'.format(round(value, precision))
-    else:   # value < round(value, precision) 
+    else:   # value < round(value, precision)
         return '{}-'.format(round(value, precision))
+
 
 def quote(s):
     """ Enclose a string that contains spaces in single quotes, 'like this'
@@ -109,3 +114,20 @@ def quote(s):
         return "'{}'".format(s)
     else:
         return s
+
+
+@total_ordering
+class OrderableNoneType(object):
+    """ Type than can be used for sorting in Python 3 in place of :obj:`None` """
+
+    def __lt__(self, other):
+        return (other is not self) and (other is not None)
+
+    def __le__(self, other):
+        return True
+
+    def __eq__(self, other):
+        return (other is self) or (other is None)
+
+OrderableNone = OrderableNoneType()
+# Object than can be used for sorting in Python 3 in place of :obj:`None`

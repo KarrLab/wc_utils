@@ -31,14 +31,14 @@ from wc_utils.util.string import indent_forest
 class Writer(object):
     """ Write model objects to file(s) """
 
-    def run(self, path, objects, models,
-            title=None, description=None, keywords=None, version=None, language=None, creator=None):
-        """ Write a set of model objects to an Excel file, with one worksheet for each model, or to
+    def run(self, path, objects, models, get_related=True, 
+        title=None, description=None, keywords=None, version=None, language=None, creator=None):
+        """ Write a list of model objects to an Excel file, with one worksheet for each model, or to
             a set of .csv or .tsv files, with one file for each model.
 
         Args:
             path (:obj:`str`): path to write file(s)
-            objects (:obj:`set`): set of objects
+            objects (:obj:`list`): list of objects
             models (:obj:`list`): list of model, in the order that they should
                 appear as worksheets; all models which are not in `models` will
                 follow in alphabetical order
@@ -52,8 +52,9 @@ class Writer(object):
 
         # get related objects
         more_objects = []
-        for obj in objects:
-            more_objects.extend(obj.get_related())
+        if get_related:
+            for obj in objects:
+                more_objects.extend(obj.get_related())
 
         # clean objects
         all_objects = list(set(objects + more_objects))
@@ -446,7 +447,7 @@ class Reader(object):
             if attr is None:
                 attribute_seq.append('')
             else:
-                attribute_seq.append(attr.name)        
+                attribute_seq.append(attr.name)
 
         # load the data into objects
         objects = []
@@ -471,11 +472,11 @@ class Reader(object):
                         if deserialize_error or validation_error:
                             if deserialize_error:
                                 deserialize_error.set_location_and_value(utils.source_report(obj, attr.name),
-                                                                    attr_value)
+                                                                         attr_value)
                                 obj_errors.append(deserialize_error)
                             if validation_error:
                                 validation_error.set_location_and_value(utils.source_report(obj, attr.name),
-                                                                   attr_value)
+                                                                        attr_value)
                                 obj_errors.append(validation_error)
                         else:
                             setattr(obj, attr.name, value)

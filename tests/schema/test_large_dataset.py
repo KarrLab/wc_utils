@@ -75,13 +75,16 @@ def generate_model(n_gene, n_rna, n_prot, n_met):
     return model
 
 
-class TestMediumDataset(unittest.TestCase):
-    """ Test that the methods work on reasonably sized datasets """
+def get_all_objects(model):
+    return [model] \
+        + model.genes \
+        + model.rna \
+        + model.proteins \
+        + model.metabolites \
+        + model.reactions
 
-    n_gene = 50
-    n_rna = 2
-    n_prot = 2
-    n_met = 50
+
+class TestDataset(unittest.TestCase):
 
     def setUp(self):
         self.regular_recursion_limit = sys.getrecursionlimit()
@@ -94,11 +97,19 @@ class TestMediumDataset(unittest.TestCase):
 
         shutil.rmtree(self.dirname)
 
+
+class TestMediumDataset(TestDataset):
+    """ Test that the methods work on reasonably sized datasets """
+
+    n_gene = 50
+    n_rna = 2
+    n_prot = 2
+    n_met = 50
+
     def test_get_related(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
         objects = model.get_related()
-        self.assertEqual(set(objects), set([model]) | set(model.genes) | set(
-            model.rna) | set(model.proteins) | set(model.metabolites) | set(model.reactions))
+        self.assertEqual(set(objects), set(get_all_objects(model)))
 
     def test_normalize(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
@@ -148,18 +159,26 @@ class TestMediumDataset(unittest.TestCase):
         self.assertTrue(model2.is_equal(model))
 
 
-@unittest.skip("Skipping because test is long")
-class TestLargeDataset(TestMediumDataset):
+@unittest.skip("Skipped because test is long")
+class TestLargeDataset(TestDataset):
     n_gene = 1000
     n_rna = 3
     n_prot = 3
     n_met = 800
 
+    def test_validate(self):
+        model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        all_objects = get_all_objects(model)
+
+        errors = core.Validator().run(all_objects)
+        self.assertEqual(errors, None)
+
     def test_read_write(self):
         model = generate_model(self.n_gene, self.n_rna, self.n_prot, self.n_met)
+        all_objects = get_all_objects(model)
 
         filename = os.path.join(self.dirname, 'test.xlsx')
-        Writer().run(filename, [model], [Model, Gene, Rna, Protein, Metabolite, Reaction, ])
+        Writer().run(filename, all_objects, [Model, Gene, Rna, Protein, Metabolite, Reaction, ], get_related=False)
         objects2 = Reader().run(filename, [Model, Gene, Rna, Protein, Metabolite, Reaction, ])
 
 

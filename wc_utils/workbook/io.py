@@ -314,10 +314,13 @@ class ExcelReader(Reader):
         xls_worksheet = self.xls_workbook[sheet_name]
         worksheet = Worksheet()
 
-        for i_row in range(1, xls_worksheet.max_row + 1):
+        max_row = xls_worksheet.max_row
+        max_col = xls_worksheet.max_column
+
+        for i_row in range(1, max_row + 1):
             row = Row()
             worksheet.append(row)
-            for i_col in range(1, xls_worksheet.max_column + 1):
+            for i_col in range(1, max_col + 1):
                 cell = xls_worksheet.cell(row=i_row, column=i_col).value
                 row.append(cell)
 

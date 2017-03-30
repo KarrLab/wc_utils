@@ -7,7 +7,6 @@
 :License: MIT
 """
 
-from functools import total_ordering
 import sys
 
 
@@ -116,7 +115,6 @@ def quote(s):
         return s
 
 
-@total_ordering
 class OrderableNoneType(object):
     """ Type than can be used for sorting in Python 3 in place of :obj:`None` """
 
@@ -128,6 +126,12 @@ class OrderableNoneType(object):
 
     def __eq__(self, other):
         return (other is self) or (other is None)
+
+    def __ge__(self, other):
+        return (other is self) or (other is None)
+
+    def __gt__(self, other):
+        return False
 
 OrderableNone = OrderableNoneType()
 # Object than can be used for sorting in Python 3 in place of :obj:`None`

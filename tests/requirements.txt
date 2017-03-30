@@ -2,4 +2,3 @@ capturer
 configobj
 numpy
 scipy
-test

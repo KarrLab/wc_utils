@@ -1,14 +1,10 @@
 configobj
 enum34
 git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
-inflect
-natsort
 numpy
 openpyxl
 pyexcel
 pyexcel-io
-python-dateutil
 PyYAML
 qualname
 six
-stringcase

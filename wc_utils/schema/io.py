@@ -210,7 +210,7 @@ class Reader(object):
 
         Args:
             path (:obj:`str`): path to file(s)
-            models (:obj:`list` of `class`): list of models
+            models (:obj:`list` of :object:`Model`): list of models
             ignore_other_sheets (:obj: `boolean`, optional): if true and all models found, ignore
                 other worksheets or files
             ignore_missing_attributes (:obj:`boolean`, optional): if false, report an error if the worksheet/files
@@ -222,9 +222,14 @@ class Reader(object):
             :obj:`dict`: model objects grouped by `Model`
 
         Raises:
-            :obj:`ValueError`: if file(s) contains extra sheets that don't correspond to one of
-                `models` or if the data is not valid, depending on the optional arguments
+            :obj:`ValueError`: if 
+
+                * Sheets cannot be unambiguously mapped to models
+                * File(s) contains extra sheets that don't correspond to one of `models` or if the data is not valid, 
+                  depending on the optional arguments
         """
+
+        # initialize reader
         _, ext = splitext(path)
         reader_cls = get_reader(ext)
         reader = reader_cls(path)
@@ -232,8 +237,16 @@ class Reader(object):
         # initialize reading
         workbook = reader.initialize_workbook()
 
-        # check that models are defined for each worksheet
+        # check that sheets can be unambiguously mapped to models
         sheet_names = reader.get_sheet_names()
+        ambiguous_sheet_names = self.get_ambiguous_sheet_names(sheet_names, models)
+        if ambiguous_sheet_names:
+            msg = 'The following sheets cannot be unambiguously mapped to models:'
+            for sheet_name, models in ambiguous_sheet_names.items():
+                msg += '\n  {}: {}'.format(sheet_name, ', '.join(model.__name__ for model in models))
+            raise ValueError(msg)
+
+        # check that models are defined for each worksheet
         used_sheet_names = dict()
         for model in models:
             model_sheet_name = get_model_sheet_name(sheet_names, model)
@@ -318,6 +331,29 @@ class Reader(object):
 
         # return
         return objects
+
+    def get_ambiguous_sheet_names(self, sheet_names, models):
+        """ Get names of sheets than cannot be unambiguously mapped to models (sheet names that map to multiple models).
+
+        Args:
+            sheet_names (:obj:`list` of :obj:`str`): names of the sheets in the workbook/files
+            models (:obj:`list` of :obj:`Model`): list of models
+
+        Returns:
+            :obj:`dict` of :obj:`str`, :obj:`list` of :obj:`Model`: dictionary of ambiguous sheet names and their matching models
+        """
+        sheets_to_models = {}
+        for sheet_name in sheet_names:
+            sheets_to_models[sheet_name] = []
+            for model in models:
+                for possible_sheet_name in get_possible_model_sheet_names(model):
+                    if sheet_name == possible_sheet_name:
+                        sheets_to_models[sheet_name].append(model)
+
+            if len(sheets_to_models[sheet_name]) <= 1:
+                sheets_to_models.pop(sheet_name)
+
+        return sheets_to_models
 
     def read_model(self, reader, model, ignore_missing_attributes=False, ignore_extra_attributes=False):
         """ Instantiate a list of objects from data in a table in a file
@@ -597,7 +633,7 @@ def get_model_sheet_name(sheet_names, model):
     """ Get the name of the worksheet/file which corresponds to a model
 
     Args:
-        sheet_names (:obj:`list`): names of the sheets in the workbook/files
+        sheet_names (:obj:`list` of :obj:`str`): names of the sheets in the workbook/files
         model (:obj:`Model`): model
 
     Returns:

@@ -9,7 +9,7 @@
 
 from os.path import splitext
 from wc_utils.schema import core, utils
-from wc_utils.schema.io import Reader, Writer, convert, create_template
+from wc_utils.schema.io import Reader, Writer, convert, create_template, get_possible_model_sheet_names
 from wc_utils.workbook.io import WorksheetStyle, read as read_workbook, get_reader, get_writer
 import os
 import re
@@ -552,3 +552,34 @@ class TestIo(unittest.TestCase):
     def test_run_options(self):
         self.run_options_helper('test_run_options.xlsx')
         self.run_options_helper('test_run_options-*.csv')
+
+    def test_get_ambiguous_sheet_names(self):
+        class TestModel(core.Model):
+            pass
+
+        class TestModels(core.Model):
+            pass
+
+        class TestModels2(core.Model):
+            pass
+
+        class TestModels3(core.Model):
+
+            class Meta(core.Model.Meta):
+                verbose_name = 'TestModel'
+
+        self.assertEqual(sorted(get_possible_model_sheet_names(TestModel)),
+                         sorted(['TestModel', 'Test model', 'Test models']))
+        self.assertEqual(sorted(get_possible_model_sheet_names(TestModels)),
+                         sorted(['TestModels', 'Test models', 'Test modelss']))
+        self.assertEqual(sorted(get_possible_model_sheet_names(TestModels2)),
+                         sorted(['TestModels2', 'Test models2', 'Test models2s']))
+        self.assertEqual(sorted(get_possible_model_sheet_names(TestModels3)),
+                         sorted(['TestModels3', 'TestModel', 'TestModels']))
+
+        ambiguous_sheet_names = Reader().get_ambiguous_sheet_names(['Test models', 'Test model', 'TestModel', 'TestModels'], [
+            TestModel, TestModels, TestModels2, TestModels3])
+        self.assertEqual(len(ambiguous_sheet_names), 3)
+        self.assertEqual(ambiguous_sheet_names['Test models'], [TestModel, TestModels])
+        self.assertEqual(ambiguous_sheet_names['TestModel'], [TestModel, TestModels3])
+        self.assertEqual(ambiguous_sheet_names['TestModels'], [TestModels, TestModels3])

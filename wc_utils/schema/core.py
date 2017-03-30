@@ -1022,36 +1022,52 @@ class Model(with_metaclass(ModelMeta, object)):
         Args:
             difference (:obj:`dict`): representation of the semantic difference between two objects
         """
-        if 'type' in difference:
-            return difference['type']
+        msg = ''
+        to_render = [[difference, 0, '']]
+        while to_render:
+            difference, indent, prefix = to_render.pop()
 
-        if 'attributes' in difference:
-            
+            msg += prefix
 
-            msg = ''
-            for attr_name in natsorted(difference['attributes'].keys(), alg=ns.IGNORECASE):
-                if isinstance(difference['attributes'][attr_name], dict):
-                    attr_msg = self._render_difference(difference['attributes'][attr_name])
-                elif isinstance(difference['attributes'][attr_name], list):
-                    attr_msg = []
-                    for el_diff in difference['attributes'][attr_name]:
-                        if isinstance(el_diff, dict):
-                            el_msg = self._render_difference(el_diff)
-                            attr_msg.append('element: "{}" != element: "{}"\n  {}'.format(
-                                el_diff['objects'][0].serialize(), el_diff['objects'][1].serialize(), el_msg.replace('\n', '\n  ')))
-                        elif el_diff:
-                            attr_msg.append(el_diff)
+            if 'type' in difference:
+                if indent:
+                    msg += '\n' + ' ' * 2 * indent
+                msg += difference['type']
 
-                    attr_msg = '\n'.join(attr_msg)
-                else:
-                    attr_msg = difference['attributes'][attr_name]
+            if 'attributes' in difference:
+                if indent:
+                    msg += '\n' + ' ' * 2 * indent
+                msg += 'Objects ("{}", "{}") have different attribute values:'.format(
+                    difference['objects'][0].serialize(), difference['objects'][1].serialize())
 
-                msg += '\n  `{}` are not equal:\n    {}'.format(attr_name, attr_msg.replace('\n', '\n    '))
+                for attr_name in natsorted(difference['attributes'].keys(), alg=ns.IGNORECASE):
+                    prefix = '\n{}`{}` are not equal:'.format(' ' * 2 * (indent + 1), attr_name)
+                    if isinstance(difference['attributes'][attr_name], dict):
+                        to_render.append([difference['attributes'][attr_name], indent + 2, prefix, ])
 
-            obj, other_obj = difference['objects']
-            return 'Objects ("{}", "{}") have different attribute values:{}'.format(obj.serialize(), other_obj.serialize(), msg)
+                    elif isinstance(difference['attributes'][attr_name], list):
+                        new_to_render = []
+                        new_to_msg = ''
+                        for i_el, el_diff in enumerate(difference['attributes'][attr_name]):
+                            if isinstance(el_diff, dict):
+                                el_prefix = '\n{}element: "{}" != element: "{}"'.format(
+                                    ' ' * 2 * (indent + 2), el_diff['objects'][0].serialize(), el_diff['objects'][1].serialize())
+                                new_to_render.append([el_diff, indent + 3, el_prefix, ])
+                            else:
+                                new_to_msg += '\n' + ' ' * 2 * (indent + 2) + el_diff
 
-        return ''
+                        if new_to_msg:
+                            msg += prefix + new_to_msg
+                            prefix = ''
+
+                        if new_to_render:
+                            new_to_render[0][2] = prefix + new_to_render[0][2]
+                            new_to_render.reverse()
+                            to_render.extend(new_to_render)
+                    else:
+                        msg += prefix + '\n' + ' ' * 2 * (indent + 2) + difference['attributes'][attr_name]
+
+        return msg
 
     def get_primary_attribute(self):
         """ Get value of primary attribute

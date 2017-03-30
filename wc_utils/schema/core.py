@@ -686,6 +686,14 @@ class Model(with_metaclass(ModelMeta, object)):
             :obj:`bool`: `True` if objects are semantically equal, else `False`
         """
 
+        """
+        todo: this can potentially be sped up by 
+        
+        #. Flattening the object graphs
+        #. Sorting the flattening object lists
+        #. comparing the flattened lists item-by-item
+        """
+
         self.normalize()
         other.normalize()
 

@@ -963,14 +963,20 @@ class Model(with_metaclass(ModelMeta, object)):
 
         return self._render_difference(self._simplify_difference(total_difference))
 
-    def _simplify_difference(self, total_difference):
-        to_flatten = [[total_difference, ], ]
+    def _simplify_difference(self, difference):
+        """ Simplify difference data structure 
+
+        Args:
+            difference (:obj:`dict`): representation of the semantic difference between two objects
+        """
+
+        to_flatten = [[difference, ], ]
         while to_flatten:
-            difference = to_flatten.pop()
-            if not difference:
+            diff_hierarchy = to_flatten.pop()
+            if not diff_hierarchy:
                 continue
 
-            cur_diff = difference[-1]
+            cur_diff = diff_hierarchy[-1]
 
             if not cur_diff:
                 continue
@@ -983,12 +989,12 @@ class Model(with_metaclass(ModelMeta, object)):
             for attr, val in cur_diff['attributes'].items():
                 if isinstance(val, dict):
                     if val:
-                        new_to_flatten.append(difference + [val])
+                        new_to_flatten.append(diff_hierarchy + [val])
                 elif isinstance(val, list):
                     for v in reversed(val):
                         if v:
                             if isinstance(v, dict):
-                                new_to_flatten.append(difference + [v])
+                                new_to_flatten.append(diff_hierarchy + [v])
                         else:
                             val.remove(v)
                             flatten_again = True
@@ -998,7 +1004,7 @@ class Model(with_metaclass(ModelMeta, object)):
                     flatten_again = True
 
             if flatten_again:
-                to_flatten.append(difference)
+                to_flatten.append(diff_hierarchy)
             if new_to_flatten:
                 to_flatten.extend(new_to_flatten)
 
@@ -1006,9 +1012,9 @@ class Model(with_metaclass(ModelMeta, object)):
                 cur_diff.pop('attributes')
                 cur_diff.pop('objects')
 
-                to_flatten.append(difference[0:-1])
+                to_flatten.append(diff_hierarchy[0:-1])
 
-        return total_difference
+        return difference
 
     def _render_difference(self, difference):
         """ Generate string representation of difference data structure 
@@ -1020,22 +1026,19 @@ class Model(with_metaclass(ModelMeta, object)):
             return difference['type']
 
         if 'attributes' in difference:
+            
+
             msg = ''
             for attr_name in natsorted(difference['attributes'].keys(), alg=ns.IGNORECASE):
                 if isinstance(difference['attributes'][attr_name], dict):
-                    if difference['attributes'][attr_name]:
-                        attr_msg = self._render_difference(difference['attributes'][attr_name])
-                    else:
-                        attr_msg = ''
+                    attr_msg = self._render_difference(difference['attributes'][attr_name])
                 elif isinstance(difference['attributes'][attr_name], list):
                     attr_msg = []
                     for el_diff in difference['attributes'][attr_name]:
                         if isinstance(el_diff, dict):
-                            if el_diff:
-                                el_msg = self._render_difference(el_diff)
-                                if el_msg:
-                                    attr_msg.append('element: "{}" != element: "{}"\n  {}'.format(
-                                        el_diff['objects'][0].serialize(), el_diff['objects'][1].serialize(), el_msg.replace('\n', '\n  ')))
+                            el_msg = self._render_difference(el_diff)
+                            attr_msg.append('element: "{}" != element: "{}"\n  {}'.format(
+                                el_diff['objects'][0].serialize(), el_diff['objects'][1].serialize(), el_msg.replace('\n', '\n  ')))
                         elif el_diff:
                             attr_msg.append(el_diff)
 
@@ -1043,12 +1046,10 @@ class Model(with_metaclass(ModelMeta, object)):
                 else:
                     attr_msg = difference['attributes'][attr_name]
 
-                if attr_msg:
-                    msg += '\n  `{}` are not equal:\n    {}'.format(attr_name, attr_msg.replace('\n', '\n    '))
+                msg += '\n  `{}` are not equal:\n    {}'.format(attr_name, attr_msg.replace('\n', '\n    '))
 
-            if msg:
-                obj, other_obj = difference['objects']
-                return 'Objects ("{}", "{}") have different attribute values:{}'.format(obj.serialize(), other_obj.serialize(), msg)
+            obj, other_obj = difference['objects']
+            return 'Objects ("{}", "{}") have different attribute values:{}'.format(obj.serialize(), other_obj.serialize(), msg)
 
         return ''
 

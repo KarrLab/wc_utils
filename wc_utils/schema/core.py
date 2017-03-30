@@ -986,7 +986,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
             new_to_flatten = []
             flatten_again = False
-            for attr, val in cur_diff['attributes'].items():
+            for attr, val in list(cur_diff['attributes'].items()):
                 if isinstance(val, dict):
                     if val:
                         new_to_flatten.append(diff_hierarchy + [val])

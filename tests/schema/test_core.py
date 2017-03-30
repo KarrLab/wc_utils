@@ -200,8 +200,8 @@ class TestCore(unittest.TestCase):
         root = Root()
         leaf = Leaf()
 
-        self.assertEqual(set(vars(root).keys()), set(('label', 'leaves', 'leaves2')))
-        self.assertEqual(set(vars(leaf).keys()), set(('root', 'id', 'name')))
+        self.assertEqual(set(vars(root).keys()), set(('_source', 'label', 'leaves', 'leaves2')))
+        self.assertEqual(set(vars(leaf).keys()), set(('_source', 'root', 'id', 'name')))
 
     def test_attribute_order(self):
         self.assertEqual(set(Root.Meta.attribute_order), set(Root.Meta.attributes.keys()))

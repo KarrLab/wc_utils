@@ -321,25 +321,25 @@ class TestIo(unittest.TestCase):
         normals = models[Normal]
         for obj in normals:
             if obj.val == 'x':
-                (file_type, basename, worksheet, row, column) = obj.get_location('val')
+                (file_type, basename, worksheet, row, column) = obj.get_source('val')
                 self.assertEqual(file_type, ext)
                 self.assertEqual(basename, file)
                 self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
                 self.assertEqual(row, 3)
                 self.assertEqual(column, 'B')
-                self.assertEqual(obj.location_report('val'),
+                self.assertEqual(utils.source_report(obj, 'val'),
                                  ':'.join([file, obj.Meta.verbose_name_plural, "{}{}".format(column, row)]))
 
         transposeds = models[Transposed]
         for obj in transposeds:
             if obj.s == 'z':
-                (file_type, basename, worksheet, row, column) = obj.get_location('s')
+                (file_type, basename, worksheet, row, column) = obj.get_source('s')
                 self.assertEqual(file_type, ext)
                 self.assertEqual(basename, file)
                 self.assertEqual(worksheet, obj.Meta.verbose_name)
                 self.assertEqual(row, 2)
                 self.assertEqual(column, 'C')
-                self.assertEqual(obj.location_report('s'),
+                self.assertEqual(utils.source_report(obj, 's'),
                                  ':'.join([file, obj.Meta.verbose_name, "{}{}".format(column, row)]))
 
         file = 'test-locations-*.csv'
@@ -349,25 +349,25 @@ class TestIo(unittest.TestCase):
         normals = models[Normal]
         for obj in normals:
             if obj.val == 'x':
-                (file_type, basename, worksheet, row, column) = obj.get_location('val')
+                (file_type, basename, worksheet, row, column) = obj.get_source('val')
                 self.assertEqual(file_type, ext)
                 self.assertEqual(basename, file)
                 self.assertEqual(row, 3)
                 self.assertEqual(worksheet, obj.Meta.verbose_name_plural)
                 self.assertEqual(column, 2)
-                self.assertEqual(obj.location_report('val'),
+                self.assertEqual(utils.source_report(obj, 'val'),
                                  ':'.join([file, obj.Meta.verbose_name_plural, "{},{}".format(row, column)]))
 
         transposeds = models[Transposed]
         for obj in transposeds:
             if obj.s == 'z':
-                (file_type, basename, worksheet, row, column) = obj.get_location('s')
+                (file_type, basename, worksheet, row, column) = obj.get_source('s')
                 self.assertEqual(file_type, ext)
                 self.assertEqual(basename, file)
                 self.assertEqual(worksheet, obj.Meta.verbose_name)
                 self.assertEqual(row, 2)
                 self.assertEqual(column, 3)
-                self.assertEqual(obj.location_report('s'),
+                self.assertEqual(utils.source_report(obj, 's'),
                                  ':'.join([file, obj.Meta.verbose_name, "{},{}".format(row, column)]))
 
     def test_read_bad_headers(self):

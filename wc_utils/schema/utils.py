@@ -139,3 +139,22 @@ def randomize_object_graph(obj):
 
                         # shuffle related manager
                         shuffle(val)
+
+
+def source_report(obj, attr_name):
+    """ Get the source file, worksheet, column, and row location of attribute `attr_name` of 
+    model object `obj` as a colon-separated string.
+
+    Args:
+        obj (:obj:`Model`): model object
+        attr_name (:obj:`str`): attribute name
+
+    Returns:
+        :obj:`str`: a string representation of the source file, worksheet, column, and row 
+            location of `attr_name` of `obj`
+    """
+    ext, filename, worksheet, row, column = obj.get_source(attr_name)
+    if 'xlsx' in ext:
+        return "{}:{}:{}{}".format(filename, worksheet, column, row)
+    else:
+        return "{}:{}:{},{}".format(filename, worksheet, row, column)

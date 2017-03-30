@@ -434,7 +434,11 @@ class TabularOrientation(Enum):
 
 
 class Model(with_metaclass(ModelMeta, object)):
-    """ Base object model """
+    """ Base object model 
+
+    Attributes:
+        _source (:obj:`ModelSource`): file location, worksheet, column, and row where the object was defined
+    """
 
     class Meta(object):
         """ Meta data for :class:`Model`
@@ -451,7 +455,6 @@ class Model(with_metaclass(ModelMeta, object)):
             frozen_columns (:obj:`int`): number of Excel columns to freeze
             inheritance (:obj:`tuple` of `class`): tuple of all superclasses
             ordering (:obj:`tuple` of attribute names): controls the order in which objects should be printed when serialized
-            location (:obj:`dict`): model location data in a file, if the Model was read from a file
         """
         attributes = None
         related_attributes = None
@@ -464,7 +467,6 @@ class Model(with_metaclass(ModelMeta, object)):
         frozen_columns = 1
         inheritance = None
         ordering = None
-        location = None
 
     def __init__(self, **kwargs):
         """
@@ -507,6 +509,8 @@ class Model(with_metaclass(ModelMeta, object)):
                 raise TypeError("'{:s}' is an invalid keyword argument for {}.__init__".format(
                     attr_name, self.__class__.__name__))
             setattr(self, attr_name, val)
+
+        self._source = None
 
     @classmethod
     def validate_related_attributes(cls):
@@ -688,7 +692,7 @@ class Model(with_metaclass(ModelMeta, object)):
 
         """
         todo: this can potentially be sped up by 
-        
+
         #. Flattening the object graphs
         #. Sorting the flattening object lists
         #. comparing the flattened lists item-by-item
@@ -783,45 +787,45 @@ class Model(with_metaclass(ModelMeta, object)):
 
         return super(Model, self).__str__()
 
-    @classmethod
-    def set_location(cls, pathname, sheet_name, attribute_seq):
-        cls.Meta.location = {}
-        cls.Meta.location['pathname'] = pathname
-        cls.Meta.location['sheet_name'] = sheet_name
-        cls.Meta.location['attribute_seq'] = attribute_seq
+    def set_source(self, path_name, sheet_name, attribute_seq, row):
+        """ Set metadata about source of the file, worksheet, columns, and row where the object was defined
 
-    def set_obj_num(self, obj_num):
-        self.obj_num = obj_num
+        Args:
+            path_name (:obj:`int`): row number of object in its source file
+            sheet_name (:obj:`int`): row number of object in its source file
+            attribute_seq (:obj:`int`): row number of object in its source file
+            row (:obj:`int`): row number of object in its source file
+        """
+        self._source = ModelSource(path_name, sheet_name, attribute_seq, row)
 
-    def get_location(self, attr):
-        """ Get file location of attribute `attr`
+    def get_source(self, attr_name):
+        """ Get file location of attribute with name `attr_name`
 
-        Provide the type, filename, worksheet, row, and column of `attr`. Row and column use
+        Provide the type, filename, worksheet, row, and column of `attr_name`. Row and column use
         1-based counting. Column is provided in Excel format if the file was a spreadsheet.
 
         Args:
-            attr (:obj:`str`): attribute name
+            attr_name (:obj:`str`): attribute name
 
         Returns:
             tuple of (type, basename, worksheet, row, column)
 
         Raises:
-            ValueError if the location of `attr` is unknown
+            ValueError if the location of `attr_name` is unknown
         """
-        if self.Meta.location == None or not hasattr(self, 'obj_num'):
+        if self._source is None:
             raise ValueError("location information unavailable".format())
 
         # account for the header row and possible transposition
-        row = 1 + self.obj_num
+        row = self._source.row
         try:
-            column = self.Meta.location['attribute_seq'].index(attr)
-            column += 1
+            column = self._source.attribute_seq.index(attr_name) + 1
         except ValueError as e:
-            raise ValueError("cannot find attr {}".format(attr))
+            raise ValueError("cannot find attr with name {}".format(attr_name))
         if self.Meta.tabular_orientation == TabularOrientation.column:
             column, row = row, column
-        path = self.Meta.location['pathname']
-        sheet_name = self.Meta.location['sheet_name']
+        path = self._source.path_name
+        sheet_name = self._source.sheet_name
 
         _, ext = splitext(path)
         ext = ext.split('.')[-1]
@@ -830,24 +834,6 @@ class Model(with_metaclass(ModelMeta, object)):
             return (ext, quote(basename(path)), quote(sheet_name), row, col)
         else:
             return (ext, quote(basename(path)), quote(sheet_name), row, column)
-
-    def location_report(self, attr_name):
-        """ Provide the file location of attribute `attr_name`
-
-        Provide the filename, worksheet, row, and column of `attr_name` in a colon-separated
-        string.
-
-        Args:
-            attr_name (:obj:`str`): attribute name
-
-        Returns:
-            (:obj:`str`): a string representation of the file location of `attr_name`
-        """
-        ext, filename, worksheet, row, column = self.get_location(attr_name)
-        if 'xlsx' in ext:
-            return "{}:{}:{}{}".format(filename, worksheet, column, row)
-        else:
-            return "{}:{}:{},{}".format(filename, worksheet, row, column)
 
     @classmethod
     def sort(cls, objects):
@@ -1304,6 +1290,30 @@ class Model(with_metaclass(ModelMeta, object)):
                     raise ValueError('Invalid related attribute value')
 
             setattr(copy, attr.name, copy_val)
+
+
+class ModelSource(object):
+        """ Represents the file, sheet, columns, and row where a :obj:`Model` instance was defined
+
+        Attributes:
+            path_name (:obj:`int`): row number of object in its source file
+            sheet_name (:obj:`int`): row number of object in its source file
+            attribute_seq (:obj:`int`): row number of object in its source file
+            row (:obj:`int`): row number of object in its source file
+
+        """
+        def __init__(self, path_name, sheet_name, attribute_seq, row):            
+            """
+            Args:
+                path_name (:obj:`int`): row number of object in its source file
+                sheet_name (:obj:`int`): row number of object in its source file
+                attribute_seq (:obj:`int`): row number of object in its source file
+                row (:obj:`int`): row number of object in its source file
+            """
+            self.path_name = path_name
+            self.sheet_name = sheet_name
+            self.attribute_seq = attribute_seq
+            self.row = row
 
 
 class Attribute(object):
@@ -4039,34 +4049,34 @@ class InvalidAttribute(object):
         attribute (:obj:`Attribute`): invalid attribute
         messages (:obj:`list` of `str`): list of error messages
         related (:obj:`bool`): indicates if error is about value or related value
-        loc (:obj:`str`, optional): a string representation of the attribute's location in an input file
+        location (:obj:`str`, optional): a string representation of the attribute's location in an input file
         value (:obj:`str`, optional): invalid input value
     """
 
-    def __init__(self, attribute, messages, related=False, loc=None, value=None):
+    def __init__(self, attribute, messages, related=False, location=None, value=None):
         """
         Args:
             attribute (:obj:`Attribute`): invalid attribute
             message (:obj:`list` of `str`): list of error messages
             related (:obj:`bool`, optional): indicates if error is about value or related value
-            loc (:obj:`str`, optional): a string representation of the attribute's location in an
+            location (:obj:`str`, optional): a string representation of the attribute's location in an
                 input file
             value (:obj:`str`, optional): invalid input value
         """
         self.attribute = attribute
         self.messages = messages
         self.related = related
-        self.loc = loc
+        self.location = location
         self.value = value
 
-    def set_loc_and_value(self, loc, value):
+    def set_location_and_value(self, location, value):
         """ Set the location and value of the attribute
 
         Args:
-            loc (:obj:`str`): a string representation of the attribute's location in an input file
+            location (:obj:`str`): a string representation of the attribute's location in an input file
             value (:obj:`str`): the invalid input value
         """
-        self.loc = loc
+        self.location = location
         if value is None:
             self.value = ''
         else:
@@ -4087,8 +4097,8 @@ class InvalidAttribute(object):
             name += "'{}'".format(self.value)
 
         forest = [name]
-        if self.loc:
-            forest.append([self.loc,
+        if self.location:
+            forest.append([self.location,
                            [msg.rstrip() for msg in self.messages]])
 
         else:

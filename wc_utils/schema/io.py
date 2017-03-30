@@ -446,36 +446,35 @@ class Reader(object):
             if attr is None:
                 attribute_seq.append('')
             else:
-                attribute_seq.append(attr.name)
-        model.set_location(reader.path, sheet_name, attribute_seq)
+                attribute_seq.append(attr.name)        
 
         # load the data into objects
         objects = []
         errors = []
         transposed = model.Meta.tabular_orientation == TabularOrientation.column
 
-        for obj_num, obj_data in enumerate(data, start=1):
+        for row_num, obj_data in enumerate(data, start=2):
             obj = model()
 
             # save object location in file
-            obj.set_obj_num(obj_num)
+            obj.set_source(reader.path, sheet_name, attribute_seq, row_num)
 
             obj_errors = []
             if ignore_extra_attributes:
                 obj_data = list(compress(obj_data, good_columns))
 
-            for attr_num, (attr, attr_value) in enumerate(zip(attributes, obj_data), start=1):
+            for attr, attr_value in zip(attributes, obj_data):
                 try:
                     if not isinstance(attr, RelatedAttribute):
                         value, deserialize_error = attr.deserialize(attr_value)
                         validation_error = attr.validate(attr.__class__, value)
                         if deserialize_error or validation_error:
                             if deserialize_error:
-                                deserialize_error.set_loc_and_value(obj.location_report(attr.name),
+                                deserialize_error.set_location_and_value(utils.source_report(obj, attr.name),
                                                                     attr_value)
                                 obj_errors.append(deserialize_error)
                             if validation_error:
-                                validation_error.set_loc_and_value(obj.location_report(attr.name),
+                                validation_error.set_location_and_value(utils.source_report(obj, attr.name),
                                                                    attr_value)
                                 obj_errors.append(validation_error)
                         else:
@@ -483,7 +482,7 @@ class Reader(object):
 
                 except Exception as e:
                     error = InvalidAttribute(attr, ["{}".format(e)])
-                    error.set_loc_and_value(obj.location_report(attr.name), attr_value)
+                    error.set_location_and_value(utils.source_report(obj, attr.name), attr_value)
                     obj_errors.append(error)
 
             if obj_errors:
@@ -549,7 +548,7 @@ class Reader(object):
                 if isinstance(attr, RelatedAttribute):
                     value, error = attr.deserialize(attr_value, objects_by_primary_attribute)
                     if error:
-                        error.set_loc_and_value(obj.location_report(attr.name), attr_value)
+                        error.set_location_and_value(utils.source_report(obj, attr.name), attr_value)
                         errors.append(error)
                     else:
                         setattr(obj, attr.name, value)

@@ -106,35 +106,36 @@ class TestUtils(unittest.TestCase):
         nodes0 = []
         nodes1 = []
         nodes2 = []
-        for i in range(5):
+        n = 20
+        for i in range(n):
             nodes0.append(NormNodeLevel0(label='node_0_{}'.format(i)))
 
-        for i in range(5):
+        for i in range(n):
             nodes1.append(NormNodeLevel1(label='node_1_{}'.format(i), parents=[
-                          nodes0[(i) % 5], nodes0[(i + 1) % 5], nodes0[(i + 2) % 5], ]))
+                          nodes0[(i) % n], nodes0[(i + 1) % n], nodes0[(i + 2) % n], ]))
 
-        for i in range(5):
+        for i in range(n):
             nodes2.append(NormNodeLevel2(label='node_2_{}'.format(i), parents=[
-                          nodes1[(i) % 5], nodes1[(i + 1) % 5], nodes1[(i + 2) % 5], ]))
+                          nodes1[(i) % n], nodes1[(i + 1) % n], nodes1[(i + 2) % n], ]))
 
         def check_sorted():
-            for i in range(5):
-                i_childs = sorted([(i - 2) % 5, (i - 1) % 5, (i - 0) % 5, ])
+            for i in range(n):
+                i_childs = sorted([(i - 2) % n, (i - 1) % n, (i - 0) % n, ])
                 for i_child, child in zip(i_childs, nodes0[i].children):
                     if child.label != 'node_1_{}'.format(i_child):
                         return False
 
-                i_parents = sorted([(i + 0) % 5, (i + 1) % 5, (i + 2) % 5, ])
+                i_parents = sorted([(i + 0) % n, (i + 1) % n, (i + 2) % n, ])
                 for i_parent, parent in zip(i_parents, nodes1[i].parents):
                     if parent.label != 'node_0_{}'.format(i_parent):
                         return False
 
-                i_childs = sorted([(i - 2) % 5, (i - 1) % 5, (i - 0) % 5, ])
+                i_childs = sorted([(i - 2) % n, (i - 1) % n, (i - 0) % n, ])
                 for i_child, child in zip(i_childs, nodes1[i].children):
                     if child.label != 'node_2_{}'.format(i_child):
                         return False
 
-                i_parents = sorted([(i + 0) % 5, (i + 1) % 5, (i + 2) % 5, ])
+                i_parents = sorted([(i + 0) % n, (i + 1) % n, (i + 2) % n, ])
                 for i_parent, parent in zip(i_parents, nodes2[i].parents):
                     if parent.label != 'node_1_{}'.format(i_parent):
                         return False
@@ -146,10 +147,13 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(check_sorted())
 
         # randomize
-        for i in range(5):
-            utils.randomize_object_graph(nodes0[i])
-        self.assertFalse(check_sorted())
+        n_random = 0
+        n_trials = 100
+        for i in range(n_trials):                
+            utils.randomize_object_graph(nodes0[0])
+            n_random += (check_sorted() == False)
 
-        # sort and check sorted
-        nodes0[0].normalize()
-        self.assertTrue(check_sorted())
+            nodes0[0].normalize()
+            self.assertTrue(check_sorted())
+
+        self.assertGreater(n_random, 0.9 * n_trials)

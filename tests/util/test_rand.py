@@ -94,7 +94,7 @@ class TestRandomState(unittest.TestCase):
 
         # test skew
         for i in range(10):
-            lesser,greater = sorted(np.random.random_sample(2))
+            lesser, greater = (0.2, 0.8)
             lesser_rounds = [random_state.round_quadratic(lesser) for i in range(nsamples)]
             ave_lesser_rounds = np.mean(lesser_rounds)
             greater_rounds = [random_state.round_quadratic(greater) for i in range(nsamples)]

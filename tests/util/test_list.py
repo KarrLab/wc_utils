@@ -6,7 +6,7 @@
 :License: MIT
 """
 
-from wc_utils.util.list import is_sorted, transpose
+from wc_utils.util.list import is_sorted, transpose, difference
 import unittest
 
 
@@ -26,3 +26,11 @@ class TestTranspose(unittest.TestCase):
         lst = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         t_lst = [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
         self.assertEqual(transpose(lst), t_lst)
+
+    def test_difference(self):
+        l = list([0, 1, 2, 3, 4])
+        m = list([1, 2, 3])
+        self.assertEqual(difference(l, m), [0, 4])
+        self.assertEqual(difference(m, l), [])
+        with self.assertRaises(TypeError):
+            self.assertEqual(difference([], [[1]]), [])

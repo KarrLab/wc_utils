@@ -39,3 +39,24 @@ def transpose(lst):
             t_lst[i_col].append(value)
 
     return t_lst
+
+
+def difference(list_1, list_2):
+    """ Deterministically find the difference between two lists
+
+    Returns the elements in `list_1` that are not in `list_2`. Behaves deterministically, whereas
+    set difference does not. Computational cost is O(max(l1, l2)), where l1 and l2 are len(list_1)
+    and len(list_2), respectively.
+
+    Args:
+        list_1 (:obj:`list`): one-dimensional list
+        list_2 (:obj:`list`): one-dimensional list
+
+    Returns:
+        :obj:`list`: a set-like difference between `list_1` and `list_2`
+
+    Raises:
+        `TypeError` if  `list_1` or `list_2` contains an unhashable (mutable) type
+    """
+    list_2_set = set(list_2)
+    return list(filter(lambda item:not item in list_2_set, list_1))

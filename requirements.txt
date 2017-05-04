@@ -7,4 +7,5 @@ pyexcel
 pyexcel-io
 PyYAML
 qualname
+requests
 six

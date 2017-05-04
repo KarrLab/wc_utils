@@ -77,3 +77,6 @@ README.rst
 .~lock.*.xls#
 ~$*.xlsx
 ~$*.xls
+
+# passwords
+tests/fixtures/secret/

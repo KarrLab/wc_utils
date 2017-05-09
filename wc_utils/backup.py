@@ -20,6 +20,7 @@ class BackupManager(object):
         arcname (:obj:`str`): name of the file within the backup
         archive_filename (:obj:`str`): path to store the backup
         archive_remote_filename (:obj:`str`): remote name of backup
+        token (:obj:`str`): server login token
     """
 
     UPLOAD_ENDPOINT = 'http://code.karrlab.org/data/upload.php'
@@ -28,13 +29,14 @@ class BackupManager(object):
     DOWNLOAD_ENDPOINT = 'http://code.karrlab.org/data/download.php'
     # :obj:`str`: default URL to download backups
 
-    def __init__(self, filename, arcname='', archive_filename='', archive_remote_filename=''):
+    def __init__(self, filename, arcname='', archive_filename='', archive_remote_filename='', token=''):
         """
         Args:
             filename (:obj:`str`): path to backup
             arcname (:obj:`str`, optional): name of the file within the backup
             archive_filename (:obj:`str`, optional): path to store the backup
             archive_remote_filename (:obj:`str`, optional): remote name of backup
+            token (:obj:`str`, optional): server login token
         """
         if not arcname:
             arcname = os.path.basename(filename)
@@ -45,7 +47,8 @@ class BackupManager(object):
         if not archive_remote_filename:
             archive_remote_filename = arcname + '.tar.gz'
 
-        token = os.getenv('CODE_SERVER_TOKEN')
+        if not token:
+            token = os.getenv('CODE_SERVER_TOKEN')
 
         self.filename = filename
         self.arcname = arcname

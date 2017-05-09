@@ -1,6 +1,7 @@
 """ String utilities.
 
 :Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
+:Author: Jonathan Karr <jonrkarr@gmail.com>
 :Date: 2017-03-20
 :Copyright: 2017, Karr Lab
 :License: MIT
@@ -93,3 +94,161 @@ def delete_trailing_blanks(l_of_strings):
         last = i
     if last is not None:
         del l_of_strings[last:]
+
+
+def find_nth(s, sub, n, start=0, end=float('inf')):
+    """ Get the index of the nth occurrence of a substring within a string
+
+    Args:
+        s (:obj:`str`): string to search
+        sub (:obj:`str`): substring to search for
+        n (:obj:`int`): number of occurence to find the position of
+        start (:obj:`int`, optional): starting position to search from
+        end (:obj:`int`, optional): end position to search within
+
+    Returns:
+        :obj:`int`: index of nth occurence of the substring within the string
+            or -1 if there are less than n occurrences of the substring within
+            the string
+
+    Raises:
+        :obj:`ValueError`: if `sub` is empty or `n` is less than 1
+    """
+    if not sub:
+        raise ValueError('sep cannot be empty')
+    if n < 1:
+        raise ValueError('n must be at least 1')
+
+    L = len(s)
+    l = len(sub)
+    count = 0
+    i = start
+    while i < min(end, L) - l + 1:
+        if s[i:i+l] == sub:
+            count += 1
+            if count == n:
+                return i
+            i += l
+        else:
+            i += 1
+
+    return -1
+
+
+def rfind_nth(s, sub, n, start=0, end=float('inf')):
+    """ Get the index of the nth-last occurrence of a substring within a string
+
+    Args:
+        s (:obj:`str`): string to search
+        sub (:obj:`str`): substring to search for
+        n (:obj:`int`): number of occurence to find the position of
+        start (:obj:`int`, optional): starting position to search from
+        end (:obj:`int`, optional): end position to search within
+
+    Returns:
+        :obj:`int`: index of nth-last occurence of the substring within the string
+            or -1 if there are less than n occurrences of the substring within
+            the string
+
+    Raises:
+        :obj:`ValueError`: if `sub` is empty or `n` is less than 1
+    """
+    if not sub:
+        raise ValueError('sep cannot be empty')
+    if n < 1:
+        raise ValueError('n must be at least 1')
+
+    L = len(s)
+    l = len(sub)
+    count = 0
+    i = min(L, end) - l
+    while i >= start:
+        if s[i:i+l] == sub:
+            count += 1
+            if count == n:
+                return i
+            i -= l
+        else:
+            i -= 1
+
+    return -1
+
+
+def partition_nth(s, sep, n):
+    """ Partition a string on the nth occurrence of a substring
+
+    Args:
+        s (:obj:`str`): string to partition
+        sep (:obj:`str`): separator to partition on
+        n (:obj:`int`): number of occurence to partition on
+
+    Returns:
+        :obj:`tuple`:
+
+            * :obj:`str`: substring before the nth separator
+            * :obj:`str`: separator
+            * :obj:`str`: substring after the nth separator
+
+    Raises:
+        :obj:`ValueError`: if `sep` is empty or `n` is less than 1
+    """
+    if not sep:
+        raise ValueError('sep cannot be empty')
+    if n < 1:
+        raise ValueError('n must be at least 1')
+
+    i = find_nth(s, sep, n)
+    if i == -1:
+        return (s, '', '')
+    else:
+        if i == 0:
+            before = ''
+        else:
+            before = s[0:i]
+
+        if i == len(s) - len(sep):
+            after = ''
+        else:
+            after = s[i+len(sep):]
+
+        return (before, sep, after)
+
+
+def rpartition_nth(s, sep, n):
+    """ Partition a string on the nth-last occurrence of a substring
+
+    Args:
+        s (:obj:`str`): string to partition
+        sep (:obj:`str`): separator to partition on
+        n (:obj:`int`): number of occurence to partition on
+
+    Returns:
+        :obj:`tuple`:
+
+            * :obj:`str`: substring before the nth-last separator
+            * :obj:`str`: separator
+            * :obj:`str`: substring after the nth-last separator
+
+    Raises:
+        :obj:`ValueError`: if `sep` is empty or `n` is less than 1
+    """
+    if not sep:
+        raise ValueError('sep cannot be empty')
+    if n < 1:
+        raise ValueError('n must be at least 1')
+
+    i = rfind_nth(s, sep, n)
+    if i == -1:
+        return ('', '', s)
+    else:
+        if i == 0:
+            before = ''
+        else:
+            before = s[0:i]
+
+        if i == len(s) - len(sep):
+            after = ''
+        else:
+            after = s[i+len(sep):]
+
+        return (before, sep, after)

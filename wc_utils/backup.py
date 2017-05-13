@@ -20,22 +20,28 @@ class BackupManager(object):
         arcname (:obj:`str`): name of the file within the backup
         archive_filename (:obj:`str`): path to store the backup
         archive_remote_filename (:obj:`str`): remote name of backup
+        upload_endpoint (:obj:`str`): default URL to upload backups
+        download_endpoint (:obj:`str`): default URL to download backups
         token (:obj:`str`): server login token
     """
 
-    UPLOAD_ENDPOINT = 'http://code.karrlab.org/data/upload.php'
+    DEFAULT_UPLOAD_ENDPOINT = 'http://code.karrlab.org/data/upload.php'
     # :obj:`str`: default URL to upload backups
 
-    DOWNLOAD_ENDPOINT = 'http://code.karrlab.org/data/download.php'
+    DEFAULT_DOWNLOAD_ENDPOINT = 'http://code.karrlab.org/data/download.php'
     # :obj:`str`: default URL to download backups
 
-    def __init__(self, filename, arcname='', archive_filename='', archive_remote_filename='', token=''):
+    def __init__(self, filename, arcname='', archive_filename='', archive_remote_filename='',
+                 upload_endpoint=DEFAULT_UPLOAD_ENDPOINT, download_endpoint=DEFAULT_DOWNLOAD_ENDPOINT,
+                 token=''):
         """
         Args:
             filename (:obj:`str`): path to backup
             arcname (:obj:`str`, optional): name of the file within the backup
             archive_filename (:obj:`str`, optional): path to store the backup
-            archive_remote_filename (:obj:`str`, optional): remote name of backup
+            archive_remote_filename (:obj:`str`, optional): remote name of backup            
+            upload_endpoint (:obj:`str`, optional): default URL to upload backups
+            download_endpoint (:obj:`str`, optional): default URL to download backups
             token (:obj:`str`, optional): server login token
         """
         if not arcname:
@@ -54,6 +60,8 @@ class BackupManager(object):
         self.arcname = arcname
         self.archive_filename = archive_filename
         self.archive_remote_filename = archive_remote_filename
+        self.upload_endpoint = upload_endpoint
+        self.download_endpoint = download_endpoint
         self.token = token
 
     def create(self):
@@ -87,7 +95,7 @@ class BackupManager(object):
         Returns:
             :obj:`BackupManager`: the backup manager
         """
-        response = requests.post(self.UPLOAD_ENDPOINT, data={'token': self.token, 'filename': self.archive_remote_filename}, files=[
+        response = requests.post(self.upload_endpoint, data={'token': self.token, 'filename': self.archive_remote_filename}, files=[
             ('file', (self.archive_remote_filename, open(self.archive_filename, 'rb'), 'application/x-gzip')),
         ])
         response.raise_for_status()
@@ -100,7 +108,7 @@ class BackupManager(object):
         Returns:
             :obj:`BackupManager`: the backup manager
         """
-        response = requests.get(self.DOWNLOAD_ENDPOINT, params={'token': self.token, 'filename': self.archive_remote_filename})
+        response = requests.get(self.download_endpoint, params={'token': self.token, 'filename': self.archive_remote_filename})
         response.raise_for_status()
         with open(self.archive_filename, 'wb') as file:
             file.write(response.content)

@@ -48,8 +48,8 @@ class TestConfig(unittest.TestCase):
         expected['debug_logs']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
 
         env = {
-            'CONFIG.debug_logs.formatters.__test__.template': 'xxxx',
-            'CONFIG.debug_logs.formatters.__test__.append_new_line': 'False',
+            'CONFIG__DOT__debug_logs__DOT__formatters__DOT____test____DOT__template': 'xxxx',
+            'CONFIG__DOT__debug_logs__DOT__formatters__DOT____test____DOT__append_new_line': 'False',
         }
         with EnvironUtils.make_temp_environ(**env):
             config_settings = ConfigManager(debug_logs_default_paths).get_config()

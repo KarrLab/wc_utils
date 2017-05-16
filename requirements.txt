@@ -5,6 +5,7 @@ numpy
 openpyxl
 pyexcel
 pyexcel-io
+pygit2
 PyYAML
 qualname
 requests

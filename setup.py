@@ -43,14 +43,26 @@ with open(version_filename, 'r') as file:
             libgit2_version = match[0]
             break
 
-i_pygit2 = install_requires.index('pygit2')
+for i_pkg, pkg_info in enumerate(install_requires):
+    if pkg_info.strip().startswith('pygit2'):
+        i_pygit2 = i_pkg
+
+
+def update_requirements_file(filename):
+    with open(filename, 'r') as file:
+        content = file.read()
+        content = re.sub('^(.*?pygit2.*?)$', 'pygit2<={}'.format(libgit2_version), content, flags=re.MULTILINE)
+    with open(filename, 'w') as file:
+        file.write(content)
+
 if libgit2_version:
     install_requires[i_pygit2] = 'pygit2<={}'.format(libgit2_version)
+    update_requirements_file('requirements.txt')
+    update_requirements_file('docs/requirements.txt')
 else:
     install_requires.pop(i_pygit2)
     warnings.warn(('wc_utils requires libgit2. Please install libgit2 and then retry installing '
                    'wc_utils. Please see https://libgit2.github.com for installation instructions.'))
-
 
 # install non-PyPI dependencies
 install_dependencies(dependency_links)

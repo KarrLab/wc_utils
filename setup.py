@@ -36,12 +36,13 @@ if not libgit2_path:
 version_filename = os.path.join(libgit2_path, 'include', 'git2', 'version.h')
 
 libgit2_version = None
-with open(version_filename, 'r') as file:
-    for line in file:
-        match = re.findall('define *LIBGIT2_VERSION *"(.*?)"', line.strip())
-        if match:
-            libgit2_version = match[0]
-            break
+if os.path.isfile(version_filename):
+    with open(version_filename, 'r') as file:
+        for line in file:
+            match = re.findall('define *LIBGIT2_VERSION *"(.*?)"', line.strip())
+            if match:
+                libgit2_version = match[0]
+                break
 
 for i_pkg, pkg_info in enumerate(install_requires):
     if pkg_info.strip().startswith('pygit2'):

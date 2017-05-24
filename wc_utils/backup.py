@@ -17,6 +17,7 @@ import six
 import socket
 import tarfile
 import tempfile
+import wc_utils.util.git
 
 
 class BackupManager(object):
@@ -198,10 +199,9 @@ class BackupFile(object):
             repo_path (:obj:`path`): path to repository
         """
         try:
-            repo = pygit2.Repository(repo_path)
-            origin = next(remote for remote in repo.remotes if remote.name == 'origin')
-            self.program = origin.url
-            self.version = str(repo.head.shorthand) + ':' + str(repo.head.target)
+            md = wc_utils.util.git.get_repo_metadata(repo_path)
+            self.program = md.url
+            self.version = str(md.branch) + ':' + str(md.revision)
         except KeyError:
             self.program = None
             self.version = None

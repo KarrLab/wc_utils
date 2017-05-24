@@ -1,23 +1,15 @@
-.. Whole-cell utilities documentation master file, created by
-   sphinx-quickstart on Thu Oct 20 18:11:46 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+`wc_utils` documentation
+========================
 
-Welcome to Whole-cell utilities's documentation!
-================================================
+This package contains utilities that are useful to multiple whole-cell (WC) software components.
 
-Contents:
+
+Contents
+--------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   source/modules.rst
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   installation.rst
+   API documentation <source/modules.rst>
+   about.rst

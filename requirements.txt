@@ -5,7 +5,7 @@ numpy
 openpyxl
 pyexcel
 pyexcel-io
-pygit2==0.25.0
+pygit2
 PyYAML
 qualname
 requests

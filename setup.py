@@ -8,6 +8,8 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 from wc_utils.util.install import parse_requirements, install_dependencies
+import re
+import os
 import wc_utils
 
 here = path.abspath(path.dirname(__file__))
@@ -22,6 +24,30 @@ with open('requirements.txt', 'r') as file:
 with open('tests/requirements.txt', 'r') as file:
     tests_require, dependency_links_tests = parse_requirements(file.readlines())
 dependency_links = list(set(dependency_links_install + dependency_links_tests))
+
+# find needed pygit2 version
+libgit2_path = os.getenv("LIBGIT2")
+if not libgit2_path:
+    if os.name == 'nt':
+        libgit2_path = os.path.join(os.getenv("ProgramFiles"), 'libgit2')
+    else:
+        libgit2_path = '/usr/local'
+version_filename = os.path.join(libgit2_path, 'include', 'git2', 'version.h')
+
+libgit2_version = None
+with open(version_filename, 'r') as file:
+    for line in file:
+        match = re.findall('define *LIBGIT2_VERSION *"(.*?)"', line.strip())
+        if match:
+            libgit2_version = match[0]
+            break
+
+if not libgit2_version:
+    raise Exception(('wc_utils requires libgit2. Please install libgit2 and then retry installing '
+                     'wc_utils. Please see https://libgit2.github.com for installation instructions.'))
+
+i_pygit2 = install_requires.index('pygit2')
+install_requires[i_pygit2] = 'pygit2<={}'.format(libgit2_version)
 
 # install non-PyPI dependencies
 install_dependencies(dependency_links)

@@ -10,6 +10,7 @@ from os import path
 from wc_utils.util.install import parse_requirements, install_dependencies
 import re
 import os
+import warnings
 import wc_utils
 
 here = path.abspath(path.dirname(__file__))
@@ -42,12 +43,14 @@ with open(version_filename, 'r') as file:
             libgit2_version = match[0]
             break
 
-if not libgit2_version:
-    raise Exception(('wc_utils requires libgit2. Please install libgit2 and then retry installing '
-                     'wc_utils. Please see https://libgit2.github.com for installation instructions.'))
-
 i_pygit2 = install_requires.index('pygit2')
-install_requires[i_pygit2] = 'pygit2<={}'.format(libgit2_version)
+if libgit2_version:
+    install_requires[i_pygit2] = 'pygit2<={}'.format(libgit2_version)
+else:
+    install_requires.pop(i_pygit2)
+    warnings.warn(('wc_utils requires libgit2. Please install libgit2 and then retry installing '
+                   'wc_utils. Please see https://libgit2.github.com for installation instructions.'))
+
 
 # install non-PyPI dependencies
 install_dependencies(dependency_links)

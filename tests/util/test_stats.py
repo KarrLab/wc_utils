@@ -58,6 +58,11 @@ class TestStats(unittest.TestCase):
         self.assertEqual(stats.weighted_percentile([2, 1], [1, 0], 50), 2)
         numpy.testing.assert_equal(stats.weighted_percentile([2, 1], [0, 0], 100), float('nan'))
 
+        numpy.testing.assert_equal(stats.weighted_percentile([1, 2, 3, 0], [10, 1, 20, numpy.nan], 0), 1)
+        numpy.testing.assert_equal(stats.weighted_percentile([1, 2, 3, 0], [10, 1, 20, numpy.nan], 100), 3)
+        numpy.testing.assert_equal(stats.weighted_percentile([1, 2, 3, 0], [10, 1, 20, numpy.nan], 0, ignore_nan=False), numpy.nan)
+        numpy.testing.assert_equal(stats.weighted_percentile([1, 2, 3, 0], [10, 1, 20, numpy.nan], 100, ignore_nan=False), numpy.nan)
+
     def test_weighted_median(self):
         self.assertEqual(stats.weighted_median([2, 1, 3], [1, 1, 1]), numpy.median([2., 1., 3.]))
         self.assertEqual(stats.weighted_median([2, 1, 3, 4], [1, 1, 1, 1]), numpy.median([2., 1., 3., 4.]))
@@ -85,3 +90,26 @@ class TestStats(unittest.TestCase):
         numpy.testing.assert_equal(stats.weighted_median([2, 1, 3], [0, 0, 0]), float('nan'))
         numpy.testing.assert_equal(stats.weighted_median([2], [1]), 2)
         numpy.testing.assert_equal(stats.weighted_median([2], [0]), float('nan'))
+
+        numpy.testing.assert_equal(stats.weighted_median([1, 2, 3, 0], [10, 1, 20, numpy.nan]), 3)
+        numpy.testing.assert_equal(stats.weighted_median([1, 2, 3, 0], [10, 1, 20, numpy.nan], ignore_nan=False), numpy.nan)
+
+    def test_weighted_mode(self):
+        self.assertEqual(stats.weighted_mode([1], [1]), 1)
+
+        self.assertEqual(stats.weighted_mode([1, 2], [1, 1]), 1)
+        self.assertEqual(stats.weighted_mode([2, 1], [1, 1]), 1)
+        self.assertEqual(stats.weighted_mode([1, 2], [1, 10]), 2)
+        self.assertEqual(stats.weighted_mode([2, 1], [10, 1]), 2)
+
+        self.assertEqual(stats.weighted_mode([1, 1, 1, 2], [1, 1, 1, 1]), 1)
+        self.assertEqual(stats.weighted_mode([1, 1, 2, 2], [1, 1, 1, 1]), 1)
+        self.assertEqual(stats.weighted_mode([1, 2, 2, 2], [1, 1, 1, 1]), 2)
+
+        self.assertEqual(stats.weighted_mode([1, 2, 2, 2], [10, 1, 1, 1]), 1)
+        self.assertEqual(stats.weighted_mode([1, 2, 3, 0], [10, 1, 20, 1]), 3)
+
+        numpy.testing.assert_equal(stats.weighted_mode([1, 2, 3, 0], [0, 0, 0, 0]), float('nan'))
+
+        numpy.testing.assert_equal(stats.weighted_mode([1, 2, 3, 0], [10, 1, 20, numpy.nan]), 3)
+        numpy.testing.assert_equal(stats.weighted_mode([1, 2, 3, 0], [10, 1, 20, numpy.nan], ignore_nan=False), numpy.nan)

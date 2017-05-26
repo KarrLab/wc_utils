@@ -65,22 +65,27 @@ class ExponentialMovingAverage(object):
         return self.value
 
 
-def weighted_percentile(values, weights, percentile):
+def weighted_percentile(values, weights, percentile, ignore_nan=True):
     """ Calculate percentile of a list of values, weighted by :obj:`weights`
 
     Args:
         values (:obj:`list` of :obj:`float`): values
         weights (:obj:`list` of :obj:`float`): weights
         percentile (:obj:`float`): percentile
+        ignore_nan (:obj:`bool`, optional): if :obj:`True`, ignore `nan` values
 
     Returns:
         :obj:`float`: weighted percentile of :obj:`values`
     """
+    if not ignore_nan and (any(numpy.isnan(values)) or any(numpy.isnan(weights))):
+        return numpy.nan
+
     values = 1. * numpy.array(values)
     weights = 1. * numpy.array(weights)
 
-    values = numpy.extract(weights > 0, values)
-    weights = numpy.extract(weights > 0, weights)
+    tfs = numpy.logical_and(numpy.logical_not(numpy.isnan(values)), weights > 0)
+    values = numpy.extract(tfs, values)
+    weights = numpy.extract(tfs, weights)
     if values.size == 0:
         return numpy.nan
 
@@ -98,21 +103,26 @@ def weighted_percentile(values, weights, percentile):
         return sorted_values[ind]
 
 
-def weighted_median(values, weights):
+def weighted_median(values, weights, ignore_nan=True):
     """ Calculate the median of a list of values, weighted by :obj:`weights`
 
     Args:
         values (:obj:`list` of :obj:`float`): values
         weights (:obj:`list` of :obj:`float`): weights
+        ignore_nan (:obj:`bool`, optional): if :obj:`True`, ignore `nan` values
 
     Returns:
         :obj:`float`: weighted median of :obj:`values`
     """
+    if not ignore_nan and (any(numpy.isnan(values)) or any(numpy.isnan(weights))):
+        return numpy.nan
+
     values = 1. * numpy.array(values)
     weights = 1. * numpy.array(weights)
 
-    values = numpy.extract(weights > 0, values)
-    weights = numpy.extract(weights > 0, weights)
+    tfs = numpy.logical_and(numpy.logical_not(numpy.isnan(values)), weights > 0)
+    values = numpy.extract(tfs, values)
+    weights = numpy.extract(tfs, weights)
     if values.size == 0:
         return numpy.nan
 
@@ -128,3 +138,41 @@ def weighted_median(values, weights):
         return numpy.mean(sorted_values[ind:ind+2])
     else:
         return sorted_values[ind]
+
+
+def weighted_mode(values, weights, ignore_nan=True):
+    """ Calculate the mode of a list of values, weighted by :obj:`weights`
+
+    Args:
+        values (:obj:`list` of :obj:`float`): values
+        weights (:obj:`list` of :obj:`float`): weights
+        ignore_nan (:obj:`bool`, optional): if :obj:`True`, ignore `nan` values
+
+    Returns:
+        :obj:`float`: weighted mode of :obj:`values`
+    """
+    if not ignore_nan and (any(numpy.isnan(values)) or any(numpy.isnan(weights))):
+        return numpy.nan
+
+    values = 1. * numpy.array(values)
+    weights = 1. * numpy.array(weights)
+
+    tfs = numpy.logical_and(numpy.logical_not(numpy.isnan(values)), weights > 0)
+    values = numpy.extract(tfs, values)
+    weights = numpy.extract(tfs, weights)
+    if values.size == 0:
+        return numpy.nan
+
+    ind = numpy.argsort(values)
+    sorted_values = values[ind]
+    sorted_weights = weights[ind]
+
+    cum_weights = sorted_weights.cumsum()
+
+    tfs = numpy.concatenate(((numpy.diff(sorted_values[::-1])[::-1] < 0), [True]))
+
+    sorted_values = numpy.extract(tfs, sorted_values)
+    cum_weights = numpy.extract(tfs, cum_weights)
+
+    sorted_weights = numpy.diff(numpy.concatenate(([0], cum_weights)))
+    return sorted_values[numpy.argmax(sorted_weights)]

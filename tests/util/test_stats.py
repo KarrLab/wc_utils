@@ -35,6 +35,17 @@ class TestStats(unittest.TestCase):
         self.assertEqual(exp.add_value(2), 1.5)
         self.assertEqual(exp.add_value(3), 2.25)
 
+    def test_weighted_mean(self):
+        self.assertEqual(stats.weighted_mean([2, 1], [1, 1]), 1.5)
+        self.assertEqual(stats.weighted_mean([2, 1], [0, 1]), 1.0)
+        self.assertEqual(stats.weighted_mean([2, 1], [1, 0]), 2.0)
+
+        numpy.testing.assert_equal(stats.weighted_mean([], []), numpy.nan)
+
+        numpy.testing.assert_equal(stats.weighted_mean([1, 2], [1, numpy.nan]), 1)
+        numpy.testing.assert_equal(stats.weighted_mean([1, 2], [numpy.nan, numpy.nan]), numpy.nan)
+        numpy.testing.assert_equal(stats.weighted_mean([1, 2], [1, numpy.nan], ignore_nan=False), numpy.nan)
+
     def test_weighted_percentile(self):
         self.assertEqual(stats.weighted_percentile([2], [1], 0), 2.)
         self.assertEqual(stats.weighted_percentile([2], [1], 50), 2.)

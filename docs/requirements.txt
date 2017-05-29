@@ -4,6 +4,7 @@ enum34
 git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
 numpy
 openpyxl
+pint
 pyexcel
 pyexcel-io
 PyYAML

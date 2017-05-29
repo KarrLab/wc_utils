@@ -111,6 +111,7 @@ setup(
         'wc_utils': [
             'debug_logs/config.default.cfg',
             'debug_logs/config.schema.cfg',
+            'util/units.txt',
         ],
     },
 

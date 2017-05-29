@@ -6,3 +6,6 @@ include requirements.txt
 
 # configuration files
 recursive-include wc_utils *.cfg
+
+# unit system definition
+include wc_utils/util/units.txt

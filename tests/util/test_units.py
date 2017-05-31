@@ -33,3 +33,7 @@ class TestUnits(unittest.TestCase):
         self.assertEqual(str(quantity.units), 'molar')
 
         self.assertEqual(str(quantity.to(ureg('mole / liter')).units), 'mole / liter')
+
+        self.assertAlmostEqual((2.5 * ureg('enzyme_unit')).to('kat').magnitude, 2.5 / 60 * 1e-6)
+        self.assertAlmostEqual((2.5 * ureg('U')).to('kat').magnitude, 2.5 / 60 * 1e-6)
+        self.assertAlmostEqual(str((2.5 * ureg('U')).to('kat').units), 'katal')

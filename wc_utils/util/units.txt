@@ -14,3 +14,4 @@ molar = mole / liter = M
 # Catalytic activity
 [catalytic_activity] = [substance] / [time]
 katal = mole / second = katal_base = kat
+enzyme_unit = 1 / 60 * microkatal = U

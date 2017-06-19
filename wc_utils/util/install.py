@@ -24,19 +24,33 @@ def parse_requirements(req_file_lines):
     Returns:
         :obj:`tuple`: list of dependencies, list of dependency links
     '''
+    # todo: support the rest of the requirements.txt format
+    # see: https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+
     install_requires = []
     dependency_links = []
     for line in req_file_lines:
+        # strip comment
+        i_egg = line.find('#egg')
+        i_comment = line.find('#', i_egg + 1)
+        if i_comment >= 0:
+            line = line[0:i_comment]
+
+        # strip white space
         pkg_src = line.rstrip()
-        # todo: support the rest of the requirements.txt format
-        # see: https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
-        match = re.match('^.+#egg=(.*?)$', pkg_src)
+
+        # parse out package name, version constraints, and package location
+        match = re.match('^(.+#egg=)([a-z0-9_\-]+)(.*)$', pkg_src, re.IGNORECASE)
         if match:
-            pkg_id = match.group(1)
-            dependency_links.append(pkg_src)
+            pkg_id = match.group(2) + match.group(3)
+            dependency_links.append(match.group(1) + match.group(2))
         else:
             pkg_id = pkg_src
         install_requires.append(pkg_id)
+
+        install_requires = list(set(install_requires))
+        dependency_links = list(set(dependency_links))
+
     return (install_requires, dependency_links)
 
 

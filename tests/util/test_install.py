@@ -15,9 +15,19 @@ class TestInstall(unittest.TestCase):
 
     def test_install(self):
         requirements_lines = [
-            'numpy\n',
+            'numpy  \n',
+            'scipy>=1.0.1\n',
             'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils\n',
+            'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils \n',
+            'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils #comment\n',
+            'git+git://github.com/KarrLab/wc_lang.git#egg=wc_lang==0.0.1 #comment\n',
+            'git+git://github.com/KarrLab/wc_lang.git#egg=wc_lang<0.0.5 \n',
         ]
         install_requires, dependency_links = parse_requirements(requirements_lines)
-        self.assertEqual(install_requires, ['numpy', 'wc_utils'])
-        self.assertEqual(dependency_links, ['git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils'])
+        self.assertEqual(sorted(install_requires), [
+            'numpy', 'scipy>=1.0.1', 'wc_lang<0.0.5', 'wc_lang==0.0.1', 'wc_utils'
+            ])
+        self.assertEqual(sorted(dependency_links), [
+            'git+git://github.com/KarrLab/wc_lang.git#egg=wc_lang',
+            'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils',
+            ])

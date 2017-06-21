@@ -1,8 +1,9 @@
-""" Installation utilities.
+""" Installation utilities tests.
 
 :Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
-:Date: 2016-10-22
-:Copyright: 2016, Karr Lab
+:Author: Jonathan Karr <karr@mssm.edu>
+:Date: 2017-06-21
+:Copyright: 2016-2017, Karr Lab
 :License: MIT
 """
 
@@ -15,6 +16,7 @@ class TestInstall(unittest.TestCase):
 
     def test_install(self):
         requirements_lines = [
+            'coverage<4.4\n',
             'numpy  \n',
             'scipy>=1.0.1\n',
             'git+git://github.com/KarrLab/wc_utils.git#egg=wc_utils\n',
@@ -25,7 +27,7 @@ class TestInstall(unittest.TestCase):
         ]
         install_requires, dependency_links = parse_requirements(requirements_lines)
         self.assertEqual(sorted(install_requires), [
-            'numpy', 'scipy>=1.0.1', 'wc_lang<0.0.5', 'wc_lang==0.0.1', 'wc_utils'
+            'coverage<4.4', 'numpy', 'scipy>=1.0.1', 'wc_lang<0.0.5', 'wc_lang==0.0.1', 'wc_utils'
             ])
         self.assertEqual(sorted(dependency_links), [
             'git+git://github.com/KarrLab/wc_lang.git#egg=wc_lang',

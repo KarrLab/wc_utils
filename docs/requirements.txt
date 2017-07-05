@@ -5,8 +5,8 @@ git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
 numpy
 openpyxl
 pint
-pyexcel
-pyexcel-io
+pyexcel >= 0.5.0
+pyexcel-io >= 0.4.2
 PyYAML
 six
 Sphinx

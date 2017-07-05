@@ -66,7 +66,7 @@ class ExponentialMovingAverage(object):
 
 
 def weighted_mean(values, weights, ignore_nan=True):
-    """ Calculate percentile of a list of values, weighted by :obj:`weights`
+    """ Calculate weighted mean of a list of values, weighted by :obj:`weights`
 
     Args:
         values (:obj:`list` of :obj:`float`): values
@@ -74,7 +74,7 @@ def weighted_mean(values, weights, ignore_nan=True):
         ignore_nan (:obj:`bool`, optional): if :obj:`True`, ignore `nan` values
 
     Returns:
-        :obj:`float`: weighted percentile of :obj:`values`
+        :obj:`float`: mean of :obj:`values`, weighted by :obj:`weights`
     """
     if not ignore_nan and (any(numpy.isnan(values)) or any(numpy.isnan(weights))):
         return numpy.nan

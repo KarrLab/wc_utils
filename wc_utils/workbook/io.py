@@ -22,11 +22,6 @@ from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
 from wc_utils.workbook.core import Workbook, Worksheet, Row
 
-import logging
-import logging.config
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG)
-
 import pyexcel
 
 

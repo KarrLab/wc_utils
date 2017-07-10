@@ -14,5 +14,9 @@ class TestGit(unittest.TestCase):
 
     def test(self):
         md = git.get_repo_metadata(dirname='.')
-        self.assertIn(md.url, ['https://github.com/KarrLab/wc_utils.git', 'git@github.com:KarrLab/wc_utils.git'])
+        self.assertIn(md.url, [
+            'https://github.com/KarrLab/wc_utils.git',
+            'ssh://git@github.com/KarrLab/wc_utils.git',
+            'git@github.com:KarrLab/wc_utils.git',
+        ])
         self.assertEqual(md.branch, 'master')

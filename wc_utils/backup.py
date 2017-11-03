@@ -11,6 +11,7 @@ import io
 import json
 import os
 import pygit2
+import pysftp
 import requests
 import shutil
 import six
@@ -26,29 +27,41 @@ class BackupManager(object):
     Attributes:
         archive_filename (:obj:`str`): path to store the backup
         archive_remote_filename (:obj:`str`): remote name of backup
-        endpoint (:obj:`str`): URL to upload/download backups
-        token (:obj:`str`): server login token
+        hostname (:obj:`str`): hostname for server to upload/download backups
+        username (:obj:`str`): username for server to upload/download backups
+        password (:obj:`str`): password for server to upload/download backups
+        remote_dirname (:obj:`str`): remote directory on server to upload/download backups
     """
 
-    DEFAULT_ENDPOINT = 'http://code.karrlab.org/data'
-    # :obj:`str`: default URL to upload/download backups
-
     def __init__(self, archive_filename, archive_remote_filename,
-                 endpoint=DEFAULT_ENDPOINT, token=''):
+                 hostname='', username='', password='', remote_dirname=''):
         """
         Args:
             archive_filename (:obj:`str`): path to store the backup
             archive_remote_filename (:obj:`str`): remote name of backup            
-            endpoint (:obj:`str`, optional): URL to upload/download backups
-            token (:obj:`str`, optional): server login token
+            hostname (:obj:`str`, optional): hostname for server to upload/download backups
+            username (:obj:`str`, optional): username for server to upload/download backups
+            password (:obj:`str`, optional): password for server to upload/download backups
+            remote_dirname (:obj:`str`, optional): remote directory on server to upload/download backups
         """
-        if not token:
-            token = os.getenv('CODE_SERVER_TOKEN')
+        if not hostname:
+            hostname = os.getenv('CODE_SERVER_HOSTNAME')
+
+        if not username:
+            username = os.getenv('CODE_SERVER_USERNAME')
+
+        if not password:
+            password = os.getenv('CODE_SERVER_PASSWORD')
+
+        if not remote_dirname:
+            remote_dirname = os.getenv('CODE_SERVER_DIRNAME')
 
         self.archive_filename = archive_filename
         self.archive_remote_filename = archive_remote_filename
-        self.endpoint = endpoint
-        self.token = token
+        self.hostname = hostname
+        self.username = username
+        self.password = password
+        self.remote_dirname = remote_dirname
 
     def create(self, files):
         """ Create gzipped backup of the file
@@ -113,28 +126,49 @@ class BackupManager(object):
         Returns:
             :obj:`BackupManager`: the backup manager
         """
-        response = requests.post(self.endpoint + '/upload.php',
-                                 data={
-                                     'token': self.token,
-                                     'filename': self.archive_remote_filename
-                                 },
-                                 files=[
-                                     ('file', (self.archive_remote_filename, open(self.archive_filename, 'rb'), 'application/x-gzip')),
-                                 ])
-        response.raise_for_status()
+
+        cnopts = pysftp.CnOpts()
+        cnopts.hostkeys = None
+
+        with pysftp.Connection(self.hostname, username=self.username, password=self.password, cnopts=cnopts) as sftp:
+            with sftp.cd(self.remote_dirname):
+
+                # create directory for uploads
+                if not sftp.isdir(self.archive_remote_filename):
+                    sftp.mkdir(self.archive_remote_filename)
+
+                # change to this directory
+                with sftp.cd(self.archive_remote_filename):
+
+                    # determine version number
+                    version = len(sftp.listdir())
+
+                    # upload file
+                    sftp.put(self.archive_filename, str(version))
 
         return self
 
-    def download(self):
+    def download(self, version=None):
         """ Download a backup from the server
+
+        Args:
+            version (:obj:`int`, optional): version to download; if :obj:`None`, download the latest version
 
         Returns:
             :obj:`BackupManager`: the backup manager
         """
-        response = requests.get(self.endpoint + '/download.php', params={'token': self.token, 'filename': self.archive_remote_filename})
-        response.raise_for_status()
-        with open(self.archive_filename, 'wb') as file:
-            file.write(response.content)
+        cnopts = pysftp.CnOpts()
+        cnopts.hostkeys = None
+
+        with pysftp.Connection(self.hostname, username=self.username, password=self.password, cnopts=cnopts) as sftp:
+            with sftp.cd(self.remote_dirname):
+                with sftp.cd(self.archive_remote_filename):
+                    # determine version number
+                    if version is None:
+                        version = len(sftp.listdir()) - 1
+
+                    # upload file
+                    sftp.get(str(version), localpath=self.archive_filename)
 
         return self
 

@@ -29,9 +29,21 @@ class TestBackupManager(unittest.TestCase):
     def test(self):
         env = EnvironmentVarGuard()
 
-        if not os.getenv('CODE_SERVER_TOKEN'):
-            with open('tests/fixtures/secret/CODE_SERVER_TOKEN', 'r') as file:
-                env.set('CODE_SERVER_TOKEN', file.read().rstrip())
+        if not os.getenv('CODE_SERVER_HOSTNAME'):
+            with open('tests/fixtures/secret/CODE_SERVER_HOSTNAME', 'r') as file:
+                env.set('CODE_SERVER_HOSTNAME', file.read().rstrip())
+
+        if not os.getenv('CODE_SERVER_USERNAME'):
+            with open('tests/fixtures/secret/CODE_SERVER_USERNAME', 'r') as file:
+                env.set('CODE_SERVER_USERNAME', file.read().rstrip())
+
+        if not os.getenv('CODE_SERVER_PASSWORD'):
+            with open('tests/fixtures/secret/CODE_SERVER_PASSWORD', 'r') as file:
+                env.set('CODE_SERVER_PASSWORD', file.read().rstrip())
+
+        if not os.getenv('CODE_SERVER_REMOTE_DIRNAME'):
+            with open('tests/fixtures/secret/CODE_SERVER_REMOTE_DIRNAME', 'r') as file:
+                env.set('CODE_SERVER_REMOTE_DIRNAME', file.read().rstrip())
 
         content = 'this is a test'
         filename = os.path.join(self.tempdir, 'test.wc_utils.backup.txt')

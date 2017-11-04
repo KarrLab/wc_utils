@@ -6,12 +6,12 @@
 """
 
 import datetime
+import ftputil
 import getpass
 import io
 import json
 import os
 import pygit2
-import pysftp
 import requests
 import shutil
 import six
@@ -54,7 +54,7 @@ class BackupManager(object):
             password = os.getenv('CODE_SERVER_PASSWORD')
 
         if not remote_dirname:
-            remote_dirname = os.getenv('CODE_SERVER_DIRNAME')
+            remote_dirname = os.getenv('CODE_SERVER_REMOTE_DIRNAME')
 
         self.archive_filename = archive_filename
         self.archive_remote_filename = archive_remote_filename
@@ -127,24 +127,18 @@ class BackupManager(object):
             :obj:`BackupManager`: the backup manager
         """
 
-        cnopts = pysftp.CnOpts()
-        cnopts.hostkeys = None
+        with ftputil.FTPHost(self.hostname, self.username, self.password) as ftp:        
+            dirname = ftp.path.join(self.remote_dirname, self.archive_remote_filename)
 
-        with pysftp.Connection(self.hostname, username=self.username, password=self.password, cnopts=cnopts) as sftp:
-            with sftp.cd(self.remote_dirname):
+            # create directory for uploads
+            if not ftp.path.isdir(dirname):
+                ftp.mkdir(dirname)
 
-                # create directory for uploads
-                if not sftp.isdir(self.archive_remote_filename):
-                    sftp.mkdir(self.archive_remote_filename)
+            # determine version number
+            version = len(ftp.listdir(dirname))
 
-                # change to this directory
-                with sftp.cd(self.archive_remote_filename):
-
-                    # determine version number
-                    version = len(sftp.listdir())
-
-                    # upload file
-                    sftp.put(self.archive_filename, str(version))
+            # upload file
+            ftp.upload(self.archive_filename, ftp.path.join(dirname, str(version)))
 
         return self
 
@@ -157,18 +151,15 @@ class BackupManager(object):
         Returns:
             :obj:`BackupManager`: the backup manager
         """
-        cnopts = pysftp.CnOpts()
-        cnopts.hostkeys = None
+        with ftputil.FTPHost(self.hostname, self.username, self.password) as ftp:
+            dirname = ftp.path.join(self.remote_dirname, self.archive_remote_filename)
+            
+            # determine version number
+            if version is None:
+                version = len(ftp.listdir(dirname)) - 1
 
-        with pysftp.Connection(self.hostname, username=self.username, password=self.password, cnopts=cnopts) as sftp:
-            with sftp.cd(self.remote_dirname):
-                with sftp.cd(self.archive_remote_filename):
-                    # determine version number
-                    if version is None:
-                        version = len(sftp.listdir()) - 1
-
-                    # upload file
-                    sftp.get(str(version), localpath=self.archive_filename)
+            # upload file
+            ftp.download(ftp.path.join(dirname, str(version)), self.archive_filename)
 
         return self
 

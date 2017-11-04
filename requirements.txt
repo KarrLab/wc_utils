@@ -1,5 +1,6 @@
 configobj
 enum34
+ftputil
 git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
 numpy
 openpyxl
@@ -8,7 +9,6 @@ pyexcel >= 0.5.0
 # avoid a bug in pyexcel-io 0.4.1; see https://github.com/pyexcel/pyexcel/issues/89
 pyexcel-io >= 0.4.2
 pygit2<=0.26.0
-pysftp
 PyYAML
 qualname
 requests

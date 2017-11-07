@@ -1,6 +1,7 @@
 configobj
 configparser
 enum34
+ftputil
 git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
 numpy
 openpyxl

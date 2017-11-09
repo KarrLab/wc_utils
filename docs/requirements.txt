@@ -10,7 +10,7 @@ pyexcel >= 0.5.0
 pyexcel-io >= 0.4.2
 PyYAML
 six
-Sphinx
+Sphinx >= 1.6
 sphinx_rtd_theme
 sphinxcontrib-bibtex
 robpol86-sphinxcontrib-googleanalytics

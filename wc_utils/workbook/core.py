@@ -6,11 +6,11 @@
 :License: MIT
 """
 
-from collections import OrderedDict
 from openpyxl.utils import get_column_letter
+import collections
 
 
-class Workbook(OrderedDict):
+class Workbook(collections.OrderedDict):
     """ Represents an Excel workbook """
 
     def __eq__(self, other):
@@ -242,7 +242,7 @@ class WorkbookDifference(dict):
         return diff[1:]
 
 
-class WorksheetDifference(OrderedDict):
+class WorksheetDifference(collections.OrderedDict):
     """ Difference between values of worksheets """
 
     def __str__(self):
@@ -259,7 +259,7 @@ class WorksheetDifference(OrderedDict):
         return diff[1:]
 
 
-class RowDifference(OrderedDict):
+class RowDifference(collections.OrderedDict):
     """ Difference between values of rows """
 
     def __str__(self):

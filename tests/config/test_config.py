@@ -15,7 +15,7 @@ import tempfile
 import unittest
 
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
-from wc_utils.config.core import ConfigManager, any_checker, ExtraValuesError, InvalidConfigError
+from wc_utils.config.core import ConfigManager, ConfigPaths, any_checker, ExtraValuesError, InvalidConfigError
 from wc_utils.util.environ import EnvironUtils
 from wc_utils.util.types import assert_value_equal
 
@@ -137,6 +137,15 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(InvalidConfigError,
                           lambda: ConfigManager(debug_logs_default_paths).get_config(extra))
 
+    def test_no_config(self):
+        file, filename = tempfile.mkstemp(suffix='.cfg')
+        os.close(file)
+
+        config_paths = ConfigPaths(schema=filename, default=filename, user=())
+
+        with self.assertRaisesRegexp(ValueError, '^no config found in envt. variables or'):
+            ConfigManager(config_paths).get_config()
+
     def test_any_checker(self):
         validator = Validator()
         validator.functions['any'] = any_checker
@@ -167,7 +176,7 @@ class TestConfig(unittest.TestCase):
         self.assertEquals(validator.check('any', '1,false, string'), [1, False, 'string'])
         self.assertEquals(validator.check('any', '1,false, string, 2.1'), [1, False, 'string', 2.1])
         assert_value_equal(validator.check('any', '1,false, string, 2.1, nan'),
-                                     [1, False, 'string', 2.1, float('nan')])
+                           [1, False, 'string', 2.1, float('nan')])
 
         # string
         self.assertIsInstance(validator.check('any', 'string'), str)

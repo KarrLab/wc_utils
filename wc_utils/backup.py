@@ -127,7 +127,7 @@ class BackupManager(object):
             :obj:`BackupManager`: the backup manager
         """
 
-        with ftputil.FTPHost(self.hostname, self.username, self.password) as ftp:        
+        with ftputil.FTPHost(self.hostname, self.username, self.password) as ftp:
             dirname = ftp.path.join(self.remote_dirname, self.archive_remote_filename)
 
             # create directory for uploads
@@ -223,10 +223,6 @@ class BackupFile(object):
         Args:
             repo_path (:obj:`path`): path to repository
         """
-        try:
-            md = wc_utils.util.git.get_repo_metadata(repo_path)
-            self.program = md.url
-            self.version = str(md.branch) + ':' + str(md.revision)
-        except KeyError:
-            self.program = None
-            self.version = None
+        md = wc_utils.util.git.get_repo_metadata(repo_path)
+        self.program = md.url
+        self.version = str(md.branch) + ':' + str(md.revision)

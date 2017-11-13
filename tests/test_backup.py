@@ -6,11 +6,14 @@
 """
 
 from wc_utils import backup
+import ftputil
+import mock
 import os
 import shutil
 import six
 import tempfile
 import unittest
+import wc_utils.util.git
 
 if six.PY3:
     from test.support import EnvironmentVarGuard
@@ -23,10 +26,6 @@ class TestBackupManager(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
 
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    def test(self):
         env = EnvironmentVarGuard()
 
         if not os.getenv('CODE_SERVER_HOSTNAME'):
@@ -45,6 +44,22 @@ class TestBackupManager(unittest.TestCase):
             with open('tests/fixtures/secret/CODE_SERVER_REMOTE_DIRNAME', 'r') as file:
                 env.set('CODE_SERVER_REMOTE_DIRNAME', file.read().rstrip())
 
+        self.manager = backup.BackupManager(archive_filename=os.path.join(self.tempdir, 'test.wc_utils.backup.txt.tar.gz'),
+                                            archive_remote_filename='test.wc_utils.backup.txt.tar.gz')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+        manager = self.manager
+
+        with ftputil.FTPHost(manager.hostname, manager.username, manager.password) as ftp:
+            dirname = ftp.path.join(manager.remote_dirname, manager.archive_remote_filename)
+
+            # remove directory for uploads
+            if ftp.path.isdir(dirname):
+                ftp.rmtree(dirname)
+
+    def test(self):
         content = 'this is a test'
         filename = os.path.join(self.tempdir, 'test.wc_utils.backup.txt')
         with open(filename, 'w') as file:
@@ -55,8 +70,7 @@ class TestBackupManager(unittest.TestCase):
         with open(filename2, 'w') as file:
             file.write(content2)
 
-        manager = backup.BackupManager(archive_filename=os.path.join(self.tempdir, 'test.wc_utils.backup.txt.tar.gz'),
-                                       archive_remote_filename='test.wc_utils.backup.txt.tar.gz')
+        manager = self.manager
         self.assertEqual(manager.archive_filename, filename + '.tar.gz')
 
         # create

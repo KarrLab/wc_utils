@@ -1,4 +1,5 @@
 capturer
 configobj
+mock
 numpy
 scipy

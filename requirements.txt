@@ -1,9 +1,14 @@
 configobj
+# cplex
+# git+https://github.com/jjhelmus/CyLP.git@py3#egg=cylp
 enum34
 ftputil
+# gurobipy
 git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
+# mosek
 numpy
 openpyxl
+optlang
 pint
 pyexcel >= 0.5.0
 # avoid a bug in pyexcel-io 0.4.1; see https://github.com/pyexcel/pyexcel/issues/89
@@ -12,4 +17,7 @@ pygit2<=0.26.0
 PyYAML
 qualname
 requests
+scipy
 six
+sympy
+# xpress

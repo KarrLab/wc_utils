@@ -116,9 +116,6 @@ setup(
     },
 
     install_requires=install_requires,
-    extras_require={
-        'quadratic optimization': ['cplex', 'cylp', 'gurobipy', 'mosek', 'xpress'],
-    },
     tests_require=tests_require,
     dependency_links=dependency_links,
 )

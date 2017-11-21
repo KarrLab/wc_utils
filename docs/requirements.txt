@@ -1,21 +1,14 @@
 configobj
 configparser
-# cplex
-# cvxopt
-# cvxpy
 enum34
 ftputil
-# gurobipy
 git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
-# mosek
 numpy
 openpyxl
-# optlang
 pint
 pyexcel >= 0.5.0
 pyexcel-io >= 0.4.2
 PyYAML
-# quadprog
 scipy
 six
 Sphinx >= 1.6
@@ -23,5 +16,3 @@ sphinx_rtd_theme
 sphinxcontrib-bibtex
 robpol86-sphinxcontrib-googleanalytics
 sphinxcontrib-spelling
-# sympy
-# xpresss

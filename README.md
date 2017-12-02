@@ -1,4 +1,4 @@
-<!--[![PyPI package](https://img.shields.io/pypi/v/wc_utils.svg)](https://pypi.python.org/pypi/wc_utils)-->
+[//]: # ( [![PyPI package](https://img.shields.io/pypi/v/wc_utils.svg)](https://pypi.python.org/pypi/wc_utils) )
 [![Documentation](https://readthedocs.org/projects/wc_utils/badge/?version=latest)](http://wc_utils.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/wc_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/wc_utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/wc_utils/badge.svg)](https://coveralls.io/github/KarrLab/wc_utils)

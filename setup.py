@@ -5,19 +5,24 @@ https://packaging.python.org/en/latest/distributing.html
 """
 
 from setuptools import setup, find_packages
-from codecs import open
 from os import path
 from wc_utils.util.install import parse_requirements, install_dependencies
 import re
 import os
 import warnings
-import wc_utils
 
 here = path.abspath(path.dirname(__file__))
 
-# Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+# get long description
+if path.isfile(path.join(here, 'README.rst')):
+    with open(path.join(here, 'README.rst'), 'r', encoding='utf-8') as file:
+        long_description = file.read()
+else:
+    long_description = ''
+
+# get version
+with open('wc_utils/VERSION', 'r') as file:
+    version = file.read().strip()
 
 # parse dependencies and links from requirements.txt files
 with open('requirements.txt', 'r') as file:
@@ -71,7 +76,7 @@ install_dependencies(dependency_links)
 # install package
 setup(
     name='wc_utils',
-    version=wc_utils.__version__,
+    version=version,
 
     description='Utilities for whole-cell modeling',
     long_description=long_description,
@@ -109,9 +114,10 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*']),
     package_data={
         'wc_utils': [
+            'VERSION',
             'debug_logs/config.default.cfg',
             'debug_logs/config.schema.cfg',
-            'util/units.txt',
+            'util/units.txt',            
         ],
     },
 

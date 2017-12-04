@@ -9,6 +9,7 @@ dependencies:
   - sphinx
   - pip:
     - configparser
+    - git+https://github.com/KarrLab/log.git#egg=log
     - sphinx_rtd_theme
     - robpol86_sphinxcontrib_googleanalytics
     - sphinxcontrib_bibtex

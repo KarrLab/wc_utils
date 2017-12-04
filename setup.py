@@ -1,37 +1,26 @@
-"""A setuptools based setup module, template copied from https://github.com/pypa/sampleproject
+"""A setuptools based setup module
 
 See also:
 https://packaging.python.org/en/latest/distributing.html
 """
 
-from setuptools import setup, find_packages
-from os import path
-from wc_utils.util.install import parse_requirements, install_dependencies
-import re
+import setuptools
+try:
+    import pkg_utils
+except ImportError:
+    import pip
+    pip.main(['install', 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'])
+    import pkg_utils
 import os
-import warnings
 
-here = path.abspath(path.dirname(__file__))
+name = 'wc_utils'
+dirname = os.path.dirname(__file__)
 
-# get long description
-if path.isfile(path.join(here, 'README.rst')):
-    with open(path.join(here, 'README.rst'), 'r', encoding='utf-8') as file:
-        long_description = file.read()
-else:
-    long_description = ''
+# get package metadata
+md = pkg_utils.get_package_metadata(dirname, name)
 
-# get version
-with open('wc_utils/VERSION', 'r') as file:
-    version = file.read().strip()
-
-# parse dependencies and links from requirements.txt files
-with open('requirements.txt', 'r') as file:
-    install_requires, dependency_links_install = parse_requirements(file.readlines())
-with open('tests/requirements.txt', 'r') as file:
-    tests_require, dependency_links_tests = parse_requirements(file.readlines())
-dependency_links = list(set(dependency_links_install + dependency_links_tests))
-
-# find needed pygit2 version
+# set needed pygit2 version
+import re
 libgit2_path = os.getenv("LIBGIT2")
 if not libgit2_path:
     if os.name == 'nt':
@@ -49,40 +38,23 @@ if os.path.isfile(version_filename):
                 libgit2_version = match[0]
                 break
 
-for i_pkg, pkg_info in enumerate(install_requires):
-    if pkg_info.strip().startswith('pygit2'):
-        i_pygit2 = i_pkg
-
-
-def update_requirements_file(filename):
-    with open(filename, 'r') as file:
-        content = file.read()
-        content = re.sub('^(.*?pygit2.*?)$', 'pygit2<={}'.format(libgit2_version), content, flags=re.MULTILINE)
-    with open(filename, 'w') as file:
-        file.write(content)
-
 if libgit2_version:
-    install_requires[i_pygit2] = 'pygit2<={}'.format(libgit2_version)
-    update_requirements_file('requirements.txt')
-    update_requirements_file('docs/requirements.txt')
+    md.extras_require['git'] = 'pygit2 == {}'.format(libgit2_version)
 else:
-    install_requires.pop(i_pygit2)
     warnings.warn(('wc_utils requires libgit2. Please install libgit2 and then retry installing '
                    'wc_utils. Please see https://libgit2.github.com for installation instructions.'))
 
-# install non-PyPI dependencies
-install_dependencies(dependency_links)
-
 # install package
-setup(
-    name='wc_utils',
-    version=version,
+setuptools.setup(
+    name=name,
+    version=md.version,
 
     description='Utilities for whole-cell modeling',
-    long_description=long_description,
+    long_description=md.long_description,
 
     # The project's main homepage.
-    url='https://github.com/KarrLab/wc_utils',
+    url='https://github.com/KarrLab/' + name,
+    download_url='https://github.com/KarrLab/' + name,
 
     author='Arthur Goldberg',
     author_email='Arthur.Goldberg@mssm.edu',
@@ -111,9 +83,9 @@ setup(
     keywords='whole-cell modeling',
 
     # packages not prepared yet
-    packages=find_packages(exclude=['tests', 'tests.*']),
+    packages=setuptools.find_packages(exclude=['tests', 'tests.*']),
     package_data={
-        'wc_utils': [
+        name: [
             'VERSION',
             'debug_logs/config.default.cfg',
             'debug_logs/config.schema.cfg',
@@ -121,7 +93,8 @@ setup(
         ],
     },
 
-    install_requires=install_requires,
-    tests_require=tests_require,
-    dependency_links=dependency_links,
+    install_requires=md.install_requires,
+    extras_require=md.extras_require,
+    tests_require=md.tests_require,
+    dependency_links=md.dependency_links,
 )

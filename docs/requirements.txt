@@ -2,17 +2,17 @@ configobj
 configparser
 enum34
 ftputil
-git+https://github.com/KarrLab/log.git#egg=log >=2016.10.12
+git+https://github.com/KarrLab/log.git#egg=log # >= 2016.10.12
 numpy
 openpyxl
 pint
 pyexcel >= 0.5.0
-pyexcel-io >= 0.4.2
-PyYAML
+pyexcel_io >= 0.4.2
+pyyaml
 scipy
 six
-Sphinx >= 1.6
+sphinx >= 1.6
 sphinx_rtd_theme
-sphinxcontrib-bibtex
-robpol86-sphinxcontrib-googleanalytics
-sphinxcontrib-spelling
+sphinxcontrib_bibtex
+robpol86_sphinxcontrib_googleanalytics
+sphinxcontrib_spelling

@@ -19,35 +19,6 @@ dirname = os.path.dirname(__file__)
 # get package metadata
 md = pkg_utils.get_package_metadata(dirname, name)
 
-# set needed pygit2 version
-try:
-    import pygit2
-except:
-    import re
-    import warnings
-    libgit2_path = os.getenv("LIBGIT2")
-    if not libgit2_path:
-        if os.name == 'nt':
-            libgit2_path = os.path.join(os.getenv("ProgramFiles"), 'libgit2')
-        else:
-            libgit2_path = '/usr/local'
-    version_filename = os.path.join(libgit2_path, 'include', 'git2', 'version.h')
-
-    libgit2_version = None
-    if os.path.isfile(version_filename):
-        with open(version_filename, 'r') as file:
-            for line in file:
-                match = re.findall('define *LIBGIT2_VERSION *"(.*?)"', line.strip())
-                if match:
-                    libgit2_version = match[0]
-                    break
-
-    if libgit2_version:
-        md.extras_require['git'] = 'pygit2 == {}'.format(libgit2_version)
-    else:
-        warnings.warn(('wc_utils requires libgit2. Please install libgit2 and then retry installing '
-                       'wc_utils. Please see https://libgit2.github.com for installation instructions.'))
-
 # install package
 setuptools.setup(
     name=name,

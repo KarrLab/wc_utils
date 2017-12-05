@@ -1,12 +1,13 @@
 """ Test list utilities
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-11-30
 :Copyright: 2016, Karr Lab
 :License: MIT
 """
 
-from wc_utils.util.list import is_sorted, transpose, difference
+from wc_utils.util.list import is_sorted, transpose, difference, det_dedupe
 import unittest
 
 
@@ -28,9 +29,16 @@ class TestTranspose(unittest.TestCase):
         self.assertEqual(transpose(lst), t_lst)
 
     def test_difference(self):
-        l = list([0, 1, 2, 3, 4])
-        m = list([1, 2, 3])
+        l = [0, 1, 2, 3, 4]
+        m = [1, 2, 3]
         self.assertEqual(difference(l, m), [0, 4])
         self.assertEqual(difference(m, l), [])
         with self.assertRaises(TypeError):
             self.assertEqual(difference([], [[1]]), [])
+
+    def test_det_dedupe(self):
+        l = [0, 1, 2, 0, 1, 0, 7, 1]
+        expected = [0, 1, 2, 7]
+        self.assertEqual(det_dedupe(l), expected)
+        with self.assertRaises(TypeError):
+            det_dedupe([[]])

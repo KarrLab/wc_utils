@@ -57,7 +57,32 @@ def difference(list_1, list_2):
         :obj:`list`: a set-like difference between `list_1` and `list_2`
 
     Raises:
-        `TypeError` if  `list_1` or `list_2` contains an unhashable (mutable) type
+        `TypeError` if `list_1` or `list_2` contains an unhashable (mutable) type
     """
     list_2_set = set(list_2)
     return list(filter(lambda item:not item in list_2_set, list_1))
+
+
+def det_dedupe(l):
+    """ Deterministically deduplicate a list
+
+    Returns a deduplicated copy of `l`. That is, returns a new list that contains one instance of
+    each element in `l` and orders these instances by their first occurrence in `l`.
+    Costs O(n), where n is the length of `l`.
+
+    Args:
+        l (:obj:`list`): a list with hashable elements
+
+    Returns:
+        :obj:`list`: a deterministically deduplicated copy of `l`
+
+    Raises:
+        `TypeError` if `l` contains an unhashable (mutable) type
+    """
+    s = set()
+    t = []
+    for e in l:
+        if e not in s:
+            t.append(e)
+            s.add(e)
+    return t

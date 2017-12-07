@@ -2,7 +2,7 @@
 [![Documentation](https://readthedocs.org/projects/wc_utils/badge/?version=latest)](http://wc_utils.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/wc_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/wc_utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/wc_utils/badge.svg)](https://coveralls.io/github/KarrLab/wc_utils)
-[![Code analysis](https://codeclimate.com/github/KarrLab/wc_utils/badges/gpa.svg)](https://codeclimate.com/github/KarrLab/wc_utils)
+[![Code analysis](https://api.codeclimate.com/v1/badges/8139298cdbc1e32dcde4/maintainability)](https://codeclimate.com/github/KarrLab/wc_utils)
 [![License](https://img.shields.io/github/license/KarrLab/wc_utils.svg)](LICENSE)
 ![Analytics](https://ga-beacon.appspot.com/UA-86759801-1/wc_utils/README.md?pixel)
 

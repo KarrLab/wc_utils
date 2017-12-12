@@ -7,6 +7,7 @@
 :License: MIT
 """
 
+from copy import deepcopy
 from os import path
 from shutil import rmtree
 from six import integer_types, string_types
@@ -58,6 +59,12 @@ class TestIo(unittest.TestCase):
             io.ExcelReader(filename)
         self.assertIn("Extension of path", str(context.exception))
         self.assertIn("must be '.xlsx'", str(context.exception))
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wk = deepcopy(self.wk)
+        wk['Ws-0'][0][1] = []
+        with self.assertRaisesRegexp(ValueError, '^Unsupported type '):
+            io.ExcelWriter(filename).run(wk)
 
     def test_read_write_excel(self):
         # write to file
@@ -233,6 +240,35 @@ class TestIo(unittest.TestCase):
         # assert content is the same
         self.assertEqual(wk, self.wk)
 
+    def test_convert_with_worksheet_order(self):
+        source = path.join(self.tempdir, 'test.xlsx')
+        io.ExcelWriter(source).run(self.wk)
+
+        dest = path.join(self.tempdir, 'test-2.xlsx')
+
+        io.convert(source, dest, worksheet_order=['Ws-3'], ignore_extra_sheets=True)
+        wk = io.ExcelReader(dest).run()
+        self.assertEqual(set(wk.keys()), set(['Ws-0', 'Ws-1', 'Ws-2']))
+
+        with self.assertRaisesRegexp(ValueError, ' missing worksheets:'):
+            io.convert(source, dest, worksheet_order=['Ws-3'], ignore_extra_sheets=False)
+
+    def test_convert_exceptions(self):
+        source = path.join(self.tempdir, 'test.xlsx')
+        io.ExcelWriter(source).run(self.wk)
+
+        # copy excel->sv
+        dest = path.join(self.tempdir, 'test-*.csv')
+        io.convert(source, dest)
+        wk = io.SeparatedValuesReader(dest).run()
+        self.assertEqual(wk, self.wk)
+
+        # copy sv->excel
+        source = path.join(self.tempdir, 'test-2-*.csv')
+        dest = path.join(self.tempdir, 'test2-*.csv')
+        with self.assertRaisesRegexp(ValueError, ' does not match any files$'):
+            io.convert(source, dest)
+
     def test_get_reader(self):
         self.assertEqual(io.get_reader('.xlsx'), io.ExcelReader)
         self.assertEqual(io.get_reader('.csv'), io.SeparatedValuesReader)
@@ -244,3 +280,15 @@ class TestIo(unittest.TestCase):
         self.assertEqual(io.get_writer('.csv'), io.SeparatedValuesWriter)
         self.assertEqual(io.get_writer('.tsv'), io.SeparatedValuesWriter)
         self.assertRaises(ValueError, lambda: io.get_writer('.txt'))
+
+    def test_get_sheet_names(self):
+        filename_pattern = path.join(self.tempdir, 'test-*.csv')
+        io.SeparatedValuesWriter(filename_pattern).run(self.wk)
+        self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-0')))
+        self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-1')))
+        self.assertTrue(path.isfile(filename_pattern.replace('*', '{}').format('Ws-2')))
+
+        # read from files
+        filename_pattern = path.join(self.tempdir, 'test-2-*.csv')
+        with self.assertRaisesRegexp(ValueError, 'does not match any files$'):
+            io.SeparatedValuesReader(filename_pattern).run()

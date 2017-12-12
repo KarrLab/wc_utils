@@ -7,6 +7,7 @@
 :License: MIT
 """
 
+import six
 import sys
 
 
@@ -21,7 +22,7 @@ def isclass(cls, cls_info):
     Returns:
         :obj:`bool`: True if one of the classes in `cls_info` is `cls`.
     """
-    return isclass_by_name(cls.__name__, cls_info)
+    return isclass_by_name(most_qual_cls_name(cls), cls_info)
 
 
 def isclass_by_name(cls_name, cls_info):
@@ -35,7 +36,6 @@ def isclass_by_name(cls_name, cls_info):
     Returns:
         :obj:`bool`: True if one of the classes in `cls_info` has name `cls_name`.
     """
-
     if not isinstance(cls_info, tuple):
         cls_info = (cls_info,)
 
@@ -62,7 +62,7 @@ def most_qual_cls_name(obj):
     Returns:
         :obj:`str`: the most qualified class name available for `obj`.
     """
-    if isinstance(obj, type):
+    if isinstance(obj, six.class_types):
         cls = obj
     else:
         cls = obj.__class__

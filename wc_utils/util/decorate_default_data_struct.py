@@ -63,20 +63,20 @@ def default_mutable_params(mutable_args):
     parameters are provided as a list to the decorator. The decorated function uses None as
     default values for these parameters. Calls to the decorated function replace optional
     parameters whose value is None with the appropriate empty data structure. For example,
-    consider:
+    consider::
 
         @default_mutable_params( ['d_dict', 'list_l', 's_set'] )
         def test3( a, d_dict=None, list_l=None, s_set=None, l2=[4] )
 
-    The call:
+    The call::
 
         test3( 1, d_dict={3}, list_l=None, s_set=None, l2=None )
 
-    will be transformed into:
+    will be transformed into::
 
         test3( 1, d_dict={3}, list_l=[], s_set=set(), l2=None )
 
-    where the values of list_l and s_set are local variables.
+    where the values of ``list_l`` and ``s_set`` are local variables.
 
     Args:
         mutable_args (:obj:`list`): list of optional parameters whose default values are mutable

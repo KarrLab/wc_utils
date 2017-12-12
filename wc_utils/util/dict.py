@@ -8,6 +8,7 @@
 
 from six import iteritems
 
+
 class DictUtil(object):
     """ Dictionary utility methods """
 
@@ -112,7 +113,7 @@ class DictUtil(object):
         Returns:
             :obj:`dict`: a new dict containing the entries in `d` whose keys are in `filter_keys`.
         '''
-        return {k:v for (k,v) in iteritems(d) if k in filter_keys}
+        return {k: v for (k, v) in iteritems(d) if k in filter_keys}
 
     @staticmethod
     def filtered_iteritems(d, filter_keys):

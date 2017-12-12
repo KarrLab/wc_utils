@@ -19,7 +19,7 @@ class DebugLogsManager(object):
     Create and store debug logs.
 
     Attributes:
-        logs (:obj:`list`): list of logs stored by a DebugLogsManager instance
+        logs (:obj:`dict`): dictionary of logs stored by a DebugLogsManager instance
     '''
 
     def __init__(self):
@@ -39,16 +39,17 @@ class DebugLogsManager(object):
 
         if 'debug_logs' in options:
             options = deepcopy(options['debug_logs'])
-        for name, handler in options['handlers'].items():
-            if handler['class'] == 'FileHandler':
-                for key in handler:
-                    if key not in ['class', 'filename', 'mode', 'encoding', 'errors', 'buffering']:
-                        handler.pop(key)
+        if 'handlers' in options:
+            for name, handler in options['handlers'].items():
+                if handler['class'] == 'FileHandler':
+                    for key in handler:
+                        if key not in ['class', 'filename', 'mode', 'encoding', 'errors', 'buffering']:
+                            handler.pop(key)
 
-            elif handler['class'] == 'StreamHandler':
-                for key in handler:
-                    if key not in ['class', 'stream']:
-                        handler.pop(key)
+                elif handler['class'] == 'StreamHandler':
+                    for key in handler:
+                        if key not in ['class', 'stream']:
+                            handler.pop(key)
 
         _, _, logs = LoggerConfigurator.from_dict(options)
         self.logs = logs

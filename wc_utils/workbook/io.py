@@ -70,7 +70,7 @@ class Writer(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def initialize_workbook(self):
         """ Initialize workbook """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def write_worksheet(self, sheet_name, data, style=None):
@@ -81,12 +81,12 @@ class Writer(with_metaclass(ABCMeta, object)):
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def finalize_workbook(self):
         """ Finalize workbook """
-        pass
+        pass  # pragma: no cover
 
 
 class Reader(with_metaclass(ABCMeta, object)):
@@ -124,7 +124,7 @@ class Reader(with_metaclass(ABCMeta, object)):
         Returns:
             :obj:`Workbook`: data
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def get_sheet_names(self):
@@ -133,7 +133,7 @@ class Reader(with_metaclass(ABCMeta, object)):
         Returns:
             obj:`list` of `str`: list of sheet names
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def read_worksheet(self, sheet_name):
@@ -145,7 +145,7 @@ class Reader(with_metaclass(ABCMeta, object)):
         Returns:
             :obj:`Worksheet`: data
         """
-        pass
+        pass  # pragma: no cover
 
 
 class ExcelWriter(Writer):
@@ -156,7 +156,7 @@ class ExcelWriter(Writer):
     """
 
     def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None,
-        creator=None):
+                 creator=None):
         """
         Args:
             path (:obj:`str`): path to file(s)
@@ -447,7 +447,7 @@ class SeparatedValuesReader(Reader):
         # todo: skip_empty_rows=False is the default for pyexcel-io v >= 0.3.2
         # when it's available on pypi, set pyexcel>=0.4.0  pyexcel-io>=0.3.2 & remove skip_empty_rows option
         sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name),
-            skip_empty_rows=False)
+                                         skip_empty_rows=False)
 
         for sv_row in sv_worksheet.row:
             row = Row()
@@ -575,7 +575,7 @@ def convert(source, destination, worksheet_order=None, style=None, ignore_extra_
         raise ValueError('Destination extension must be one of ".xlsx", ".csv", or ".tsv"')
 
     # if extensions are the same, copy file(s)
-    if ext_src == ext_dst:
+    if ext_src == ext_dst and (worksheet_order is None or ext_src != '.xlsx'):
         if ext_src == '.xlsx':
             copyfile(source, destination)
         else:
@@ -592,7 +592,7 @@ def convert(source, destination, worksheet_order=None, style=None, ignore_extra_
     workbook = read(source)
 
     ordered_workbook = Workbook()
-    worksheet_order = worksheet_order or []    
+    worksheet_order = worksheet_order or []
     if not ignore_extra_sheets:
         difference = set(worksheet_order) - set(workbook.keys())
         if difference:

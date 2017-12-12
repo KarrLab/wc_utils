@@ -70,6 +70,26 @@ class TestStringUtils(unittest.TestCase):
             string.indent_forest(forest, indentation=0),
             test_string1.rstrip() + '\n' + test_string2)
 
+    def test_indent_forest_with_return_list(self):
+        forest = [
+            '0,1',
+            ["e e cummings\ncould write\n   but couldn't code"],
+            '0,2',
+        ]
+        result = [
+            "0,1",
+            "   e e cummings",
+            "   could write",
+            "      but couldn't code",
+            "0,2",
+        ]
+        self.assertEqual(string.indent_forest(forest, indentation=3, return_list=True), result)
+
+    def test_indent_forest_with_string(self):
+        forest = 'forest'
+        result = 'forest'
+        self.assertEqual(string.indent_forest(forest, indentation=3), result)
+
     def test_find_nth(self):
         self.assertEqual(string.find_nth('123', '0', 1), '123'.find('0'))
         self.assertEqual(string.find_nth('123', '1', 1), '123'.find('1'))
@@ -92,6 +112,12 @@ class TestStringUtils(unittest.TestCase):
         self.assertEqual(string.find_nth('123232323', '123', 2), -1)
 
         self.assertEqual(string.find_nth('123232323', '1234', 1), -1)
+
+        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+            string.find_nth('123232323', '', 1)
+
+        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+            string.find_nth('123232323', '1234', -1)
 
     def test_rfind_nth(self):
         self.assertEqual(string.rfind_nth('123', '0', 1), '123'.rfind('0'))
@@ -116,6 +142,12 @@ class TestStringUtils(unittest.TestCase):
 
         self.assertEqual(string.rfind_nth('123232323', '1234', 1), -1)
 
+        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+            string.rfind_nth('123232323', '', 1)
+
+        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+            string.rfind_nth('123232323', '1234', -1)
+
     def test_partition_nth(self):
         self.assertEqual(string.partition_nth('123', '0', 1), '123'.partition('0'))
         self.assertEqual(string.partition_nth('123', '1', 1), '123'.partition('1'))
@@ -139,6 +171,12 @@ class TestStringUtils(unittest.TestCase):
 
         self.assertEqual(string.partition_nth('123232323', '1234', 1), ('123232323', '', ''))
 
+        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+            string.partition_nth('123232323', '', 1)
+
+        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+            string.partition_nth('123232323', '1234', -1)
+
     def test_rpartition_nth(self):
         self.assertEqual(string.rpartition_nth('123', '0', 1), '123'.rpartition('0'))
         self.assertEqual(string.rpartition_nth('123', '1', 1), '123'.rpartition('1'))
@@ -161,3 +199,9 @@ class TestStringUtils(unittest.TestCase):
         self.assertEqual(string.rpartition_nth('123232323', '123', 2), ('', '', '123232323'))
 
         self.assertEqual(string.rpartition_nth('123232323', '1234', 1), ('', '', '123232323'))
+
+        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+            string.rpartition_nth('123232323', '', 1)
+
+        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+            string.rpartition_nth('123232323', '1234', -1)

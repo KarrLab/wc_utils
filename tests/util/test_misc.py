@@ -6,8 +6,9 @@
 :License: MIT
 '''
 
+import six
 import unittest
-from wc_utils.util.misc import most_qual_cls_name, round_direct, OrderableNone
+from wc_utils.util.misc import most_qual_cls_name, round_direct, OrderableNone, quote, isclass, isclass_by_name
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -19,6 +20,43 @@ d = C.D()
 
 
 class TestMisc(unittest.TestCase):
+
+    def test_isclass(self):
+        class str2(object):
+            pass
+
+        class int2(object):
+            pass
+
+        self.assertTrue(isclass(str2, str2))
+        self.assertTrue(isclass(str2, (str2, )))
+
+        self.assertFalse(isclass(str2, int2))
+        self.assertFalse(isclass(str2, (int2, )))
+
+        self.assertTrue(isclass(str2, (int2, str2, )))
+
+    def test_isclass_by_name(self):
+        str2 = type('str2', (object, ), {})
+        self.assertTrue(isclass_by_name('tests.util.test_misc.str2', str2))
+
+        class str3(object):
+            pass
+        if six.PY3:
+            name3 = 'tests.util.test_misc.TestMisc.test_isclass_by_name.<locals>.str3'
+        else:
+            name3 = 'tests.util.test_misc.str3'
+        self.assertTrue(isclass_by_name(name3, str3))
+
+        class str4():
+            pass
+        str5 = type('str5', (), {})
+        if six.PY3:
+            name4 = 'tests.util.test_misc.TestMisc.test_isclass_by_name.<locals>.str4'
+        else:
+            name4 = 'tests.util.test_misc.str4'
+        self.assertTrue(isclass_by_name(name4, (((str4, ), ), str5)))
+        self.assertFalse(isclass_by_name(name3, (((str4, ), ), str5)))
 
     def test_get_qual_name(self):
 
@@ -101,3 +139,7 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(y[1], 1)
         self.assertEqual(y[2], 2)
         self.assertEqual(y[3], 3)
+
+    def test_quote(self):
+        self.assertEqual(quote('x'), "x")
+        self.assertEqual(quote('x y'), "'x y'")

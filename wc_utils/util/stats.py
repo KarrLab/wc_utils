@@ -34,6 +34,8 @@ class ExponentialMovingAverage(object):
         Raises:
             :obj:`ValueError`: if alpha < 0 or 1 < alpha
         """
+        if alpha != None and center_of_mass != None:
+            raise ValueError("Only one of `alpha` or `center_of_mass` should be provided")
         if alpha != None:
             self.alpha = float(alpha)
         elif center_of_mass != None:

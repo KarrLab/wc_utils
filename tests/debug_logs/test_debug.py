@@ -9,31 +9,37 @@
 
 import io
 import os
+import shutil
 import sys
 import tempfile
 import unittest
+import yaml
 from capturer import CaptureOutput
+from log.handlers import FileHandler, StreamHandler
 from log.levels import LogLevel
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import ConfigManager
 from wc_utils.debug_logs.core import DebugLogsManager
-log_config = ConfigManager(debug_logs_default_paths).get_config()
-debug_log_manager = DebugLogsManager()
-debug_log_manager.setup_logs( log_config )
+from wc_utils.debug_logs.config import LoggerConfigurator, ConfigurationError
 
 
 class CheckForEnum34Test(unittest.TestCase):
 
     # todo: move to log's unittests
     def test_enum34(self):
-        self.assertFalse( isinstance(LogLevel.DEBUG, int), msg="Install enum34 for enum compatibility "
-            "in Python < 3.4")
+        self.assertFalse(isinstance(LogLevel.DEBUG, int), msg="Install enum34 for enum compatibility "
+                         "in Python < 3.4")
 
 
 class DefaultDebugLogsTest(unittest.TestCase):
 
+    def setUp(self):
+        log_config = ConfigManager(debug_logs_default_paths).get_config()
+        self.debug_log_manager = DebugLogsManager()
+        self.debug_log_manager.setup_logs(log_config)
+
     def test_file(self):
-        logger = debug_log_manager.get_log('wc.debug.file')
+        logger = self.debug_log_manager.get_log('wc.debug.file')
 
         handler = next(iter(logger.handlers))
         filename = handler.fh.name
@@ -50,7 +56,7 @@ class DefaultDebugLogsTest(unittest.TestCase):
         self.assertRegexpMatches(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
     def test_console(self):
-        logger = debug_log_manager.get_log('wc.debug.console')
+        logger = self.debug_log_manager.get_log('wc.debug.console')
 
         msg = 'wc.debug.console message'
 
@@ -167,8 +173,235 @@ class DebugConsoleLogTest(unittest.TestCase):
 
         # output message
         msg = 'debug message'
-        sim_time=2.5
+        sim_time = 2.5
         logger.debug(msg, sim_time=sim_time)
 
         # check message is correct
         self.assertRegexpMatches(self.stream.getvalue(), '^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(sim_time, msg))
+
+
+class DebugErrorTest(unittest.TestCase):
+
+    def test_no_logs(self):
+        debug_log_manager = DebugLogsManager()
+        with self.assertRaisesRegexp(ValueError, "^No log initialized.$"):
+            debug_log_manager.get_log('')
+
+    def test_undefined_log(self):
+        debug_log_manager = DebugLogsManager()
+        debug_log_manager.setup_logs({})
+        with self.assertRaisesRegexp(ValueError, "' not found in logs '"):
+            debug_log_manager.get_log('not_exists')
+
+
+class TestLoggerConfigurator(unittest.TestCase):
+
+    def setUp(self):
+        self.dirname = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dirname)
+
+    def test_from_yaml(self):
+        config = {
+            'formatters': {
+                'default': {
+                    'template': '{timestamp}; {name:s}; {level:s}; {src:s}:{func:s}:{line:d}; {sim_time:f}; {message:s}',
+                },
+            },
+            'handlers': {
+                'stream': {
+                    'class': 'StreamHandler',
+                    'stream': 'stdout',
+                },
+            },
+            'loggers': {
+                'log_stream': {
+                    'level': 'DEBUG',
+                    'formatters': ['default'],
+                    'handlers': ['stream'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+            },
+        }
+        filename = os.path.join(self.dirname, 'config.yml')
+        with open(filename, 'w') as file:
+            file.write(yaml.dump(config))
+        formatters, handlers, loggers = LoggerConfigurator.from_yaml(filename)
+
+        self.assertEqual(len(formatters), 1)
+        self.assertEqual(formatters['default'].name, 'default')
+        self.assertEqual(formatters['default'].template, config['formatters']['default']['template'])
+
+        self.assertEqual(len(handlers), 1)
+        self.assertIsInstance(handlers['stream'], StreamHandler)
+        self.assertEqual(handlers['stream'].name, 'stream')
+
+        self.assertEqual(len(loggers), 1)
+        self.assertEqual(loggers['log_stream'].name, 'log_stream')
+        self.assertEqual(loggers['log_stream'].level, LogLevel.DEBUG)
+        self.assertEqual(len(loggers['log_stream'].formatters), 1)
+        self.assertEqual(list(loggers['log_stream'].formatters)[0].name, 'default')
+        self.assertEqual(len(loggers['log_stream'].handlers), 1)
+        self.assertEqual(list(loggers['log_stream'].handlers)[0].name, 'stream')
+        self.assertEqual(loggers['log_stream'].additional_context, config['loggers']['log_stream']['additional_context'])
+
+    def test_from_dict(self):
+        filename = os.path.join(self.dirname, 'subdir', 'file.log')
+
+        config = {
+            'formatters': {
+                'default': {
+                    'template': '{timestamp}; {name:s}; {level:s}; {src:s}:{func:s}:{line:d}; {sim_time:f}; {message:s}',
+                },
+            },
+            'handlers': {
+                'stream': {
+                    'class': 'StreamHandler',
+                    'stream': 'stdout',
+                },
+                'file': {
+                    'class': 'FileHandler',
+                    'filename': filename,
+                },
+            },
+            'loggers': {
+                'log_stream': {
+                    'level': 'DEBUG',
+                    'formatters': ['default'],
+                    'handlers': ['stream'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+                'log_file': {
+                    'level': 'DEBUG',
+                    'formatters': ['default'],
+                    'handlers': ['file'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+            },
+        }
+        formatters, handlers, loggers = LoggerConfigurator.from_dict(config)
+
+        self.assertEqual(len(formatters), 1)
+        self.assertEqual(formatters['default'].name, 'default')
+        self.assertEqual(formatters['default'].template, config['formatters']['default']['template'])
+
+        self.assertEqual(len(handlers), 2)
+        self.assertIsInstance(handlers['stream'], StreamHandler)
+        self.assertEqual(handlers['stream'].name, 'stream')
+        self.assertIsInstance(handlers['file'], FileHandler)
+        self.assertEqual(handlers['file'].name, 'file')
+
+        self.assertEqual(len(loggers), 2)
+        self.assertEqual(loggers['log_stream'].name, 'log_stream')
+        self.assertEqual(loggers['log_stream'].level, LogLevel.DEBUG)
+        self.assertEqual(len(loggers['log_stream'].formatters), 1)
+        self.assertEqual(list(loggers['log_stream'].formatters)[0].name, 'default')
+        self.assertEqual(len(loggers['log_stream'].handlers), 1)
+        self.assertEqual(list(loggers['log_stream'].handlers)[0].name, 'stream')
+        self.assertEqual(loggers['log_stream'].additional_context, config['loggers']['log_stream']['additional_context'])
+        self.assertEqual(loggers['log_file'].name, 'log_file')
+        self.assertEqual(loggers['log_file'].level, LogLevel.DEBUG)
+        self.assertEqual(len(loggers['log_file'].formatters), 1)
+        self.assertEqual(list(loggers['log_file'].formatters)[0].name, 'default')
+        self.assertEqual(len(loggers['log_file'].handlers), 1)
+        self.assertEqual(list(loggers['log_file'].handlers)[0].name, 'file')
+        self.assertEqual(loggers['log_file'].additional_context, config['loggers']['log_file']['additional_context'])
+
+    def test_unsupported_handler_class(self):
+        config = {
+            'handlers': {
+                'handler': {
+                    'class': 'unsupported',
+                },
+            },
+        }
+        with self.assertRaisesRegexp(ConfigurationError, '^Unsupported handler class: '):
+            LoggerConfigurator.from_dict(config)
+
+    def test_undefined_formatter(self):
+        config = {
+            'formatters': {
+            },
+            'handlers': {
+                'stream': {
+                    'class': 'StreamHandler',
+                    'stream': 'stdout',
+                },
+            },
+            'loggers': {
+                'log_stream': {
+                    'level': 'DEBUG',
+                    'formatters': ['undefined'],
+                    'handlers': ['stream'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+            },
+        }
+        with self.assertRaisesRegexp(ConfigurationError, ' not found.$'):
+            LoggerConfigurator.from_dict(config)
+
+    def test_no_level(self):
+        config = {
+            'formatters': {
+                'default': {
+                    'template': '{timestamp}; {name:s}; {level:s}; {src:s}:{func:s}:{line:d}; {sim_time:f}; {message:s}',
+                },
+            },
+            'handlers': {
+                'stream': {
+                    'class': 'StreamHandler',
+                    'stream': 'stdout',
+                },
+            },
+            'loggers': {
+                'log_stream': {
+                    'formatters': ['default'],
+                    'handlers': ['stream'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+            },
+        }
+        with self.assertRaisesRegexp(ConfigurationError, "^Level must be defined$"):
+            LoggerConfigurator.from_dict(config)
+
+    def test_no_formatter(self):
+        config = {
+            'formatters': {
+            },
+            'handlers': {
+                'stream': {
+                    'class': 'StreamHandler',
+                    'stream': 'stdout',
+                },
+            },
+            'loggers': {
+                'log_stream': {
+                    'level': 'DEBUG',
+                    'handlers': ['stream'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+            },
+        }
+        with self.assertRaisesRegexp(ConfigurationError, '^At least one formatter must be defined.$'):
+            LoggerConfigurator.from_dict(config)
+
+    def test_no_handler(self):
+        config = {
+            'formatters': {
+                'default': {
+                    'template': '{timestamp}; {name:s}; {level:s}; {src:s}:{func:s}:{line:d}; {sim_time:f}; {message:s}',
+                },
+            },
+            'handlers': {
+            },
+            'loggers': {
+                'log_stream': {
+                    'level': 'DEBUG',
+                    'formatters': ['default'],
+                    'additional_context': {'sim_time': 1.5},
+                },
+            },
+        }
+        with self.assertRaisesRegexp(ConfigurationError, '^At least one handler must be defined.$'):
+            LoggerConfigurator.from_dict(config)

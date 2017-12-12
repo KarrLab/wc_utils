@@ -29,7 +29,7 @@ class Workbook(collections.OrderedDict):
             return False
 
         for name, sheet in self.items():
-            if not sheet.__eq__(other[name]):
+            if not sheet == other[name]:
                 return False
 
         return True
@@ -96,7 +96,7 @@ class Worksheet(list):
             return False
 
         for row_self, row_other in zip(self, other):
-            if not row_self.__eq__(row_other):
+            if not row_self == row_other:
                 return False
 
         return True

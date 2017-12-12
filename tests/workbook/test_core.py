@@ -64,6 +64,23 @@ class TestCore(unittest.TestCase):
         self.assertEqual(self.wk == wk, False)
         self.assertEqual(wk == self.wk, False)
 
+        self.assertEqual(self.wk == 'wk', False)
+        self.assertEqual(self.wk != 'wk', True)
+        self.assertEqual(self.wk['Ws-1'] == 'Ws-1', False)
+        self.assertEqual(self.wk['Ws-1'] != 'Ws-1', True)
+        self.assertEqual(self.wk['Ws-1'][1] == ['a1', 1, 2.], False)
+        self.assertEqual(self.wk['Ws-1'][1] != ['a1', 1, 2.], True)
+
+        wk = deepcopy(self.wk)
+        wk['Ws-1'] = 'ws'
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)
+
+        wk = deepcopy(self.wk)
+        wk['Ws-1'][1] = ['a1', 1, 2.]
+        self.assertEqual(self.wk == wk, False)
+        self.assertEqual(wk == self.wk, False)        
+
     def test_ne(self):
         wk = deepcopy(self.wk)
         self.assertEqual(self.wk != wk, False)
@@ -96,16 +113,19 @@ class TestCore(unittest.TestCase):
     def test_difference(self):
         wk = deepcopy(self.wk)
         self.assertEqual(self.wk.difference(wk), {})
+        self.assertEqual(str(self.wk.difference(wk)), '')
 
         wk = deepcopy(self.wk)
         wk['Ws-3'] = Worksheet()
         self.assertEqual(self.wk.difference(wk), {'Ws-3': 'Sheet not in self'})
         self.assertEqual(wk.difference(self.wk), {'Ws-3': 'Sheet not in other'})
+        self.assertEqual(str(wk.difference(self.wk)), 'Sheet Ws-3:\n  Sheet not in other')
 
         wk = deepcopy(self.wk)
         wk['Ws-2'].append(Row())
         self.assertEqual(self.wk.difference(wk), {'Ws-2': WorksheetDifference({4: 'Row not in self'})})
         self.assertEqual(wk.difference(self.wk), {'Ws-2': WorksheetDifference({4: 'Row not in other'})})
+        self.assertEqual(str(wk.difference(self.wk)), 'Sheet Ws-2:\n  Row 5:\n    Row not in other')
 
         wk = deepcopy(self.wk)
         wk['Ws-2'][0].append(None)
@@ -113,6 +133,7 @@ class TestCore(unittest.TestCase):
                          {'Ws-2': WorksheetDifference({0: RowDifference({3: 'Cell not in self'})})})
         self.assertEqual(wk.difference(self.wk),
                          {'Ws-2': WorksheetDifference({0: RowDifference({3: 'Cell not in other'})})})
+        self.assertEqual(str(wk.difference(self.wk)), 'Sheet Ws-2:\n  Row 1:\n    Cell D: Cell not in other')
 
         wk = deepcopy(self.wk)
         wk['Ws-1'][1][2] = 3.5
@@ -127,3 +148,16 @@ class TestCore(unittest.TestCase):
                          {'Ws-1': WorksheetDifference({1: RowDifference({2: CellDifference('2.0 != test')})})})
         self.assertEqual(wk.difference(self.wk),
                          {'Ws-1': WorksheetDifference({1: RowDifference({2: CellDifference('test != 2.0')})})})
+
+        with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Workbook`'):
+            self.wk.difference('wk')
+
+        wk = deepcopy(self.wk)
+        wk['Ws-1'] = 'Ws-1'
+        with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Worksheet`'):
+            self.wk.difference(wk)
+
+        wk = deepcopy(self.wk)
+        wk['Ws-1'][1] = ['a1', 1, 2.]
+        with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Row`'):
+            self.wk.difference(wk)

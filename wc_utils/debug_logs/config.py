@@ -61,7 +61,7 @@ class LoggerConfigurator(object):
             :obj:`tuple`: tuple created formatters, handlers, loggers
 
         Raises:
-            :obj:`log.ConfigurationError`: For unsupported handler types
+            :obj:`log.ConfigurationError`: For unsupported handler types or undefined formatters
         """
 
         config = deepcopy(config)
@@ -107,25 +107,26 @@ class LoggerConfigurator(object):
                 if 'level' in config_logger:
                     level = getattr(LogLevel, config_logger.pop('level'))
                 else:
-                    level = None
+                    raise ConfigurationError("Level must be defined")
 
-                if 'formatters' in config_logger:
+                if 'formatters' in config_logger and config_logger['formatters']:
                     try:
                         logger_formatters = [formatters[formatter_name]
                                              for formatter_name in config_logger.pop('formatters')]
                     except KeyError as e:
-                        raise ValueError("Formatter {} not found.".format(e))
+                        raise ConfigurationError("Formatter {} not found.".format(e))
                 else:
-                    logger_formatters = None
+                    raise ConfigurationError("At least one formatter must be defined.")
 
-                if 'handlers' in config_logger:
+                if 'handlers' in config_logger and config_logger['handlers']:
                     logger_handlers = [handlers[handler_name] for handler_name in config_logger.pop('handlers')]
                 else:
-                    logger_handlers = None
+                    raise ConfigurationError("At least one handler must be defined.")
 
                 # copying the formatter avoids unexpected formats caused by changes to shared formatters
                 loggers[name] = Logger(name=name, level=level,
                                        formatters=copy.deepcopy(logger_formatters),
                                        handlers=logger_handlers, **config_logger)
+                print(logger_handlers)
 
         return formatters, handlers, loggers

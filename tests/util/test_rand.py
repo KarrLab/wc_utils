@@ -106,6 +106,16 @@ class TestRandomState(unittest.TestCase):
         obs_avg = np.mean([random_state.round_quadratic(s) for s in samples])
         self.assertLess(abs(obs_avg - 0.5), 0.1)
 
+    def test_ltd(self):
+        random_state = RandomState()
+        self.assertGreaterEqual(random_state.ltd(), 0.)
+        self.assertLessEqual(random_state.ltd(), 1.)
+
+    def test_rtd(self):
+        random_state = RandomState()
+        self.assertGreaterEqual(random_state.rtd(), 0.)
+        self.assertLessEqual(random_state.rtd(), 1.)
+
     @unittest.skip("plot distributions of the stochastic rounding methods in wc_utils.util.rand")
     @unittest.skipIf(sys.version_info.major==2, 'does not work on python 2')
     def test_plot_rounding(self):
@@ -166,3 +176,12 @@ class TestValidateRandomState(unittest.TestCase):
         r3 = deepcopy(r2)
         r3[4] = 'x'
         self.assertRaises(InvalidRandomStateException, validate_random_state, r3)
+
+        with self.assertRaisesRegexp(InvalidRandomStateException, '^Random state must be a tuple$'):
+            validate_random_state(1.)
+
+        with self.assertRaisesRegexp(InvalidRandomStateException, '^Random state must have length 5$'):
+            validate_random_state((1,))
+
+        with self.assertRaisesRegexp(InvalidRandomStateException, '^Random number generator random_state\[1\] must be an array of length 624 of unsigned ints$'):
+            validate_random_state(('MT19937', [1.] * 624, 1, 1, 1))

@@ -7,9 +7,11 @@
 """
 
 from capturer import CaptureOutput
+from collections import OrderedDict
 import unittest
 
 from wc_utils.util.decorate_default_data_struct import default_mutable_params
+
 
 class TestDefaultMutableParams(unittest.TestCase):
 
@@ -34,27 +36,27 @@ class TestDefaultMutableParams(unittest.TestCase):
         #                                   VV d_dict in call to auto_test,
         #                                                   VV CORRECT d_dict in auto_test
         correct_values_in_auto_test = {
-            (          '',  NEW_DICT,              ''):          NEW_DICT,
-            (          '',  NEW_DICT,  OPTI_FUNC_DICT):     FUNC_DICT_VAL,
-            (          '',    'None',              ''):            'None',
-            (          '',    'None',  OPTI_FUNC_DICT):     FUNC_DICT_VAL,
-            (      D_DICT,  NEW_DICT,              ''):          NEW_DICT,
-            (      D_DICT,  NEW_DICT,  OPTI_FUNC_DICT):     FUNC_DICT_VAL,
-            (      D_DICT,    'None',              ''):          NEW_DICT,
-            (      D_DICT,    'None',  OPTI_FUNC_DICT):     FUNC_DICT_VAL
+            ('',  NEW_DICT,              ''):          NEW_DICT,
+            ('',  NEW_DICT,  OPTI_FUNC_DICT):     FUNC_DICT_VAL,
+            ('',    'None',              ''):            'None',
+            ('',    'None',  OPTI_FUNC_DICT):     FUNC_DICT_VAL,
+            (D_DICT,  NEW_DICT,              ''):          NEW_DICT,
+            (D_DICT,  NEW_DICT,  OPTI_FUNC_DICT):     FUNC_DICT_VAL,
+            (D_DICT,    'None',              ''):          NEW_DICT,
+            (D_DICT,    'None',  OPTI_FUNC_DICT):     FUNC_DICT_VAL
         }
 
         # test function and method calls
         # a test program with a function decorated by default_mutable_params
         # the test below instantiates this with all possible combinations of the three strings
-        test_code="""
+        test_code = """
 @default_mutable_params( [%s] )
 def auto_test( d_dict=%s ):
     print(d_dict)
 auto_test( %s )
         """
 
-        test_class="""
+        test_class = """
 class C(object):
     def __init__(self):
         pass
@@ -72,17 +74,24 @@ x.auto_test( %s )
                 for param_passed_to_func in ['', OPTI_FUNC_DICT]:
 
                     test_tuple = (mutable_param_in_decorator, param_default, param_passed_to_func)
-                    correct_value = correct_values_in_auto_test[ test_tuple ]
+                    correct_value = correct_values_in_auto_test[test_tuple]
 
                     code_instance = test_code % test_tuple
+                    print(code_instance)
                     with CaptureOutput() as capturer:
                         exec(code_instance)
                         out = capturer.get_text()
-                    self.assertEquals( out, correct_value )
+                    self.assertEquals(out, correct_value)
 
                     class_instance = test_class % test_tuple
                     with CaptureOutput() as capturer:
                         exec(code_instance)
                         out = capturer.get_text()
-                    self.assertEquals( out, correct_value )
+                    self.assertEquals(out, correct_value)
 
+    def test_error(self):
+        with self.assertRaisesRegexp(ValueError, 'Arguments to @default_mutable_params must indicate their type'):
+            @default_mutable_params(['d_OrderedDict'])
+            def test(d_OrderedDict=OrderedDict()): 
+                pass
+            test(d_OrderedDict=OrderedDict())

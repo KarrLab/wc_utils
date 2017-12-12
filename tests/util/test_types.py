@@ -63,6 +63,9 @@ class TestAssertValueEqual(unittest.TestCase):
         assert_value_equal((2, 3, 1), [1, 2, 3])
         assert_value_equal(set([1, 2, 3]), [1, 2, 3])
 
+        assert_value_equal([1, 2, 3], [1, 2, 3], check_iterable_ordering=True)
+        self.assertRaises(TypesUtilAssertionError, lambda: assert_value_equal([1, 2, 3], [1, 3, 2], check_iterable_ordering=True))
+
         self.assertRaises(TypesUtilAssertionError, lambda: assert_value_equal([1, 2, 3], [1, 1, 3]))
         assert_value_not_equal([1, 2, 3], [1, 1, 3])
 

@@ -1,6 +1,9 @@
 # editor configuration
 .idea/
 
+# coverage data
+.coverage*
+
 # profiling data
 prof/
 

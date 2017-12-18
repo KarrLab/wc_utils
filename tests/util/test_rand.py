@@ -61,12 +61,12 @@ class TestRandomState(unittest.TestCase):
         self.assertEquals(random_state.round_midpoint(3.6), 4)
 
         avg = 3.5
-        samples = 1000
+        samples = 2000
         obs_avg = np.mean([random_state.round_midpoint(avg) for i in range(samples)])
-        min = np.floor(avg) + binom.ppf(0.001, n=samples, p=avg % 1) / samples
-        max = np.floor(avg) + binom.ppf(0.999, n=samples, p=avg % 1) / samples
-        self.assertGreater(obs_avg, min)
-        self.assertLess(obs_avg, max)
+        min = np.floor(avg) + binom.ppf(0.0001, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.9999, n=samples, p=avg % 1) / samples
+        self.assertGreaterEqual(obs_avg, min)
+        self.assertLessEqual(obs_avg, max)
 
     def test_round_poisson(self):
         random_state = RandomState()

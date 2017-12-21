@@ -6,6 +6,7 @@
 """
 
 from wc_utils import backup
+import copy
 import ftputil
 import mock
 import os
@@ -24,7 +25,8 @@ else:
 class TestBackupManager(unittest.TestCase):
 
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir_up = tempfile.mkdtemp()
+        self.tempdir_down = tempfile.mkdtemp()
 
         env = EnvironmentVarGuard()
 
@@ -44,76 +46,99 @@ class TestBackupManager(unittest.TestCase):
             with open('tests/fixtures/secret/CODE_SERVER_REMOTE_DIRNAME', 'r') as file:
                 env.set('CODE_SERVER_REMOTE_DIRNAME', file.read().rstrip())
 
-        self.manager = backup.BackupManager(archive_filename=os.path.join(self.tempdir, 'test.wc_utils.backup.txt.tar.gz'),
-                                            archive_remote_filename='test.wc_utils.backup.txt.tar.gz')
+        self.manager = backup.BackupManager()
 
     def tearDown(self):
-        shutil.rmtree(self.tempdir)
+        shutil.rmtree(self.tempdir_up)
+        shutil.rmtree(self.tempdir_down)
 
         manager = self.manager
 
         with ftputil.FTPHost(manager.hostname, manager.username, manager.password) as ftp:
-            dirname = ftp.path.join(manager.remote_dirname, manager.archive_remote_filename)
+            filename = ftp.path.join(manager.remote_dirname, 'test.wc_utils.backup.tar.gz')
 
             # remove directory for uploads
-            if ftp.path.isdir(dirname):
-                ftp.rmtree(dirname)
+            if ftp.path.isdir(filename):
+                ftp.rmtree(filename)
 
     def test(self):
-        content = 'this is a test'
-        filename = os.path.join(self.tempdir, 'test.wc_utils.backup.txt')
-        with open(filename, 'w') as file:
-            file.write(content)
+        manager = self.manager
+
+        # create
+        content1 = 'this is a test 1'
+        filename1 = os.path.join(self.tempdir_up, '1_a.txt')
+        with open(filename1, 'w') as file:
+            file.write(content1)
 
         content2 = 'this is a test 2'
-        filename2 = os.path.join(self.tempdir, 'test.wc_utils.backup.2.txt')
+        filename2 = os.path.join(self.tempdir_up, '2_a.txt')
         with open(filename2, 'w') as file:
             file.write(content2)
 
-        manager = self.manager
-        self.assertEqual(manager.archive_filename, filename + '.tar.gz')
+        os.mkdir(os.path.join(self.tempdir_up, 'dir_a'))
+        content3 = 'this is a test 3'
+        filename3 = os.path.join(self.tempdir_up, 'dir_a', '3_a.txt')
+        with open(filename3, 'w') as file:
+            file.write(content3)
 
-        # create
-        files = [
-            backup.BackupFile(filename, 'test.wc_utils.backup.txt'),
-            backup.BackupFile(filename2, 'test.wc_utils.backup.2.txt'),
+        os.mkdir(os.path.join(self.tempdir_up, 'dir_a', 'subdir_a'))
+        content4 = 'this is a test 4'
+        filename4 = os.path.join(self.tempdir_up, 'dir_a', 'subdir_a', '4_a.txt')
+        with open(filename4, 'w') as file:
+            file.write(content4)
+
+        paths_up = [
+            backup.BackupPath(os.path.join(self.tempdir_up, '1_a.txt'), '1_b.txt'),
+            backup.BackupPath(os.path.join(self.tempdir_up, '2_a.txt'), '2_b.txt'),
+            backup.BackupPath(os.path.join(self.tempdir_up, 'dir_a'), 'dir_b'),
         ]
-        for file in files:
-            file.set_created_modified_time()
-            file.set_username_ip()
-            file.set_program_version_from_repo()
-        manager.create(files)
-        self.assertTrue(os.path.isfile(manager.archive_filename))
+        a_backup_up = backup.Backup(paths=paths_up)
+        a_backup_up.local_filename = os.path.join(self.tempdir_up, 'up.tar.gz')
+        a_backup_up.remote_filename = 'test.wc_utils.backup.tar.gz'
+        a_backup_up.set_username_ip_date()
+        a_backup_up.set_package()
+
+        manager.create(a_backup_up)
+        self.assertTrue(os.path.isfile(a_backup_up.local_filename))
 
         # upload
-        manager.upload()
+        manager.upload(a_backup_up)
 
         # download
-        manager.archive_filename = filename + '.2.tar.gz'
-        manager.download()
+        paths_down = [
+            backup.BackupPath(os.path.join(self.tempdir_down, '1_c.txt'), '1_b.txt'),
+            backup.BackupPath(os.path.join(self.tempdir_down, '2_c.txt'), '2_b.txt'),
+            backup.BackupPath(os.path.join(self.tempdir_down, 'dir_c'), 'dir_b'),
+        ]
+        a_backup_down = backup.Backup(paths=paths_down)
+        a_backup_down.local_filename = os.path.join(self.tempdir_down, 'down.tar.gz')
+        a_backup_down.remote_filename = a_backup_up.remote_filename
 
-        self.assertTrue(os.path.isfile(manager.archive_filename))
+        manager.download(a_backup_down)
+        self.assertTrue(os.path.isfile(a_backup_down.local_filename))
 
         # extract
-        os.remove(filename)
-        files_down = [
-            backup.BackupFile(filename, 'test.wc_utils.backup.txt'),
-            backup.BackupFile(filename2, 'test.wc_utils.backup.2.txt'),
-        ]
-        manager.extract(files_down)
+        manager.extract(a_backup_down)
 
-        with open(filename, 'r') as file:
-            self.assertEqual(file.read(), content)
+        with open(os.path.join(self.tempdir_down, '1_c.txt'), 'r') as file:
+            self.assertEqual(file.read(), 'this is a test 1')
 
-        with open(filename2, 'r') as file:
-            self.assertEqual(file.read(), content2)
+        with open(os.path.join(self.tempdir_down, '2_c.txt'), 'r') as file:
+            self.assertEqual(file.read(), 'this is a test 2')
 
-        for file, file_down in zip(files, files_down):
-            self.assertEqual(file.program, file_down.program)
-            self.assertEqual(file.version, file_down.version)
-            self.assertEqual(file.username, file_down.username)
-            self.assertEqual(file.ip, file_down.ip)
-            self.assertEqual(file.created, file_down.created)
-            self.assertEqual(file.modified, file_down.modified)
+        with open(os.path.join(self.tempdir_down, 'dir_c', '3_a.txt'), 'r') as file:
+            self.assertEqual(file.read(), 'this is a test 3')
 
-        manager.cleanup()
+        with open(os.path.join(self.tempdir_down, 'dir_c', 'subdir_a', '4_a.txt'), 'r') as file:
+            self.assertEqual(file.read(), 'this is a test 4')
+
+        self.assertEqual(a_backup_down.package, a_backup_up.package)
+        self.assertEqual(a_backup_down.package_version, a_backup_up.package_version)
+        self.assertEqual(a_backup_down.username, a_backup_up.username)
+        self.assertEqual(a_backup_down.ip, a_backup_up.ip)
+        self.assertEqual(a_backup_down.date, a_backup_up.date)
+
+        manager.cleanup(a_backup_up)
+        manager.cleanup(a_backup_down)
+        self.assertFalse(os.path.isfile(a_backup_up.local_filename))
+        self.assertFalse(os.path.isfile(a_backup_down.local_filename))

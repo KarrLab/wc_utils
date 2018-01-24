@@ -301,7 +301,7 @@ class ExcelReader(Reader):
         Returns:
             obj:`list` of `str`: list of sheet names
         """
-        return self.xls_workbook.get_sheet_names()
+        return self.xls_workbook.sheetnames
 
     def read_worksheet(self, sheet_name):
         """ Read data from Excel worksheet

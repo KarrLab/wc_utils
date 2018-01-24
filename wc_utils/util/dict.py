@@ -6,8 +6,6 @@
 :License: MIT
 """
 
-from six import iteritems
-
 
 class DictUtil(object):
     """ Dictionary utility methods """
@@ -113,11 +111,11 @@ class DictUtil(object):
         Returns:
             :obj:`dict`: a new dict containing the entries in `d` whose keys are in `filter_keys`.
         '''
-        return {k: v for (k, v) in iteritems(d) if k in filter_keys}
+        return {k: v for (k, v) in d.items() if k in filter_keys}
 
     @staticmethod
     def filtered_iteritems(d, filter_keys):
-        '''A generator that filters a dict's iteritems to keys in `filter_keys`.
+        '''A generator that filters a dict's items to keys in `filter_keys`.
 
         Args:
             d (:obj:`dict`): dictionary to filter.
@@ -126,7 +124,7 @@ class DictUtil(object):
         Yields:
             :obj:`tuple`: (key, value) tuples from `d` whose keys are in `filter_keys`.
         '''
-        for key, val in iteritems(d):
+        for key, val in d.items():
             if key not in filter_keys:
                 continue
             yield key, val

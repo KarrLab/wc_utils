@@ -7,11 +7,15 @@
 """
 
 from copy import deepcopy
+from matplotlib import pyplot
 from numpy import random
 from scipy.stats import binom, poisson
 from wc_utils.util.rand import RandomState, RandomStateManager, validate_random_state, InvalidRandomStateException
 import numpy as np
-import unittest, math, sys
+import unittest
+import math
+import sys
+
 
 class TestRandomState(unittest.TestCase):
 
@@ -31,19 +35,19 @@ class TestRandomState(unittest.TestCase):
         x = 3.5
 
         for method in ['binomial', 'midpoint', 'poisson', 'quadratic']:
-            round = random_state.round( x, method=method)
-            self.assertEqual( round, int(round))
+            round = random_state.round(x, method=method)
+            self.assertEqual(round, int(round))
             if method in ['binomial', 'midpoint', 'quadratic']:
-                self.assertIn( round, [math.floor(x), math.ceil(x)] )
+                self.assertIn(round, [math.floor(x), math.ceil(x)])
 
         with self.assertRaises(Exception) as context:
-            random_state.round( 3.5, 'no_such_method')
-        self.assertIn( 'Undefined rounding method', str(context.exception) )
+            random_state.round(3.5, 'no_such_method')
+        self.assertIn('Undefined rounding method', str(context.exception))
 
     def test_round_binomial(self):
         random_state = RandomState()
         x = 3
-        self.assertEqual( random_state.round_binomial(x), x)
+        self.assertEqual(random_state.round_binomial(x), x)
 
         avg = 3.4
         samples = 1000
@@ -82,7 +86,7 @@ class TestRandomState(unittest.TestCase):
 
     def test_round_quadratic(self):
         random_state = RandomState()
-        nsamples=50000
+        nsamples = 50000
 
         # test limits
         for avg in [3.25, 3.75]:
@@ -116,24 +120,22 @@ class TestRandomState(unittest.TestCase):
         self.assertGreaterEqual(random_state.rtd(), 0.)
         self.assertLessEqual(random_state.rtd(), 1.)
 
-    @unittest.skip("plot distributions of the stochastic rounding methods in wc_utils.util.rand")
-    @unittest.skipIf(sys.version_info.major==2, 'does not work on python 2')
     def test_plot_rounding(self):
         random_state = RandomState()
-        import matplotlib.pyplot as plt
-
         n_intervals = 100
         n_samples = 10000
         for method in ['binomial', 'midpoint', 'poisson', 'quadratic']:
             x = sorted([x/n_intervals for x in range(n_intervals+1)]*n_samples)
-            rounds = [random_state.round( value, method=method) for value in x]
-            results = list(zip(x,rounds))
-            down = [x for x,r in results if r==0]
-            up = [x for x,r in results if r==1]
-            labels = [ "{}: {}".format(method,r) for r in ['down','up']]
-            plt.hist([down, up], bins=n_intervals+1, histtype='step', label=labels, normed=True, )
-            legend = plt.legend(loc='upper right', )
-            plt.show()
+            rounds = [random_state.round(value, method=method) for value in x]
+            results = list(zip(x, rounds))
+            down = [x for x, r in results if r == 0]
+            up = [x for x, r in results if r == 1]
+            labels = ["{}: {}".format(method, r) for r in ['down', 'up']]
+            pyplot.hist([down, up], bins=n_intervals+1, histtype='step', label=labels, normed=True, )
+            legend = pyplot.legend(loc='upper right', )
+            # pyplot.show()
+            pyplot.close()
+
 
 class TestRandomStateManager(unittest.TestCase):
 

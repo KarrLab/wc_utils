@@ -1,5 +1,6 @@
 capturer
 configobj
+matplotlib
 mock
 numpy
 scipy

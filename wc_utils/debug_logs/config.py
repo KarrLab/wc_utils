@@ -127,6 +127,5 @@ class LoggerConfigurator(object):
                 loggers[name] = Logger(name=name, level=level,
                                        formatters=copy.deepcopy(logger_formatters),
                                        handlers=logger_handlers, **config_logger)
-                print(logger_handlers)
 
         return formatters, handlers, loggers

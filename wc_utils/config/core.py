@@ -11,7 +11,10 @@ from configobj import flatten_errors, get_extra_values
 from validate import Validator, is_boolean, is_float, is_integer, is_list, is_string, VdtTypeError
 from wc_utils.util.dict import DictUtil
 from copy import deepcopy
+import math
 import os
+import six
+import string
 import sys
 
 
@@ -45,6 +48,8 @@ class ConfigManager(object):
     Validate the configuration against a configuration schema. Return the configuration
     as a nested dictionary.
 
+    Optionally, configuration values can be templates for substitution with :obj:`string.Template`.
+
     Attributes:
         paths (:obj:`ConfigPaths`): paths to configuration files and schema
     """
@@ -52,7 +57,7 @@ class ConfigManager(object):
     def __init__(self, paths=None):
         self.paths = paths
 
-    def get_config(self, extra=None):
+    def get_config(self, extra=None, context=None):
         """ Setup configuration from config file(s), environment variables, and/or function arguments.
 
         1. Setup configuration from default values specified in `paths.default`.
@@ -64,10 +69,12 @@ class ConfigManager(object):
                CONFIG.level1.level2...=val
 
         4. Override configuration with additional configuration in `extra`.
-        5. Validate configuration against the schema specified in `paths.schema`.
+        5. Substitute context into templates
+        6. Validate configuration against the schema specified in `paths.schema`.
 
         Args:
             extra (:obj:`dict`, optional): additional configuration to override
+            context (:obj:`dict`, optional): context for template substitution
 
         Returns:
             :obj:`configobj.ConfigObj`: nested dictionary with the configuration settings loaded from the configuration source(s).
@@ -92,7 +99,7 @@ class ConfigManager(object):
 
         # read configuration from environment variables
         for key, val in os.environ.items():
-            if key.startswith('CONFIG__DOT__'): 
+            if key.startswith('CONFIG__DOT__'):
                 DictUtil.nested_set(config, key[13:].replace('__DOT__', '.'), val)
 
         # merge extra configuration
@@ -108,13 +115,36 @@ class ConfigManager(object):
         # validate configuration against schema
         validator = Validator()
         validator.functions['any'] = any_checker
-        result = config.validate(validator, preserve_errors=True)
+        result = config.validate(validator, copy=True, preserve_errors=True)
 
         if result is not True:
             raise InvalidConfigError(config, result)
 
         if get_extra_values(config):
             raise ExtraValuesError(config)
+
+        # perform template substitution
+        def sub(section, key, context=context):
+            val = section[key]
+            if isinstance(val, (list, tuple)):
+                for i, v in enumerate(val):
+                    if isinstance(v, str):
+                        val[i] = string.Template(v).substitute(context)
+            elif isinstance(val, six.string_types):
+                val = string.Template(val).substitute(context)
+            section[key] = val
+        config.walk(sub)
+
+        # re-validate configuration against schema after substitution
+        validator = Validator()
+        validator.functions['any'] = any_checker
+        result = config.validate(validator, copy=True, preserve_errors=True)
+
+        if result is not True:
+            raise InvalidConfigError(config, result)
+
+        if get_extra_values(config):
+            raise ExtraValuesError(config)  # pragma: no cover # unreachable because we have already checked for extra values
 
         # return config
         return config
@@ -136,7 +166,9 @@ def any_checker(value):
         :obj:`VdtTypeError`: if the value cannot be converted
     '''
 
-    value, _ = ConfigObj()._handle_value(value)
+    if not isinstance(value, float) or not math.isnan(value):
+        # if statement needed because `_handle_value` doesn't seem to be able to handle nan
+        value, _ = ConfigObj()._handle_value(value)
 
     # parse to integer
     try:

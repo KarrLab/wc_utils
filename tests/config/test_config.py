@@ -9,6 +9,7 @@
 from copy import deepcopy
 from validate import Validator
 import configobj
+import mock
 import os
 import sys
 import tempfile
@@ -66,6 +67,56 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
         assert_value_equal(config_settings, expected)
+
+    def test_template_substitution(self):
+        _, schema_filename = tempfile.mkstemp()
+        with open(schema_filename, 'w') as file:
+            file.write(u'[sec]\n')
+            file.write(u'   attr_1 = string(default=xyx)\n')
+            file.write(u'   attr_2 = string(default=${root}/uvw)\n')
+            file.write(u'   attr_3 = list()\n')
+            file.write(u'   attr_4 = list(default=list("a", "${root}/abc", "c"))\n')
+            file.write(u'   attr_5 = boolean(default=true)\n')
+            file.write(u'   attr_6 = string()\n')
+
+        _, default_filename = tempfile.mkstemp()
+        with open(default_filename, 'w') as file:
+            file.write(u'[sec]\n')
+            file.write(u'   attr_1 = ${root}/xyz\n')
+            file.write(u'   attr_3 = ${root}/xyz, xyz/${root}\n')
+            file.write(u'   attr_5 = False\n')
+            file.write(u'   attr_6 = $${root}\n')
+
+        paths = mock.Mock(schema=schema_filename, default=default_filename, user=[])
+        config = ConfigManager(paths).get_config(context={'root': 'ABC'})
+
+        self.assertEqual(config['sec']['attr_1'], 'ABC/xyz')
+        self.assertEqual(config['sec']['attr_2'], 'ABC/uvw')
+        self.assertEqual(config['sec']['attr_3'], ['ABC/xyz', 'xyz/ABC'])
+        self.assertEqual(config['sec']['attr_4'], ['a', 'ABC/abc', 'c'])
+        self.assertEqual(config['sec']['attr_5'], False)
+        self.assertEqual(config['sec']['attr_6'], '${root}')
+
+        os.remove(schema_filename)
+        os.remove(default_filename)
+
+    def test_template_substitution_invalid(self):
+        _, schema_filename = tempfile.mkstemp()
+        with open(schema_filename, 'w') as file:
+            file.write(u'[sec]\n')
+            file.write(u'   attr_1 = string(max=7)\n')
+
+        _, default_filename = tempfile.mkstemp()
+        with open(default_filename, 'w') as file:
+            file.write(u'[sec]\n')
+            file.write(u'   attr_1 = ${root}\n')
+
+        paths = mock.Mock(schema=schema_filename, default=default_filename, user=[])
+        with self.assertRaisesRegexp(InvalidConfigError, 'is too long'):
+            config = ConfigManager(paths).get_config(context={'root': 'a long root more than 7 chars'})
+
+        os.remove(schema_filename)
+        os.remove(default_filename)
 
     def test_extra(self):
         # test to __str__

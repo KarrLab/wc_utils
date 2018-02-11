@@ -183,7 +183,7 @@ class ExcelWriter(Writer):
         """ Initialize workbook """
         # Initialize workbook
         self.xls_workbook = xls_workbook = XlsWorkbook()
-        xls_workbook.remove_sheet(xls_workbook.active)
+        xls_workbook.remove(xls_workbook.active)
 
         # set metadata
         props = xls_workbook.properties

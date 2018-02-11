@@ -17,7 +17,7 @@ import unittest
 
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import ConfigManager, ConfigPaths, any_checker, ExtraValuesError, InvalidConfigError
-from wc_utils.util.environ import EnvironUtils
+from wc_utils.util.environ import EnvironUtils, MakeEnvironArgs
 from wc_utils.util.types import assert_value_equal
 
 
@@ -48,10 +48,10 @@ class TestConfig(unittest.TestCase):
         expected = ConfigManager(debug_logs_default_paths).get_config()
         expected['debug_logs']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
 
-        env = {
-            'CONFIG__DOT__debug_logs__DOT__formatters__DOT____test____DOT__template': 'xxxx',
-            'CONFIG__DOT__debug_logs__DOT__formatters__DOT____test____DOT__append_new_line': 'False',
-        }
+        make_environ_args = MakeEnvironArgs()
+        make_environ_args.add_to_env(['debug_logs', 'formatters', '__test__', 'template'], 'xxxx')
+        make_environ_args.add_to_env(['debug_logs', 'formatters', '__test__', 'append_new_line'], 'False')
+        env = make_environ_args.get_env()
         with EnvironUtils.make_temp_environ(**env):
             config_settings = ConfigManager(debug_logs_default_paths).get_config()
 
@@ -67,6 +67,19 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
         assert_value_equal(config_settings, expected)
+
+    def test_alter_directly(self):
+        # use this approach to directly alter configuration values when testing, especially
+        # when configuration data is loaded by many modules.
+        # suppose you want to test multiple values of append_new_line
+        expected = ConfigManager(debug_logs_default_paths).get_config()
+
+        initial_append_new_line = expected['debug_logs']['formatters']['default']['append_new_line']
+        self.assertEqual(initial_append_new_line, True)
+        expected['debug_logs']['formatters']['default']['append_new_line'] = False
+        #### execute tests with the modified value of append_new_line here ####
+        # restore value of append_new_line
+        expected['debug_logs']['formatters']['default']['append_new_line'] = initial_append_new_line
 
     def test_template_substitution(self):
         _, schema_filename = tempfile.mkstemp()

@@ -37,3 +37,31 @@ class EnvironUtils(object):
         finally:
             os.environ.clear()
             os.environ.update(old_environ)
+
+
+class MakeEnvironArgs(object):
+
+    CONFIG = 'CONFIG'
+    DOT = '__DOT__'
+    def __init__(self):
+        self.env = {}
+
+    def add_to_env(self, path, value):
+        """ Add a value to an environment dict
+
+        Args:
+            path (:obj:`list` of `str`): configuration path components
+            value (:obj:`obj`): the value that the path should have
+
+        Returns:
+            :obj:`dict`: the updated environment
+        """
+        name = [MakeEnvironArgs.CONFIG]
+        for element in path:
+            name.append(MakeEnvironArgs.DOT)
+            name.append(element)
+        self.env[''.join(name)] = value
+        return self.env
+
+    def get_env(self):
+        return self.env

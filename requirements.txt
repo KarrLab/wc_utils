@@ -1,3 +1,4 @@
+attrdict
 configobj
 enum34
 ftputil

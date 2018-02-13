@@ -2,6 +2,7 @@ configobj
 enum34
 ftputil
 git+https://github.com/KarrLab/log.git#egg=log-2016.10.12 # >= 2016.10.12
+mendeleev
 numpy
 openpyxl
 pint

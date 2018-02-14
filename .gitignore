@@ -67,6 +67,7 @@ htmlcov
 
 # pytest files
 .cache*
+.pytest_cache/
 
 # documentation files
 docs/source

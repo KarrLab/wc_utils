@@ -7,8 +7,8 @@
 :License: MIT
 """
 
-from wc_utils.util.list import is_sorted, transpose, difference, det_dedupe
 import unittest
+from wc_utils.util.list import is_sorted, transpose, difference, det_dedupe, elements_to_str
 
 
 class TestTranspose(unittest.TestCase):
@@ -42,3 +42,9 @@ class TestTranspose(unittest.TestCase):
         self.assertEqual(det_dedupe(l), expected)
         with self.assertRaises(TypeError):
             det_dedupe([[]])
+
+    def test_elements_to_str(self):
+        l = 'a b c'.split()
+        self.assertEqual(elements_to_str(l), l)
+        l = [1, 'x']
+        self.assertEqual(elements_to_str(l), ['1', 'x'])

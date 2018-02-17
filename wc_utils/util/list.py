@@ -86,3 +86,14 @@ def det_dedupe(l):
             t.append(e)
             s.add(e)
     return t
+
+def elements_to_str(l):
+    """ Convert each element in an iterator to a string representation
+
+    Args:
+        l (:obj:`list`): an iterator
+
+    Returns:
+        :obj:`list`: a list containing each element of the iterator converted to a string
+    """
+    return [str(e) for e in l]

@@ -2,7 +2,7 @@
 
 :Author: Jonathan Karr <jonrkarr@gmail.com>
 :Date: 2017-05-29
-:Copyright: 2017, Karr Lab
+:Copyright: 2017-2018, Karr Lab
 :License: MIT
 """
 

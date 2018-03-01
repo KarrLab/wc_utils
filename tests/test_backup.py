@@ -27,25 +27,6 @@ class TestBackupManager(unittest.TestCase):
     def setUp(self):
         self.tempdir_up = tempfile.mkdtemp()
         self.tempdir_down = tempfile.mkdtemp()
-
-        env = EnvironmentVarGuard()
-
-        if not os.getenv('CODE_SERVER_HOSTNAME'):
-            with open('tests/fixtures/secret/CODE_SERVER_HOSTNAME', 'r') as file:
-                env.set('CODE_SERVER_HOSTNAME', file.read().rstrip())
-
-        if not os.getenv('CODE_SERVER_USERNAME'):
-            with open('tests/fixtures/secret/CODE_SERVER_USERNAME', 'r') as file:
-                env.set('CODE_SERVER_USERNAME', file.read().rstrip())
-
-        if not os.getenv('CODE_SERVER_PASSWORD'):
-            with open('tests/fixtures/secret/CODE_SERVER_PASSWORD', 'r') as file:
-                env.set('CODE_SERVER_PASSWORD', file.read().rstrip())
-
-        if not os.getenv('CODE_SERVER_REMOTE_DIRNAME'):
-            with open('tests/fixtures/secret/CODE_SERVER_REMOTE_DIRNAME', 'r') as file:
-                env.set('CODE_SERVER_REMOTE_DIRNAME', file.read().rstrip())
-
         self.manager = backup.BackupManager()
 
     def tearDown(self):

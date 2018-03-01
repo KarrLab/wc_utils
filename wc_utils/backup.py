@@ -41,16 +41,16 @@ class BackupManager(object):
             remote_dirname (:obj:`str`, optional): remote directory on server to upload/download backups
         """
         if not hostname:
-            hostname = os.getenv('CODE_SERVER_HOSTNAME')
+            hostname = os.getenv('CODE_SERVER_HOSTNAME', 'code.karrlab.org')
 
         if not username:
-            username = os.getenv('CODE_SERVER_USERNAME')
+            username = os.getenv('CODE_SERVER_USERNAME', 'karrlab_code')
 
         if not password:
             password = os.getenv('CODE_SERVER_PASSWORD')
 
         if not remote_dirname:
-            remote_dirname = os.getenv('CODE_SERVER_REMOTE_DIRNAME')
+            remote_dirname = os.getenv('CODE_SERVER_REMOTE_DIRNAME', '/code.karrlab.org/data')
 
         self.hostname = hostname
         self.username = username

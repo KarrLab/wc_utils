@@ -19,6 +19,7 @@ import six
 import socket
 import tarfile
 import tempfile
+import wc_utils.config.core
 import wc_utils.util.git
 
 
@@ -27,35 +28,24 @@ class BackupManager(object):
 
     Attributes:
         hostname (:obj:`str`): hostname for server to upload/download backups
+        remote_dirname (:obj:`str`): remote directory on server to upload/download backups
         username (:obj:`str`): username for server to upload/download backups
         password (:obj:`str`): password for server to upload/download backups
-        remote_dirname (:obj:`str`): remote directory on server to upload/download backups
     """
 
-    def __init__(self, hostname='', username='', password='', remote_dirname=''):
+    def __init__(self, hostname=None, remote_dirname=None, username=None, password=None):
         """
         Args:
             hostname (:obj:`str`, optional): hostname for server to upload/download backups
+            remote_dirname (:obj:`str`, optional): remote directory on server to upload/download backups
             username (:obj:`str`, optional): username for server to upload/download backups
             password (:obj:`str`, optional): password for server to upload/download backups
-            remote_dirname (:obj:`str`, optional): remote directory on server to upload/download backups
         """
-        if not hostname:
-            hostname = os.getenv('CODE_SERVER_HOSTNAME', 'code.karrlab.org')
-
-        if not username:
-            username = os.getenv('CODE_SERVER_USERNAME', 'karrlab_code')
-
-        if not password:
-            password = os.getenv('CODE_SERVER_PASSWORD')
-
-        if not remote_dirname:
-            remote_dirname = os.getenv('CODE_SERVER_REMOTE_DIRNAME', '/code.karrlab.org/data')
-
-        self.hostname = hostname
-        self.username = username
-        self.password = password
-        self.remote_dirname = remote_dirname
+        config = wc_utils.config.core.get_config()['wc_utils']['backup']
+        self.hostname = hostname or config['hostname']
+        self.remote_dirname = remote_dirname or config['remote_dirname']
+        self.username = username or config['username']
+        self.password = password or config['password']
 
     def create(self, backup):
         """ Create a gzip archive of a backup

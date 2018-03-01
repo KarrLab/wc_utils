@@ -1,6 +1,7 @@
 """ Test dict util
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-08-25
 :Copyright: 2016, Karr Lab
 :License: MIT
@@ -96,3 +97,34 @@ class DictUtilTest(unittest.TestCase):
     def test_to_string_sorted_by_key(self):
         self.assertEqual(DictUtil.to_string_sorted_by_key(None), '{}')
         self.assertEqual(DictUtil.to_string_sorted_by_key({'b': 2, 'c': 3, 'a': 1, 'd': 4}), "{'a': 1, 'b': 2, 'c': 3, 'd': 4}")
+
+    def test_set_value(self):
+        key = 'key'
+        key_a_dict_value = 8
+        key_b_dict_value = 3
+        key_c_dict_value = 'hi'
+        test_dict = {
+        'a_dict':
+            {'nested': {'key': key_a_dict_value,
+                       'not_key': 9}},
+        'b_dict':
+            {'nested': {'key': key_b_dict_value,
+                    'not_key': 15}},
+        'c_dict':
+            {'key': {'key': key_c_dict_value,
+                    'not_key': 15}}
+                    }
+        self.assertEqual(test_dict['a_dict']['nested'][key], key_a_dict_value)
+        self.assertEqual(test_dict['b_dict']['nested'][key], key_b_dict_value)
+        self.assertEqual(test_dict['c_dict']['key'][key], key_c_dict_value)
+
+        new_value = 11
+        DictUtil.set_value(test_dict, key, new_value)
+        self.assertEqual(test_dict['a_dict']['nested'][key], new_value)
+        self.assertEqual(test_dict['b_dict']['nested'][key], new_value)
+        self.assertEqual(test_dict['c_dict']['key'][key], key_c_dict_value)
+
+        DictUtil.set_value(test_dict, key, new_value, match_type=False)
+        self.assertEqual(test_dict['a_dict']['nested'][key], new_value)
+        self.assertEqual(test_dict['b_dict']['nested'][key], new_value)
+        self.assertEqual(test_dict['c_dict']['key'][key], new_value)

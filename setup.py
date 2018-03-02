@@ -15,9 +15,17 @@ import os
 
 name = 'wc_utils'
 dirname = os.path.dirname(__file__)
+package_data = {
+    name: [
+        'VERSION',
+        'config/*.cfg',
+        'debug_logs/*.cfg',
+        'util/units.txt',
+    ],
+}
 
 # get package metadata
-md = pkg_utils.get_package_metadata(dirname, name)
+md = pkg_utils.get_package_metadata(dirname, name, package_data_filename_patterns=package_data)
 
 # install package
 setuptools.setup(
@@ -59,15 +67,7 @@ setuptools.setup(
 
     # packages not prepared yet
     packages=setuptools.find_packages(exclude=['tests', 'tests.*']),
-    package_data={
-        name: [
-            'VERSION',
-            'debug_logs/config.default.cfg',
-            'debug_logs/config.schema.cfg',
-            'util/units.txt',            
-        ],
-    },
-
+    package_data=md.package_data,
     install_requires=md.install_requires,
     extras_require=md.extras_require,
     tests_require=md.tests_require,

@@ -1,8 +1,9 @@
 """ dict utils
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-08-25
-:Copyright: 2016, Karr Lab
+:Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
 
@@ -87,14 +88,14 @@ class DictUtil(object):
 
     @staticmethod
     def to_string_sorted_by_key(d):
-        '''Provide a string representation of a dictionary sorted by key.
+        """Provide a string representation of a dictionary sorted by key.
 
         Args:
             d (:obj:`dict`): dictionary
 
         Returns:
             :obj:`str`: string representation of a dictionary sorted by key
-        '''
+        """
         if d is None:
             return '{}'
         else:
@@ -102,7 +103,7 @@ class DictUtil(object):
 
     @staticmethod
     def filtered_dict(d, filter_keys):
-        '''Create a new dict from `d`, with keys filtered by `filter_keys`.
+        """Create a new dict from `d`, with keys filtered by `filter_keys`.
 
         Args:
             d (:obj:`dict`): dictionary to filter.
@@ -110,12 +111,12 @@ class DictUtil(object):
 
         Returns:
             :obj:`dict`: a new dict containing the entries in `d` whose keys are in `filter_keys`.
-        '''
+        """
         return {k: v for (k, v) in d.items() if k in filter_keys}
 
     @staticmethod
     def filtered_iteritems(d, filter_keys):
-        '''A generator that filters a dict's items to keys in `filter_keys`.
+        """A generator that filters a dict's items to keys in `filter_keys`.
 
         Args:
             d (:obj:`dict`): dictionary to filter.
@@ -123,8 +124,30 @@ class DictUtil(object):
 
         Yields:
             :obj:`tuple`: (key, value) tuples from `d` whose keys are in `filter_keys`.
-        '''
+        """
         for key, val in d.items():
             if key not in filter_keys:
                 continue
             yield key, val
+
+    @staticmethod
+    def set_value(d, target_key, new_value, match_type=True):
+        """ Set values of target keys in a nested dictionary
+
+        Consider every `key`-`value` pair in nested dictionary `d`. If `value` is not a `dict`,
+        and `key` is equal to `target_key` then replace `value` with `new_value`. However, if
+        `match_type` is set, only replace `value` if it is an instance of `new_value`'s type.
+        Caution: `set_value()` will loop infinitely on self-referential dicts.
+
+        Args:
+            d (:obj:`dict`): dictionary to modify
+            target_key (:obj:`obj`): key to match
+            new_value (:obj:`obj`): replacement value
+            match_type (:obj:`bool`, optional): if set, only replace values that are instances
+                of the type of `new_value`
+        """
+        for key,val in d.items():
+            if isinstance(val, dict):
+                DictUtil.set_value(val, target_key, new_value, match_type=match_type)
+            elif key == target_key and (not match_type or isinstance(val, type(new_value))):
+                d[target_key] = new_value

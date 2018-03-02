@@ -101,7 +101,9 @@ class ConfigManager(object):
         # read configuration from environment variables
         for key, val in os.environ.items():
             if key.startswith('CONFIG__DOT__'):
-                DictUtil.nested_set(config, key[13:].replace('__DOT__', '.'), val)
+                nested_keys = key[13:].split('__DOT__')
+                if nested_keys[0] in config:
+                    DictUtil.nested_set(config, nested_keys, val)
 
         # merge extra configuration
         if extra is None:

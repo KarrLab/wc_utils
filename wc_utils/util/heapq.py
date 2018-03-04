@@ -324,7 +324,7 @@ def _siftup_max(heap, pos):   # pragma: no cover
     heap[pos] = newitem
     _siftdown_max(heap, startpos, pos)
 
-def merge(*iterables, key=None, reverse=False):   # pragma: no cover
+def merge(key=None, reverse=False, *iterables):   # pragma: no cover
     '''Merge multiple sorted inputs into a single sorted output.
 
     Similar to sorted(itertools.chain(*iterables)) but returns a generator,

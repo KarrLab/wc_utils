@@ -13,6 +13,7 @@ from wc_utils.util.dict import DictUtil
 from copy import deepcopy
 import math
 import os
+import pkg_resources
 import six
 import string
 import sys
@@ -100,7 +101,9 @@ class ConfigManager(object):
         # read configuration from environment variables
         for key, val in os.environ.items():
             if key.startswith('CONFIG__DOT__'):
-                DictUtil.nested_set(config, key[13:].replace('__DOT__', '.'), val)
+                nested_keys = key[13:].split('__DOT__')
+                if nested_keys[0] in config:
+                    DictUtil.nested_set(config, nested_keys, val)
 
         # merge extra configuration
         if extra is None:
@@ -293,3 +296,24 @@ class ExtraValuesError(Exception):
             :obj:`str`: string representation of error
         """
         return self.msg
+
+
+def get_config(extra=None):
+    """ Get configuration
+
+    Args:
+        extra (:obj:`dict`, optional): additional configuration to override
+
+    Returns:
+        :obj:`configobj.ConfigObj`: nested dictionary with the configuration settings loaded from the configuration source(s).
+    """
+    paths = ConfigPaths(
+        default=pkg_resources.resource_filename('wc_utils', 'config/core.default.cfg'),
+        schema=pkg_resources.resource_filename('wc_utils', 'config/core.schema.cfg'),
+        user=(
+            'wc_utils.cfg',
+            os.path.expanduser('~/.wc/wc_utils.cfg'),
+        ),
+    )
+
+    return ConfigManager(paths).get_config(extra=extra)

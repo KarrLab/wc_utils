@@ -111,7 +111,7 @@ class TestBackupManager(unittest.TestCase):
         a_backup_down.local_filename = os.path.join(self.tempdir_down, 'down.tar.gz')
         a_backup_down.remote_filename = a_backup_up.remote_filename
 
-        anon_manager = backup.BackupManager(username='anonymous', password='', remote_dirname='.')
+        anon_manager = backup.BackupManager(username='anonymous', password='', remote_dirname='/')
         anon_manager.download(a_backup_down)
         self.assertTrue(os.path.isfile(a_backup_down.local_filename))
 

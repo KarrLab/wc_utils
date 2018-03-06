@@ -1,5 +1,5 @@
 [//]: # ( [![PyPI package](https://img.shields.io/pypi/v/wc_utils.svg)](https://pypi.python.org/pypi/wc_utils) )
-[![Documentation](https://readthedocs.org/projects/wc_utils/badge/?version=latest)](http://wc_utils.readthedocs.org)
+[![Documentation](https://img.shields.io/badge/docs-latest-green.svg)](http://docs.karrlab.org/wc_utils)
 [![Test results](https://circleci.com/gh/KarrLab/wc_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/wc_utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/wc_utils/badge.svg)](https://coveralls.io/github/KarrLab/wc_utils)
 [![Code analysis](https://api.codeclimate.com/v1/badges/8139298cdbc1e32dcde4/maintainability)](https://codeclimate.com/github/KarrLab/wc_utils)
@@ -18,7 +18,7 @@ pip install git+git://github.com/KarrLab/wc_utils#egg=wc_utils
 ## Example usage
 
 ## Documentation
-Please see the [API documentation](http://wc_utils.readthedocs.io).
+Please see the [API documentation](http://docs.karrlab.org/wc_utils).
 
 ## License
 The build utilities are released under the [MIT license](LICENSE).

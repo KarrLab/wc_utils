@@ -97,6 +97,23 @@ class TestBackupManager(unittest.TestCase):
 
         manager.download(a_backup_down)
         self.assertTrue(os.path.isfile(a_backup_down.local_filename))
+        
+        os.remove(a_backup_down.local_filename)
+        self.assertFalse(os.path.isfile(a_backup_down.local_filename))
+
+        # anonymous download
+        paths_down = [
+            backup.BackupPath(os.path.join(self.tempdir_down, '1_c.txt'), '1_b.txt'),
+            backup.BackupPath(os.path.join(self.tempdir_down, '2_c.txt'), '2_b.txt'),
+            backup.BackupPath(os.path.join(self.tempdir_down, 'dir_c'), 'dir_b'),
+        ]
+        a_backup_down = backup.Backup(paths=paths_down)
+        a_backup_down.local_filename = os.path.join(self.tempdir_down, 'down.tar.gz')
+        a_backup_down.remote_filename = a_backup_up.remote_filename
+
+        anon_manager = backup.BackupManager(username='anonymous', password='', remote_dirname='.')
+        anon_manager.download(a_backup_down)
+        self.assertTrue(os.path.isfile(a_backup_down.local_filename))
 
         # extract
         manager.extract(a_backup_down)

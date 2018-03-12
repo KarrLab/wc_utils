@@ -14,6 +14,7 @@ from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
 from wc_utils.workbook.core import Workbook, Worksheet, Row
+import openpyxl
 import unittest
 
 
@@ -92,6 +93,87 @@ class TestIo(unittest.TestCase):
         self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
+
+    def test_excel_read_valid_types(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.value = 'A1'
+
+        cell = ws.cell(row=2, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NUMERIC
+        cell.value = 2.5
+
+        cell = ws.cell(row=3, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
+        cell.value = True
+
+        cell = ws.cell(row=4, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
+        cell.value = False
+
+        cell = ws.cell(row=5, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.value = None
+
+        cell = ws.cell(row=6, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_INLINE
+        cell.value = '<b>A6</b>'
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        wb2 = io.ExcelReader(filename).run()
+        self.assertEqual(wb2['Sheet-1'][0][0], 'A1')
+        self.assertEqual(wb2['Sheet-1'][1][0], 2.5)
+        self.assertEqual(wb2['Sheet-1'][2][0], True)
+        self.assertEqual(wb2['Sheet-1'][3][0], False)
+        self.assertEqual(wb2['Sheet-1'][4][0], None)
+        self.assertEqual(wb2['Sheet-1'][5][0], '<b>A6</b>')
+
+    def test_excel_read_formula(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.value = '=1+2'
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        with self.assertRaisesRegexp(ValueError, 'Formula are not supported'):
+            io.ExcelReader(filename).run()
+
+    def test_excel_read_formula_cache_string(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA_CACHE_STRING
+        cell.value = '=1+2'
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        with self.assertRaisesRegexp(ValueError, 'Formula are not supported'):
+            io.ExcelReader(filename).run()
+
+    def test_excel_read_error(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_ERROR
+        cell.value = '#NAME?'
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        with self.assertRaisesRegexp(ValueError, 'Errors are not supported'):
+            io.ExcelReader(filename).run()
 
     def test_exceptions_csv(self):
         for method in [io.SeparatedValuesWriter, io.SeparatedValuesReader]:

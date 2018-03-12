@@ -13,7 +13,7 @@ from glob import glob
 from itertools import chain
 from math import isnan
 from openpyxl import Workbook as XlsWorkbook, load_workbook
-from openpyxl.cell.cell import Cell as CellType
+from openpyxl.cell.cell import Cell
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
 from openpyxl.utils import get_column_letter
@@ -228,14 +228,14 @@ class ExcelWriter(Writer):
                 if value is None:
                     pass
                 elif isinstance(value, string_types):
-                    data_type = CellType.TYPE_STRING
+                    data_type = Cell.TYPE_STRING
                 elif isinstance(value, bool):
-                    data_type = CellType.TYPE_BOOL
+                    data_type = Cell.TYPE_BOOL
                 elif isinstance(value, integer_types):
                     value = float(value)
-                    data_type = CellType.TYPE_NUMERIC
+                    data_type = Cell.TYPE_NUMERIC
                 elif isinstance(value, float):
-                    data_type = CellType.TYPE_NUMERIC
+                    data_type = Cell.TYPE_NUMERIC
                 else:
                     raise ValueError('Unsupported type {}'.format(value.__class__.__name__))
 
@@ -322,8 +322,18 @@ class ExcelReader(Reader):
             row = Row()
             worksheet.append(row)
             for i_col in range(1, max_col + 1):
-                cell = xls_worksheet.cell(row=i_row, column=i_col).value
-                row.append(cell)
+                cell = xls_worksheet.cell(row=i_row, column=i_col)
+
+                if cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
+                    raise ValueError('Formula are not supported: {}{}'.format(get_column_letter(i_col), i_row))
+                elif cell.data_type in (Cell.TYPE_ERROR):
+                    raise ValueError('Errors are not supported: {}{}'.format(get_column_letter(i_col), i_row))
+                elif cell.data_type not in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC,
+                                            Cell.TYPE_BOOL, Cell.TYPE_NULL):
+                    raise ValueError('Unsupported data type: {} at {}{}'.format(
+                        cell.data_type, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
+
+                row.append(cell.value)
 
         return worksheet
 

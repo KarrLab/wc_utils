@@ -13,7 +13,9 @@ import mock
 import os
 import sys
 import tempfile
+import types
 import unittest
+import wc_utils
 
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import ConfigManager, ConfigPaths, any_checker, ExtraValuesError, InvalidConfigError
@@ -245,3 +247,9 @@ class TestConfig(unittest.TestCase):
         # string
         self.assertIsInstance(validator.check('any', 'string'), str)
         self.assertEqual(validator.check('any', 'string'), 'string')
+
+
+class ApiTestCase(unittest.TestCase):
+    def test(self):
+        self.assertIsInstance(wc_utils.config, types.ModuleType)
+        self.assertIsInstance(wc_utils.config.ConfigPaths, type)

@@ -12,7 +12,9 @@ import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
+import wc_utils
 import yaml
 from capturer import CaptureOutput
 from log.handlers import FileHandler, StreamHandler
@@ -405,3 +407,9 @@ class TestLoggerConfigurator(unittest.TestCase):
         }
         with self.assertRaisesRegexp(ConfigurationError, '^At least one handler must be defined.$'):
             LoggerConfigurator.from_dict(config)
+
+
+class ApiTestCase(unittest.TestCase):
+    def test(self):
+        self.assertIsInstance(wc_utils.debug_logs, types.ModuleType)
+        self.assertIsInstance(wc_utils.debug_logs.DebugLogsManager, type)

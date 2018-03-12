@@ -107,20 +107,24 @@ class TestIo(unittest.TestCase):
         cell.value = 2.5
 
         cell = ws.cell(row=3, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
-        cell.value = True
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NUMERIC
+        cell.value = None
 
         cell = ws.cell(row=4, column=1)
         cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
-        cell.value = False
+        cell.value = True
 
         cell = ws.cell(row=5, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
+        cell.value = False
+
+        cell = ws.cell(row=6, column=1)
         cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
         cell.value = None
 
-        cell = ws.cell(row=6, column=1)
+        cell = ws.cell(row=7, column=1)
         cell.data_type = openpyxl.cell.cell.Cell.TYPE_INLINE
-        cell.value = '<b>A6</b>'
+        cell.value = '<b>A7</b>'
 
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
@@ -128,10 +132,11 @@ class TestIo(unittest.TestCase):
         wb2 = io.ExcelReader(filename).run()
         self.assertEqual(wb2['Sheet-1'][0][0], 'A1')
         self.assertEqual(wb2['Sheet-1'][1][0], 2.5)
-        self.assertEqual(wb2['Sheet-1'][2][0], True)
-        self.assertEqual(wb2['Sheet-1'][3][0], False)
-        self.assertEqual(wb2['Sheet-1'][4][0], None)
-        self.assertEqual(wb2['Sheet-1'][5][0], '<b>A6</b>')
+        self.assertEqual(wb2['Sheet-1'][2][0], None)
+        self.assertEqual(wb2['Sheet-1'][3][0], True)
+        self.assertEqual(wb2['Sheet-1'][4][0], False)
+        self.assertEqual(wb2['Sheet-1'][5][0], None)
+        self.assertEqual(wb2['Sheet-1'][6][0], '<b>A7</b>')
 
     def test_excel_read_formula(self):
         wb = openpyxl.Workbook()

@@ -136,11 +136,13 @@ class Reader(with_metaclass(ABCMeta, object)):
         pass  # pragma: no cover
 
     @abstractmethod
-    def read_worksheet(self, sheet_name):
+    def read_worksheet(self, sheet_name, ignore_empty_final_rows=True, ignore_empty_final_cols=True):
         """ Read data from file
 
         Args:
             sheet_name (:obj:`str`): sheet name
+            ignore_empty_final_rows (:obj:`bool`, optional): if :obj:`True`, ignore empty final rows
+            ignore_empty_final_cols (:obj:`bool`, optional): if :obj:`True`, ignore empty final columns
 
         Returns:
             :obj:`Worksheet`: data
@@ -303,11 +305,13 @@ class ExcelReader(Reader):
         """
         return self.xls_workbook.sheetnames
 
-    def read_worksheet(self, sheet_name):
+    def read_worksheet(self, sheet_name, ignore_empty_final_rows=True, ignore_empty_final_cols=True):
         """ Read data from Excel worksheet
 
         Args:
             sheet_name (:obj:`str`): sheet name
+            ignore_empty_final_rows (:obj:`bool`, optional): if :obj:`True`, ignore empty final rows
+            ignore_empty_final_cols (:obj:`bool`, optional): if :obj:`True`, ignore empty final columns
 
         Returns:
             :obj:`Worksheet`: data
@@ -334,6 +338,12 @@ class ExcelReader(Reader):
                         cell.data_type, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
 
                 row.append(cell.value)
+
+        if ignore_empty_final_rows:
+            worksheet.remove_empty_final_rows()
+
+        if ignore_empty_final_cols:
+            worksheet.remove_empty_final_cols()
 
         return worksheet
 
@@ -444,11 +454,13 @@ class SeparatedValuesReader(Reader):
             raise ValueError("glob of path '{}' does not match any files".format(self.path))
         return names
 
-    def read_worksheet(self, sheet_name):
+    def read_worksheet(self, sheet_name, ignore_empty_final_rows=True, ignore_empty_final_cols=True):
         """ Read data from file
 
         Args:
             sheet_name (:obj:`str`): sheet name
+            ignore_empty_final_rows (:obj:`bool`, optional): if :obj:`True`, ignore empty final rows
+            ignore_empty_final_cols (:obj:`bool`, optional): if :obj:`True`, ignore empty final columns
 
         Returns:
             :obj:`Worksheet`: data
@@ -471,6 +483,12 @@ class SeparatedValuesReader(Reader):
                     sv_cell = False
 
                 row.append(sv_cell)
+
+        if ignore_empty_final_rows:
+            worksheet.remove_empty_final_rows()
+
+        if ignore_empty_final_cols:
+            worksheet.remove_empty_final_cols()
 
         return worksheet
 

@@ -142,6 +142,28 @@ class Worksheet(list):
 
         return diff
 
+    def remove_empty_final_rows(self):
+        """ Remove empty final rows """
+        for row in reversed(self):
+            is_empty = next((False for cell in row if cell not in (None, '')), True)
+            if is_empty:
+                self.pop()
+            else:
+                break
+
+    def remove_empty_final_cols(self):
+        """ Remove empty final columns """
+        max_col = 0
+        for row in self:
+            max_col = max(max_col, next((len(row) - i_row for i_row, cell in enumerate(reversed(row))
+                                         if cell not in (None, '')), 0))
+            if max_col == len(row):
+                break
+
+        if len(self) > 0 and max_col < len(self[0]):
+            for i_row, row in enumerate(self):
+                self[i_row] = row[0:max_col]
+
 
 class Row(list):
     """ Represents a row in a table of data """

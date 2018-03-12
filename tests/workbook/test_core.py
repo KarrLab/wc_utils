@@ -79,7 +79,7 @@ class TestCore(unittest.TestCase):
         wk = deepcopy(self.wk)
         wk['Ws-1'][1] = ['a1', 1, 2.]
         self.assertEqual(self.wk == wk, False)
-        self.assertEqual(wk == self.wk, False)        
+        self.assertEqual(wk == self.wk, False)
 
     def test_ne(self):
         wk = deepcopy(self.wk)
@@ -161,3 +161,49 @@ class TestCore(unittest.TestCase):
         wk['Ws-1'][1] = ['a1', 1, 2.]
         with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Row`'):
             self.wk.difference(wk)
+
+    def test_remove_empty_final_rows(self):
+        ws = Worksheet()
+        ws.append(Row(['a', 'b']))
+        ws.append(Row([None, None]))
+        ws.append(Row(['c', 'd']))
+        ws.append(Row([None, None]))
+        ws.append(Row([None, None]))
+
+        self.assertEqual(len(ws), 5)
+
+        ws.remove_empty_final_rows()
+
+        self.assertEqual(len(ws), 3)
+        self.assertEqual(list(ws[0]), ['a', 'b'])
+        self.assertEqual(list(ws[1]), [None, None])
+        self.assertEqual(list(ws[2]), ['c', 'd'])
+
+    def test_remove_empty_final_cols(self):
+        ws = Worksheet()
+        ws.append(Row(['a', None, 'c', None, None]))
+        ws.append(Row(['b', None, 'd', None, None]))
+
+        self.assertEqual(len(ws), 2)
+        self.assertEqual(len(ws[0]), 5)
+        self.assertEqual(len(ws[1]), 5)
+
+        ws.remove_empty_final_cols()
+
+        self.assertEqual(len(ws), 2)
+        self.assertEqual(ws[0], ['a', None, 'c'])
+        self.assertEqual(ws[1], ['b', None, 'd'])
+
+    def test_remove_empty_final_rows_and_cols(self):
+        ws = Worksheet()
+        ws.append(Row(['a', None, 'c', None, None]))
+        ws.append(Row(['b', None, 'd', None, None]))
+        ws.append(Row([None, None, None, None, None]))
+        ws.append(Row([None, None, None, None, None]))
+
+        ws.remove_empty_final_rows()
+        ws.remove_empty_final_cols()
+
+        self.assertEqual(len(ws), 2)
+        self.assertEqual(ws[0], ['a', None, 'c'])
+        self.assertEqual(ws[1], ['b', None, 'd'])

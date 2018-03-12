@@ -175,6 +175,55 @@ class TestIo(unittest.TestCase):
         with self.assertRaisesRegexp(ValueError, 'Errors are not supported'):
             io.ExcelReader(filename).run()
 
+    def test_excel_ignore_empty_final_rows_and_cols(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.value = 'A1'
+
+        cell = ws.cell(row=1, column=2)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.value = 'A2'
+
+        cell = ws.cell(row=1, column=3)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.value = None
+
+        cell = ws.cell(row=2, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.value = 'B1'
+
+        cell = ws.cell(row=2, column=2)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.value = 'B2'
+
+        cell = ws.cell(row=2, column=3)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.value = None
+
+        cell = ws.cell(row=3, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.value = None
+
+        cell = ws.cell(row=3, column=2)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.value = None
+
+        cell = ws.cell(row=3, column=3)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.value = None
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        wb = io.ExcelReader(filename).run()
+
+        self.assertEqual(len(wb['Sheet-1']), 2)
+        self.assertEqual(list(wb['Sheet-1'][0]), ['A1', 'A2'])
+        self.assertEqual(list(wb['Sheet-1'][1]), ['B1', 'B2'])
+
     def test_exceptions_csv(self):
         for method in [io.SeparatedValuesWriter, io.SeparatedValuesReader]:
             filename = path.join(self.tempdir, 'test.foo')

@@ -14,4 +14,5 @@ Contents
    installation.rst
    API documentation <source/modules.rst>
    about.rst
-   references.rst
+   .. Remove once references are added
+      references.rst

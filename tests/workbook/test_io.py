@@ -14,6 +14,7 @@ from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
 from wc_utils.workbook.core import Workbook, Worksheet, Row
+import math
 import openpyxl
 import unittest
 
@@ -137,6 +138,72 @@ class TestIo(unittest.TestCase):
         self.assertEqual(wb2['Sheet-1'][4][0], False)
         self.assertEqual(wb2['Sheet-1'][5][0], None)
         self.assertEqual(wb2['Sheet-1'][6][0], '<b>A7</b>')
+
+    def test_excel_read_valid_types_empty(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_STRING)
+
+        cell = ws.cell(row=1, column=2)
+        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_STRING)
+
+        cell = ws.cell(row=2, column=1)
+        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_INLINE)
+
+        cell = ws.cell(row=2, column=2)
+        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_INLINE)
+
+        cell = ws.cell(row=3, column=1)
+        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_NUMERIC)
+
+        cell = ws.cell(row=3, column=2)
+        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_NUMERIC)
+
+        cell = ws.cell(row=4, column=1)
+        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_BOOL)
+
+        cell = ws.cell(row=4, column=2)
+        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_BOOL)
+
+        cell = ws.cell(row=5, column=1)
+        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_NULL)
+
+        cell = ws.cell(row=5, column=2)
+        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_NULL)
+
+        cell = ws.cell(row=6, column=2)
+        cell.set_explicit_value('end', openpyxl.cell.cell.Cell.TYPE_STRING)  # to force max row and column
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        wb2 = openpyxl.load_workbook(filename)
+        self.assertEqual(wb2['Sheet-1'].cell(row=1, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=1, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=2, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=2, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=3, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=3, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=4, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=4, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=5, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=5, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+
+        wb2 = io.ExcelReader(filename).run()
+        self.assertEqual(wb2['Sheet-1'][0][0], None)
+        self.assertEqual(wb2['Sheet-1'][0][1], None)
+        self.assertEqual(wb2['Sheet-1'][1][0], None)
+        self.assertEqual(wb2['Sheet-1'][1][1], None)
+
+        self.assertEqual(wb2['Sheet-1'][2][0], None)
+        self.assertEqual(wb2['Sheet-1'][2][1], None)
+        self.assertEqual(wb2['Sheet-1'][3][0], None)
+        self.assertEqual(wb2['Sheet-1'][3][1], None)
+
+        self.assertEqual(wb2['Sheet-1'][4][0], None)
+        self.assertEqual(wb2['Sheet-1'][4][1], None)
 
     def test_excel_read_formula(self):
         wb = openpyxl.Workbook()

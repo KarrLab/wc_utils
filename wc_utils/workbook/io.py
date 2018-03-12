@@ -315,6 +315,9 @@ class ExcelReader(Reader):
 
         Returns:
             :obj:`Worksheet`: data
+
+        Raises:
+            :obj:`ValueError`: 
         """
         xls_worksheet = self.xls_workbook[sheet_name]
         worksheet = Worksheet()
@@ -328,12 +331,13 @@ class ExcelReader(Reader):
             for i_col in range(1, max_col + 1):
                 cell = xls_worksheet.cell(row=i_row, column=i_col)
 
-                if cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
-                    raise ValueError('Formula are not supported: {}{}'.format(get_column_letter(i_col), i_row))
-                elif cell.data_type in (Cell.TYPE_ERROR):
+                if cell.data_type in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC, Cell.TYPE_NULL, Cell.TYPE_BOOL):
+                    pass
+                elif cell.data_type == Cell.TYPE_ERROR:
                     raise ValueError('Errors are not supported: {}{}'.format(get_column_letter(i_col), i_row))
-                elif cell.data_type not in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC,
-                                            Cell.TYPE_BOOL, Cell.TYPE_NULL):
+                elif cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
+                    raise ValueError('Formula are not supported: {}{}'.format(get_column_letter(i_col), i_row))
+                else:
                     raise ValueError('Unsupported data type: {} at {}{}'.format(
                         cell.data_type, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
 

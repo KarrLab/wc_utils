@@ -51,12 +51,24 @@ class TestChem(unittest.TestCase):
         self.assertEqual(f.C, 0)
         self.assertEqual(f['C'], 0)
 
-    def test_EmpiricalFormula__normalize(self):
+    def test_EmpiricalFormula___setitem__(self):
         f = chem.EmpiricalFormula()
         f.C = 0
-        self.assertEqual(f, {'C': 0})
-        f._normalize()
         self.assertEqual(f, {})
+        self.assertEqual(dict(f), {})
+        self.assertEqual(str(f), '')
+
+        f = chem.EmpiricalFormula()
+        f.A = 1
+        self.assertEqual(f, {'A': 1})
+        f.A = 0
+        self.assertEqual(f, {})
+        self.assertEqual(dict(f), {})
+        self.assertEqual(str(f), '')
+
+        f = chem.EmpiricalFormula()
+        with self.assertRaisesRegexp(ValueError, 'Coefficient must be an integer'):
+            f.A = -1.5
 
     def test_EmpiricalFormula_get_molecular_weight(self):
         f = chem.EmpiricalFormula('H2O')

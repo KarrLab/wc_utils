@@ -34,11 +34,22 @@ class EmpiricalFormula(attrdict.AttrDefault):
             for element, coefficient in re.findall('([A-Z][a-z]?)(\-?[0-9]*)', value):
                 self[element] += int(coefficient or '1')
 
-    def _normalize(self):
-        """ Normalize the empirical formula by removing all elements with zero coefficients """
-        for element, coefficient in list(self.items()):
-            if coefficient == 0:
-                self.pop(element)
+    def __setitem__(self, element, coefficient):
+        """ Set the count of an element
+        
+        Args:
+            element (:obj:`str`): element symbol
+            coefficient (:obj:`int`): element coefficient
+        
+        Raises:
+            :obj:`ValueError`: if the coefficient is not an integer
+        """
+        if int(coefficient) != coefficient:
+            raise ValueError('Coefficient must be an integer')
+
+        super(EmpiricalFormula, self).__setitem__(element, coefficient)
+        if coefficient == 0:
+            self.pop(element)
 
     def get_molecular_weight(self):
         """ Get the molecular weight

@@ -334,12 +334,12 @@ class ExcelReader(Reader):
                 if cell.data_type in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC, Cell.TYPE_NULL, Cell.TYPE_BOOL):
                     pass
                 elif cell.data_type == Cell.TYPE_ERROR:
-                    raise ValueError('Errors are not supported: {}{}'.format(get_column_letter(i_col), i_row))
+                    raise ValueError('Errors are not supported: {}:{}{}'.format(sheet_name, get_column_letter(i_col), i_row))
                 elif cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
-                    raise ValueError('Formula are not supported: {}{}'.format(get_column_letter(i_col), i_row))
+                    raise ValueError('Formula are not supported: {}:{}{}'.format(sheet_name, get_column_letter(i_col), i_row))
                 else:
-                    raise ValueError('Unsupported data type: {} at {}{}'.format(
-                        cell.data_type, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
+                    raise ValueError('Unsupported data type: {} at {}:{}{}'.format(
+                        cell.data_type, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
 
                 row.append(cell.value)
 

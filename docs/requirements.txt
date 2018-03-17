@@ -1,18 +1,8 @@
-configobj
-configparser
-enum34
-ftputil
-git+https://github.com/KarrLab/log.git#egg=log-2016.10.12 # >= 2016.10.12
-numpy
-openpyxl
-pint
-pyexcel >= 0.5.0
-pyexcel_io >= 0.4.2
-pyyaml
-scipy
+mock
+pip_check_reqs
+robpol86_sphinxcontrib_googleanalytics
 six
 sphinx >= 1.7
 sphinx_rtd_theme
 sphinxcontrib_bibtex
-robpol86_sphinxcontrib_googleanalytics
 sphinxcontrib_spelling

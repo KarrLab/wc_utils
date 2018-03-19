@@ -12,7 +12,6 @@ import getpass
 import io
 import json
 import os
-import pygit2
 import requests
 import shutil
 import six

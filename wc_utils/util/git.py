@@ -6,7 +6,8 @@
 :License: MIT
 """
 
-import pygit2
+import dulwich.repo
+import six
 
 
 def get_repo_metadata(dirname='.'):
@@ -18,12 +19,15 @@ def get_repo_metadata(dirname='.'):
     Returns:
         :obj:`RepositoryMetadata`: repository meta data
     """
-    repo = pygit2.Repository(dirname)
-    origin = next(remote for remote in repo.remotes if remote.name == 'origin')
-    url = origin.url
-    branch = repo.head.shorthand
-    revision = repo.head.target
-
+    repo = dulwich.repo.Repo(dirname)
+    if six.PY2:
+        url = repo.get_config()[('remote', 'origin')]['url']
+        branch = repo.refs.follow('HEAD')[0][1].rpartition('refs/heads/')[2]
+        revision = repo.head()
+    else:
+        url = repo.get_config()[(b'remote', b'origin')][b'url'].decode()
+        branch = repo.refs.follow(b'HEAD')[0][1].rpartition(b'refs/heads/')[2].decode()
+        revision = repo.head().decode()
     return RepositoryMetadata(url, branch, revision)
 
 

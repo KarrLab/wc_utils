@@ -66,13 +66,13 @@ class BackupManager(object):
                     'ip': backup.ip,
                     'date': backup.date.isoformat(),
                 }, temp_file)
-                temp_file.close()
             tar.add(temp_filename, arcname='__metadata__.json')
-            os.remove(temp_filename)
 
             # add paths to archive
             for path in backup.paths:
                 tar.add(path.path, arcname=path.arc_path)
+
+        os.remove(temp_filename)
 
         return self
 

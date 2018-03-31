@@ -8,6 +8,7 @@
 
 import diskcache
 import functools
+import glob
 import hashlib
 import os
 import types
@@ -85,13 +86,17 @@ class Cache(diskcache.FanoutCache):
                         key += tuple(type(value) for _, value in sorted_items)
 
                 for filename_arg in filename_args:
-                    filename = args[filename_arg]
-                    key += (os.path.getmtime(filename), self._hash_file_content(filename))
+                    stats = []
+                    for filename in glob.glob(args[filename_arg]):
+                        stats.append((os.path.getmtime(filename), self._hash_file_content(filename)))
+                    key += tuple(stats)
 
                 for filename_kwarg in filename_kwargs:
                     if filename_kwarg in kwargs:
-                        filename = kwargs[filename_kwarg]
-                        key += (os.path.getmtime(filename), self._hash_file_content(filename))
+                        stats = []
+                        for filename in glob.glob(kwargs[filename_kwarg]):
+                            stats.append((os.path.getmtime(filename), self._hash_file_content(filename)))
+                        key += tuple(stats)
 
                 result = self.get(key, default=diskcache.core.ENOVAL, retry=True)
 
@@ -121,3 +126,10 @@ class Cache(diskcache.FanoutCache):
                 hasher.update(buffer)
                 buffer = file.read(self.hash_block_size)
         return hasher.hexdigest()
+
+
+cache = Cache()
+# :obj:`Cache`: cache
+
+memoize = cache.memoize
+# :obj:`types.FunctionType`: memoize method

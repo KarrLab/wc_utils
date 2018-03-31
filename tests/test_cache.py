@@ -134,6 +134,32 @@ class CacheTestCase(unittest.TestCase):
             self.assertEqual(func(fn_1, input_2=fn_2), 8)
             self.assertEqual(captured.stdout.get_text(), '')
 
+    def test_memoize_filename_argument_glob(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        call_count = 0
+
+        @cache.memoize(filename_args=[0], filename_kwargs=['input_2'])
+        def func(input_1, input_2=''):
+            print('func ran')
+            with open(input_2, 'r') as file:
+                return 2 * float(file.read())
+
+        fn_1 = os.path.join(self.dir, 'test_1')
+        fn_2 = os.path.join(self.dir, 'test_2')
+        with open(fn_1, 'w') as file:
+            file.write('1')
+        with open(fn_2, 'w') as file:
+            file.write('2')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(os.path.join(self.dir, 'test_*'), input_2=fn_2), 4)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(os.path.join(self.dir, 'test_*'), input_2=fn_2), 4)
+            self.assertEqual(captured.stdout.get_text(), '')
+
     def test_memoize_typed(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
 

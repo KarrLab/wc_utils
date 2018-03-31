@@ -1,5 +1,6 @@
 attrdict
 configobj
+diskcache
 enum34
 ftputil
 gitpython

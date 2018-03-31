@@ -67,11 +67,12 @@ class BackupManager(object):
                     'date': backup.date.isoformat(),
                 }, temp_file)
             tar.add(temp_filename, arcname='__metadata__.json')
-            os.remove(temp_filename)
 
             # add paths to archive
             for path in backup.paths:
                 tar.add(path.path, arcname=path.arc_path)
+
+        os.remove(temp_filename)
 
         return self
 
@@ -109,7 +110,7 @@ class BackupManager(object):
         return self
 
     def upload(self, backup):
-        """ Upload a backup to a server 
+        """ Upload a backup to a server
 
         Args:
             backup (:obj:`Backup`): backup to upload
@@ -156,7 +157,7 @@ class BackupManager(object):
         return self
 
     def cleanup(self, backup):
-        """ Remove the archive 
+        """ Remove the archive
 
         Args:
             backup (:obj:`Backup`): backup to clean up
@@ -178,7 +179,7 @@ class Backup(object):
         paths (obj:`list` of :obj:`BackupPath`): list of paths in the backup
         package (:obj:`str`): package which created this backup
         package_version (:obj:`str`): version of the package which created this backup
-        username (:obj:`str`): name of the user who created this backup        
+        username (:obj:`str`): name of the user who created this backup
         ip (:obj:`str`): IP address of the computer which created this backup
         date (:obj:`str`): date when this backup was created
     """
@@ -186,13 +187,13 @@ class Backup(object):
     def __init__(self, local_filename='', remote_filename='', paths=None,
                  package=None, package_version=None, username=None, date=None, ip=None):
         """
-        Args:            
+        Args:
             local_filename (:obj:`str`, optional): path to store the backup
             remote_filename (:obj:`str`, optional): remote name of backup
             paths (obj:`list` of :obj:`BackupPath`, optional): list of paths in the backup
             package (:obj:`str`, optional): package which created this backup
             package_version (:obj:`str`, optional): version of the package which created this backup
-            username (:obj:`str`, optional): name of the user who created this backup            
+            username (:obj:`str`, optional): name of the user who created this backup
             ip (:obj:`str`, optional): IP address of the computer which created this backup
             date (:obj:`str`, optional): date when this backup was created
         """
@@ -232,7 +233,7 @@ class Backup(object):
 
 
 class BackupPath(object):
-    """ A path in a backup 
+    """ A path in a backup
 
     Attributes:
         path (:obj:`str`): local path

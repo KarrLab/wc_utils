@@ -3,7 +3,6 @@ downstream_dependencies:
   - intro_to_wc_modeling
   - karr_lab_build_utils
   - kinetic_datanator
-  - misc_temp_code
   - mycoplasma_pneumoniae
   - obj_model
   - wc_kb

@@ -239,7 +239,8 @@ class ExcelWriter(Writer):
                 elif isinstance(value, float):
                     data_type = Cell.TYPE_NUMERIC
                 else:
-                    raise ValueError('Unsupported type {}'.format(value.__class__.__name__))
+                    raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(value.__class__.__name__,
+                        self.path, sheet_name, get_column_letter(i_col), i_row))
 
                 if value is not None:
                     xls_cell.set_explicit_value(value=value, data_type=data_type)
@@ -334,12 +335,12 @@ class ExcelReader(Reader):
                 if cell.data_type in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC, Cell.TYPE_NULL, Cell.TYPE_BOOL):
                     pass
                 elif cell.data_type == Cell.TYPE_ERROR:
-                    raise ValueError('Errors are not supported: {}:{}{}'.format(sheet_name, get_column_letter(i_col), i_row))
+                    raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name, get_column_letter(i_col), i_row))
                 elif cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
-                    raise ValueError('Formula are not supported: {}:{}{}'.format(sheet_name, get_column_letter(i_col), i_row))
+                    raise ValueError('Formula are not supported: {}:{}:{}{}'.format(self.path, sheet_name, get_column_letter(i_col), i_row))
                 else:
-                    raise ValueError('Unsupported data type: {} at {}:{}{}'.format(
-                        cell.data_type, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
+                    raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(
+                        cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
 
                 row.append(cell.value)
 

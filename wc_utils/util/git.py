@@ -10,16 +10,18 @@ import importlib
 git = importlib.import_module('git', package='gitpython')
 
 
-def get_repo_metadata(dirname='.'):
+def get_repo_metadata(dirname='.', search_parent_directories=True):
     """ Get meta data about a repository
 
     Args:
         dirname (:obj:`str`): path to Git repository
+        search_parent_directories (:obj:`bool`, optional): if :obj:`True`, search for the root 
+            of the repository among the parent directories of :obj:`dirname`
 
     Returns:
         :obj:`RepositoryMetadata`: repository meta data
     """
-    repo = git.Repo(dirname)
+    repo = git.Repo(dirname, search_parent_directories=search_parent_directories)
     url = str(repo.remote('origin').url)
     branch = str(repo.active_branch.name)
     revision = str(repo.head.commit.hexsha)

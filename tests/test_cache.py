@@ -7,6 +7,7 @@
 """
 
 import capturer
+import collections
 import os
 import shutil
 import tempfile
@@ -228,3 +229,163 @@ class CacheTestCase(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             cache.memoize(name=func_3)
+
+    def test_memoize_tuple(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        call_count = 0
+
+        @cache.memoize()
+        def func(input):
+            print('func ran')
+            return input[0] + input[1]
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func((1, 2)), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func((1, 2)), 3)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+    def test_memoize_list(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        call_count = 0
+
+        @cache.memoize()
+        def func(input):
+            print('func ran')
+            return input[0] + input[1]
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func([1, 2]), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func([1, 2]), 3)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func((1, 2)), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+    def test_memoize_dict(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        call_count = 0
+
+        @cache.memoize()
+        def func(input):
+            print('func ran')
+            return input['0'] + input['1']
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func({'0': 1, '1': 2}), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func({'0': 1, '1': 2}), 3)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func({'0': 3, '1': 4}), 7)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func({'0': 3, '1': 4}), 7)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+    def test_memoize_ordereddict(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        call_count = 0
+
+        @cache.memoize()
+        def func(input):
+            print('func ran')
+            return input['0'] + input['1']
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            odict = collections.OrderedDict()
+            odict['0'] = 1
+            odict['1'] = 2
+            self.assertEqual(func(odict), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            odict2 = collections.OrderedDict()
+            odict2['0'] = 1
+            odict2['1'] = 2
+            self.assertEqual(func(odict2), 3)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            odict = collections.OrderedDict()            
+            odict['1'] = 2
+            odict['0'] = 1
+            self.assertEqual(func(odict), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            odict2 = collections.OrderedDict()            
+            odict2['1'] = 2
+            odict2['0'] = 1
+            self.assertEqual(func(odict2), 3)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            odict = collections.OrderedDict()
+            odict['0'] = 3
+            odict['1'] = 4
+            self.assertEqual(func(odict), 7)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            odict2 = collections.OrderedDict()
+            odict2['0'] = 3
+            odict2['1'] = 4
+            self.assertEqual(func(odict2), 7)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+    def test_memoize_nested_data_struct(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        call_count = 0
+
+        @cache.memoize()
+        def func(input):
+            print('func ran')
+            return input[0]['a'][0]['i'] + input[1]['b'][1]['ii']
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            data_struct = [
+                {'a': [{'i': 1}]},
+                {'b': [{}, {'ii': 2}]},
+            ]
+            self.assertEqual(func(data_struct), 3)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            data_struct2 = [
+                {'a': [{'i': 1}]},
+                {'b': [{}, {'ii': 2}]},
+            ]
+            self.assertEqual(func(data_struct2), 3)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            data_struct3 = [
+                {'a': [{'i': 3}]},
+                {'b': [{}, {'ii': 4}]},
+            ]
+            self.assertEqual(func(data_struct3), 7)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            data_struct4 = [
+                {'a': [{'i': 3}]},
+                {'b': [{}, {'ii': 4}]},
+            ]
+            self.assertEqual(func(data_struct4), 7)
+            self.assertEqual(captured.stdout.get_text(), '')

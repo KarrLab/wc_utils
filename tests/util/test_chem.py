@@ -100,3 +100,6 @@ class TestChem(unittest.TestCase):
 
         f = chem.EmpiricalFormula('OH2')
         self.assertEqual(str(f), 'H2O')
+
+        f = chem.EmpiricalFormula('N0OH2')
+        self.assertEqual(str(f), 'H2O')

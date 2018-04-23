@@ -36,11 +36,11 @@ class EmpiricalFormula(attrdict.AttrDefault):
 
     def __setitem__(self, element, coefficient):
         """ Set the count of an element
-        
+
         Args:
             element (:obj:`str`): element symbol
             coefficient (:obj:`int`): element coefficient
-        
+
         Raises:
             :obj:`ValueError`: if the coefficient is not an integer
         """
@@ -67,7 +67,7 @@ class EmpiricalFormula(attrdict.AttrDefault):
         vals = []
         for element, coefficient in self.items():
             if coefficient == 0:
-                pass
+                pass  # pragma: no cover # unreachable due to `__setitem__`
             elif coefficient == 1:
                 vals.append(element)
             else:

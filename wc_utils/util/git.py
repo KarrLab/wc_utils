@@ -20,8 +20,14 @@ def get_repo_metadata(dirname='.', search_parent_directories=True):
 
     Returns:
         :obj:`RepositoryMetadata`: repository meta data
+
+    Raises:
+        :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository
     """
-    repo = git.Repo(dirname, search_parent_directories=search_parent_directories)
+    try:
+        repo = git.Repo(dirname, search_parent_directories=search_parent_directories)
+    except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError):
+        raise ValueError('"{}" is not a Git repository'.format(dirname))
     url = str(repo.remote('origin').url)
     branch = str(repo.active_branch.name)
     revision = str(repo.head.commit.hexsha)

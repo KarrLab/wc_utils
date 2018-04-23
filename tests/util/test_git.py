@@ -7,6 +7,8 @@
 """
 
 from wc_utils.util import git
+import shutil
+import tempfile
 import unittest
 
 
@@ -20,3 +22,9 @@ class TestGit(unittest.TestCase):
             'git@github.com:KarrLab/wc_utils.git',
         ])
         self.assertEqual(md.branch, 'master')
+
+    def test_no_repo(self):
+        tempdir = tempfile.mkdtemp()
+        with self.assertRaisesRegexp(ValueError, 'is not a Git repository'):
+            git.get_repo_metadata(dirname=tempdir)
+        shutil.rmtree(tempdir)

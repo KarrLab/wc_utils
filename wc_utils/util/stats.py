@@ -58,7 +58,7 @@ class ExponentialMovingAverage(object):
         self.value = (self.alpha * new_value) + (1. - self.alpha) * self.value
         return self.value
 
-    def get_value(self):
+    def get_ema(self):
         """ Get the curent average
 
         Returns:

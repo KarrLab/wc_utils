@@ -36,7 +36,7 @@ class TestStats(unittest.TestCase):
         self.assertEqual(exp.add_value(3), 2.25)
 
         exp = stats.ExponentialMovingAverage(1., alpha=0.5)
-        self.assertEqual(exp.get_value(), 1.)
+        self.assertEqual(exp.get_ema(), 1.)
 
         with self.assertRaisesRegexp(ValueError, '^Only one of `alpha` or `center_of_mass` should be provided$'):
             stats.ExponentialMovingAverage(1., alpha=0.5, center_of_mass=0.)

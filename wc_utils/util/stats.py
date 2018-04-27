@@ -11,7 +11,7 @@ import numpy
 
 
 class ExponentialMovingAverage(object):
-    """An exponential moving average.
+    """ An exponential moving average.
 
     Each moving average S is computed recursively from the sample values Y:
         S_1 = Y_1
@@ -23,7 +23,7 @@ class ExponentialMovingAverage(object):
     """
 
     def __init__(self, value, alpha=None, center_of_mass=None):
-        """Initialize an ExponentialMovingAverage.
+        """ Initialize an ExponentialMovingAverage.
 
         Args:
             value (:obj:`float`): initial average value
@@ -47,7 +47,7 @@ class ExponentialMovingAverage(object):
         self.value = float(value)
 
     def add_value(self, new_value):
-        """Add a sample to this :obj:`ExponentialMovingAverage`, and update the average.
+        """ Add a sample to this :obj:`ExponentialMovingAverage`, and update the average.
 
         Args:
             new_value (:obj:`float`): the next value to contribute to the exponential moving average

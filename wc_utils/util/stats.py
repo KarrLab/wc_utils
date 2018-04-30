@@ -8,6 +8,7 @@
 """
 
 import numpy
+from math import isclose
 
 
 class ExponentialMovingAverage(object):
@@ -65,6 +66,31 @@ class ExponentialMovingAverage(object):
             :obj:`float`: curent exponential moving average
         """
         return self.value
+
+    def __eq__(self, other):
+        """ Compare two exponential moving averages
+
+        Args:
+            other (:obj:`ExponentialMovingAverage`): other exponential moving average
+
+        Returns:
+            :obj:`bool`: true if exponential moving averages are equal
+        """
+        if other.__class__ is not self.__class__:
+            return False
+
+        return isclose(self.value, other.value) and isclose(self.alpha, other.alpha)
+
+    def __ne__(self, other):
+        """ Compare two exponential moving averages
+
+        Args:
+            other (:obj:`ExponentialMovingAverage`): other exponential moving average
+
+        Returns:
+            :obj:`bool`: true if exponential moving averages are unequal
+        """
+        return not self.__eq__(other)
 
 
 def weighted_mean(values, weights, ignore_nan=True):

@@ -14,7 +14,7 @@ import unittest
 
 class TestStats(unittest.TestCase):
 
-    def test_ExponentialMovingAverage(self):
+    def test_exponential_moving_average(self):
         exp = stats.ExponentialMovingAverage(1., alpha=0.)
         self.assertEqual(exp.value, 1.)
         self.assertEqual(exp.alpha, 0.)
@@ -60,6 +60,16 @@ class TestStats(unittest.TestCase):
 
         with self.assertRaisesRegexp(ValueError, '^`alpha` must satisfy 0 <= `alpha` <= 1: '):
             stats.ExponentialMovingAverage(1., center_of_mass=-2.)
+
+        # test sequences of averages that have simple analyic solutions
+        x = 2**10
+        ema = stats.ExponentialMovingAverage(x, center_of_mass=1)
+        self.assertEqual(x, ema.get_ema())
+        for i in range(10):
+            self.assertEqual(x, ema.add_value(x))
+        ema = stats.ExponentialMovingAverage(x, alpha=0.75)
+        for i in range(10):
+            self.assertEqual(x, ema.add_value(x))
 
     def test_weighted_mean(self):
         self.assertEqual(stats.weighted_mean([2, 1], [1, 1]), 1.5)

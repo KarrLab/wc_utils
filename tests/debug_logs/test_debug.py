@@ -57,6 +57,12 @@ class DefaultDebugLogsTest(unittest.TestCase):
 
         self.assertRegexpMatches(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
+        # test str(DebugLogsManager())
+        self.assertIn(filename, str(self.debug_log_manager))
+        self.assertIn('level', str(self.debug_log_manager))
+        debug_log_manager = DebugLogsManager()
+        self.assertEqual('No logs configured', str(debug_log_manager))
+
     def test_console(self):
         logger = self.debug_log_manager.get_log('wc.debug.console')
 

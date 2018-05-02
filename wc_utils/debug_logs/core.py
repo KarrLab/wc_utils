@@ -34,7 +34,7 @@ class DebugLogsManager(object):
             options (:obj:`dict`): a configuration
 
         Returns:
-            :obj:`type`: a list of logs created
+            :obj:`DebugLogsManager`: this `DebugLogsManager`
         """
 
         if 'debug_logs' in options:
@@ -73,3 +73,28 @@ class DebugLogsManager(object):
                 list(logs.keys())))
 
         return logs[name]
+
+    def __str__(self):
+        """ Return string representation of this `DebugLogsManager`'s logs
+
+        Returns:
+            :obj:`str`: the name, level, template and filename (if used) for each log
+        """
+
+        def logger_desc(log):
+            rv = []
+            for attr in ['level', 'template']:
+                rv.append("{}: {}".format(attr, getattr(log, attr)))
+            for handler in log.handlers:
+                try:
+                    filename = handler.fh.name
+                    rv.append("{}: {}".format('filename', filename))
+                except:
+                    rv.append("no filename associated with handler")
+            return '\n\t'.join(rv)
+        if self.logs is None or not len(self.logs):
+            return 'No logs configured'
+        log_descriptions = ['logs:']
+        for name,log in self.logs.items():
+            log_descriptions.append("{}:\n\t{}".format(name, logger_desc(log)))
+        return '\n'.join(log_descriptions)

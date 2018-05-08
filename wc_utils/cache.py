@@ -79,7 +79,8 @@ class Cache(diskcache.FanoutCache):
                 proc_kwargs = {}
                 for i_param, (name, param) in enumerate(func_signature.parameters.items()):
                     if param.kind is not inspect.Parameter.POSITIONAL_OR_KEYWORD:
-                        raise NotImplementedError('Memoize decorator only supports positional-or-keyword arguments')
+                        raise NotImplementedError('Memoize decorator only supports positional-or-keyword arguments. '
+                                                  'Submit issue to request support for optional arguments')
 
                     if param.default is inspect._empty:
                         if i_param < len(args):

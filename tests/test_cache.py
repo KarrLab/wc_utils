@@ -415,5 +415,5 @@ class CacheTestCase(unittest.TestCase):
         @cache.memoize()
         def func(*args, c=3, d=None):
             return a
-        with self.assertRaisesRegexp(NotImplementedError, 'only supports positional-or-keyword arguments'):
+        with self.assertRaisesRegexp(NotImplementedError, 'Submit issue to request support for optional arguments'):
             func(1, 2, e=5)

@@ -10,6 +10,7 @@ import diskcache
 import functools
 import glob
 import hashlib
+import inspect
 import os
 import types
 
@@ -56,9 +57,11 @@ class Cache(diskcache.FanoutCache):
             """ Decorator created by memoize call for callable. """
             if name is None:
                 try:
+                    # Python 3
                     reference = function.__qualname__
-                except AttributeError:
-                    reference = function.__name__
+                except AttributeError:  # pragma: no cover
+                    # Python 2
+                    reference = function.__name__  # pragma: no cover
 
                 reference = function.__module__ + reference
             else:
@@ -70,31 +73,57 @@ class Cache(diskcache.FanoutCache):
             def wrapper(*args, **kwargs):
                 "Wrapper for callable to cache arguments and return values."
 
-                key = reference + args
+                # match arguments to function signature
+                func_signature = inspect.signature(function)
+                proc_args = []
+                proc_kwargs = {}
+                for i_param, (name, param) in enumerate(func_signature.parameters.items()):
+                    if param.kind is not inspect.Parameter.POSITIONAL_OR_KEYWORD:
+                        raise NotImplementedError('Memoize decorator only supports positional-or-keyword arguments')
 
-                if kwargs:
+                    if param.default is inspect._empty:
+                        if i_param < len(args):
+                            val = args[i_param]
+                        elif param.name in kwargs:
+                            val = kwargs[param.name]
+                        else:
+                            raise TypeError("{} missing required positional argument '{}'".format(function.__name__, param.name))
+                        proc_args.append(val)
+                    else:
+                        if i_param < len(args):
+                            val = args[i_param]
+                        elif param.name in kwargs:
+                            val = kwargs[param.name]
+                        else:
+                            val = param.default
+                        proc_kwargs[param.name] = val
+
+                # generate key from arguments
+                key = reference + tuple(proc_args)
+
+                if proc_kwargs:
                     key += (diskcache.core.ENOVAL,)
-                    sorted_items = sorted(kwargs.items())
+                    sorted_items = sorted(proc_kwargs.items())
 
                     for item in sorted_items:
                         key += item
 
                 if typed:
-                    key += tuple(type(arg) for arg in args)
+                    key += tuple(type(arg) for arg in proc_args)
 
-                    if kwargs:
+                    if proc_kwargs:
                         key += tuple(type(value) for _, value in sorted_items)
 
                 for filename_arg in filename_args:
                     stats = []
-                    for filename in glob.glob(args[filename_arg]):
+                    for filename in glob.glob(proc_args[filename_arg]):
                         stats.append((os.path.getmtime(filename), self._hash_file_content(filename)))
                     key += tuple(stats)
 
                 for filename_kwarg in filename_kwargs:
-                    if filename_kwarg in kwargs:
+                    if filename_kwarg in proc_kwargs:
                         stats = []
-                        for filename in glob.glob(kwargs[filename_kwarg]):
+                        for filename in glob.glob(proc_kwargs[filename_kwarg]):
                             stats.append((os.path.getmtime(filename), self._hash_file_content(filename)))
                         key += tuple(stats)
 

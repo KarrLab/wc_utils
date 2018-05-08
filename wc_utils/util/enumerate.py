@@ -30,7 +30,7 @@ class CaseInsensitiveEnumMeta(EnumMeta):
             lower_classdict = classdict
         else:
             # For Python 2
-            lower_classdict = {key.lower(): val for key, val in dict(classdict).items()}
+            lower_classdict = {key.lower(): val for key, val in dict(classdict).items()}  # pragma: no cover # Python 2 only
         return super(CaseInsensitiveEnumMeta, metacls).__new__(metacls, cls, bases, lower_classdict)
 
     def __getattr__(cls, name):

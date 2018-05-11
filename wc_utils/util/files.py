@@ -18,14 +18,20 @@ def copytree_to_existing_destination(src, dst):
         src (:obj:`str`): path to source
         dst (:obj:`str`): path to destination
     """
-    for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if os.path.isdir(s):
-            if os.path.isdir(d):
-                shutil.copystat(s, d)
-                copytree_to_existing_destination(s, d)
+    if os.path.isdir(src):
+        if not os.path.isdir(dst):
+            os.mkdir(dst)
+            
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                if os.path.isdir(d):
+                    shutil.copystat(s, d)
+                    copytree_to_existing_destination(s, d)
+                else:
+                    shutil.copytree(s, d)
             else:
-                shutil.copytree(s, d)
-        else:
-            shutil.copy2(s, d)
+                shutil.copy2(s, d)
+    else:
+        shutil.copy2(src, dst)

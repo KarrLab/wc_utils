@@ -55,3 +55,8 @@ class FileUtilsTestCase(unittest.TestCase):
             self.assertEqual(file.read(), '4')
         with open(os.path.join(base, 'C', 'b', 'e'), 'r') as file:
             self.assertEqual(file.read(), '5')
+
+        #src and dest are files
+        files.copytree_to_existing_destination(os.path.join(base, 'a', 'b', 'c'), os.path.join(base, 'D'))
+        with open(os.path.join(base, 'D'), 'r') as file:
+            self.assertEqual(file.read(), '3')

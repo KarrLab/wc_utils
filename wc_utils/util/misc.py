@@ -70,7 +70,7 @@ def most_qual_cls_name(obj):
     if (3, 3) <= sys.version_info:
         return cls.__module__ + '.' + cls.__qualname__
     else:
-        return cls.__module__ + '.' + cls.__name__
+        return cls.__module__ + '.' + cls.__name__  # pragma: no cover # old Python
 
 
 def round_direct(value, precision=2):
@@ -137,6 +137,7 @@ class OrderableNoneType(object):
 
     def __gt__(self, other):
         return False
+
 
 OrderableNone = OrderableNoneType()
 # Object than can be used for sorting in Python 3 in place of :obj:`None`

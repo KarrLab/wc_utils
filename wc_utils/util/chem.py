@@ -140,7 +140,7 @@ class EmpiricalFormula(attrdict.AttrDefault):
         Returns:
             :obj:`EmpiricalFormula`: division of the empirical formula by :obj:`quantity`
         """
-        return self.__truediv__(quantity)
+        return self.__truediv__(quantity)  # pragma: no cover # only used in Python 2
 
     def __truediv__(self, quantity):
         """ Subtract two empirical formulae

@@ -25,8 +25,6 @@ class CacheTestCase(unittest.TestCase):
     def test_memoize_positional_argument(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
 
-        call_count = 0
-
         @cache.memoize()
         def func(input):
             print('func ran')
@@ -46,8 +44,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_keyword_argument(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize()
         def func(input_1, input_2=1):
@@ -72,8 +68,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_filename_argument(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize(filename_args=[0], filename_kwargs=['input_2'])
         def func(input_1, input_2=''):
@@ -138,8 +132,6 @@ class CacheTestCase(unittest.TestCase):
     def test_memoize_filename_argument_glob(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
 
-        call_count = 0
-
         @cache.memoize(filename_args=[0], filename_kwargs=['input_2'])
         def func(input_1, input_2=''):
             print('func ran')
@@ -163,8 +155,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_typed(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize(typed=True)
         def func(input_1, input_2=None):
@@ -197,8 +187,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_with_explicit_name(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize(name='func_1_2')
         def func_1(input):
@@ -233,8 +221,6 @@ class CacheTestCase(unittest.TestCase):
     def test_memoize_tuple(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
 
-        call_count = 0
-
         @cache.memoize()
         def func(input):
             print('func ran')
@@ -250,8 +236,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_list(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize()
         def func(input):
@@ -272,8 +256,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_dict(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize()
         def func(input):
@@ -299,8 +281,6 @@ class CacheTestCase(unittest.TestCase):
     def test_memoize_ordereddict(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
 
-        call_count = 0
-
         @cache.memoize()
         def func(input):
             print('func ran')
@@ -321,14 +301,14 @@ class CacheTestCase(unittest.TestCase):
             self.assertEqual(captured.stdout.get_text(), '')
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            odict = collections.OrderedDict()            
+            odict = collections.OrderedDict()
             odict['1'] = 2
             odict['0'] = 1
             self.assertEqual(func(odict), 3)
             self.assertEqual(captured.stdout.get_text(), 'func ran')
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            odict2 = collections.OrderedDict()            
+            odict2 = collections.OrderedDict()
             odict2['1'] = 2
             odict2['0'] = 1
             self.assertEqual(func(odict2), 3)
@@ -350,8 +330,6 @@ class CacheTestCase(unittest.TestCase):
 
     def test_memoize_nested_data_struct(self):
         cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
-
-        call_count = 0
 
         @cache.memoize()
         def func(input):
@@ -389,3 +367,53 @@ class CacheTestCase(unittest.TestCase):
             ]
             self.assertEqual(func(data_struct4), 7)
             self.assertEqual(captured.stdout.get_text(), '')
+
+    def test_positional_arg_as_keyword_and_vice_versa(self):
+        cache = wc_utils.cache.Cache(directory=os.path.join(self.dir, 'cache'))
+
+        @cache.memoize()
+        def func(a, b, c=3, d=None, e=5):
+            print('func ran')
+            if d:
+                return a + b + c + d + e
+            else:
+                return a + b + c + e
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(1, 2, 3), 11)
+            self.assertEqual(captured.stdout.get_text(), 'func ran')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(1, 2, 3), 11)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(1, 2, c=3), 11)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(1, 2, d=None), 11)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(1, b=2, e=5), 11)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            self.assertEqual(func(a=1, b=2, e=5), 11)
+            self.assertEqual(captured.stdout.get_text(), '')
+
+        with self.assertRaisesRegexp(TypeError, 'missing required positional argument'):
+            func(1, e=5)
+
+        @cache.memoize()
+        def func(a, **kwargs):
+            return a
+        with self.assertRaisesRegexp(NotImplementedError, 'only supports positional-or-keyword arguments'):
+            func(1, e=5)
+
+        @cache.memoize()
+        def func(*args, c=3, d=None):
+            return a
+        with self.assertRaisesRegexp(NotImplementedError, 'Submit issue to request support for optional arguments'):
+            func(1, 2, e=5)

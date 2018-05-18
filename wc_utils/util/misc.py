@@ -114,11 +114,13 @@ def quote(s):
     else:
         return s
 
+
 def obj_to_str(obj, attrs):
     rv = ['Class: ' + obj.__class__.__name__]
     for attr in attrs:
         rv.append("{}: {}".format(attr, str(getattr(obj, attr))))
     return '\n'.join(rv)
+
 
 class OrderableNoneType(object):
     """ Type than can be used for sorting in Python 3 in place of :obj:`None` """

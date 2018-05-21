@@ -8,7 +8,8 @@
 
 import six
 import unittest
-from wc_utils.util.misc import most_qual_cls_name, round_direct, OrderableNone, quote, isclass, isclass_by_name
+from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
+    isclass_by_name, obj_to_str, as_dict)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -143,3 +144,24 @@ class TestMisc(unittest.TestCase):
     def test_quote(self):
         self.assertEqual(quote('x'), "x")
         self.assertEqual(quote('x y'), "'x y'")
+
+    def test_as_dict(self):
+        class A(object):
+            ATTRIBUTES = ['a1', 'a2']
+            def __init__(self, a1):
+                self.a1 = a1
+                self.a2 = 3
+        a = A('test_a1')
+        self.assertEqual(as_dict(a), {'a1': 'test_a1', 'a2': 3})
+        class B(object):
+            ATTRIBUTES = ['b1', 'b2']
+            def __init__(self):
+                self.b1 = A('from B')
+                self.b2 = [6]
+        b = B()
+        self.assertEqual(as_dict(b), {'b1': {'a1': 'from B', 'a2': 3}, 'b2': [6]})
+
+        class C(object):    pass
+        c = C()
+        with self.assertRaises(ValueError) as context:
+            as_dict(c)

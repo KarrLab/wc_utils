@@ -116,10 +116,41 @@ def quote(s):
 
 
 def obj_to_str(obj, attrs):
-    rv = ['Class: ' + obj.__class__.__name__]
+    rv = ['\nClass: ' + obj.__class__.__name__]
     for attr in attrs:
-        rv.append("{}: {}".format(attr, str(getattr(obj, attr))))
+        if hasattr(obj, attr):
+            rv.append("{}: {}".format(attr, str(getattr(obj, attr))))
+        else:
+            rv.append("{}: --not defined--".format(attr))
     return '\n'.join(rv)
+
+
+def as_dict(obj):
+    """ Provide a dictionary representation of `obj`
+
+    `obj` must define an attribute called `ATTRIBUTES` which iterates over the attributes that
+    should be included in the representation.
+
+    Recursively computes `as_dict()` on nested objects that define `ATTRIBUTES`. Warning: calling
+    `as_dict` on cyclic networks of objects will cause infinite recursion and stack overflow.
+
+    Returns:
+        :obj:`dict`: a representation of `obj` mapping attribute names to values, nested for nested
+            objects
+
+    Raises:
+        :obj:`ValueError`: `obj` does not define an attribute called `ATTRIBUTES`
+    """
+    if not hasattr(obj, 'ATTRIBUTES'):
+        raise ValueError('obj must define the attribute ATTRIBUTES')
+    d = {}
+    for attr in obj.ATTRIBUTES:
+        contained_obj = getattr(obj, attr)
+        if hasattr(contained_obj, 'ATTRIBUTES'):
+            d[attr] = as_dict(contained_obj)
+        else:
+            d[attr] = getattr(obj, attr)
+    return d
 
 
 class OrderableNoneType(object):

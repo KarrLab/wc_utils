@@ -27,7 +27,9 @@ jobs:
           command: pip3 install -U --process-dependency-links -e .[all]
       - run:
           name: Upgrade requirements (Python 3)
-          command: karr_lab_build_utils3 upgrade-requirements
+          command: |
+            pip3 install -U python_dateutil # temp fix for upgrading to 2.7.3
+            karr_lab_build_utils3 upgrade-requirements
 
       # Save packages to cache
       - save_cache:

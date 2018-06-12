@@ -8,6 +8,7 @@
 """
 
 import collections
+import re
 import six
 
 
@@ -252,3 +253,19 @@ def rpartition_nth(s, sep, n):
             after = s[i+len(sep):]
 
         return (before, sep, after)
+
+
+def camel_case_to_snake_case(camel_case):
+    """ Convert string from camel (e.g. SnakeCase) to snake case (e.g. snake_case)
+
+    Args:
+        camel_case (:obj:`str`): string in camel case
+
+    Returns:
+        :obj:`str`: string in snake case
+    """
+    _underscorer1 = re.compile(r'(.)([A-Z][a-z]+)')
+    _underscorer2 = re.compile('([a-z0-9])([A-Z])')
+
+    subbed = _underscorer1.sub(r'\1_\2', camel_case)
+    return _underscorer2.sub(r'\1_\2', subbed).lower()

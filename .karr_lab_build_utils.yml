@@ -8,6 +8,7 @@ downstream_dependencies:
   - rand_wc_model_gen
   - wc_kb
   - wc_lang
+  - wc_model_gen
   - wc_sim
   - wc
 email_notifications:

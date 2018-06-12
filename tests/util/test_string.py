@@ -205,3 +205,10 @@ class TestStringUtils(unittest.TestCase):
 
         with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
             string.rpartition_nth('123232323', '1234', -1)
+
+    def test_camel_case_to_snake_case(self):
+        self.assertEqual(string.camel_case_to_snake_case('snakesOnAPlane'), 'snakes_on_a_plane')
+        self.assertEqual(string.camel_case_to_snake_case('SnakesOnAPlane'), 'snakes_on_a_plane')
+        self.assertEqual(string.camel_case_to_snake_case('snakes_on_a_plane'), 'snakes_on_a_plane')
+        self.assertEqual(string.camel_case_to_snake_case('IPhoneHysteria'), 'i_phone_hysteria')
+        self.assertEqual(string.camel_case_to_snake_case('iPhoneHysteria'), 'i_phone_hysteria')

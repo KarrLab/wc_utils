@@ -102,7 +102,7 @@ class BackupManager(object):
 
         # move files
         for path in backup.paths:
-            os.rename(os.path.join(tempdir, path.arc_path), path.path)
+            shutil.move(os.path.join(tempdir, path.arc_path), path.path)
 
         # cleanup
         shutil.rmtree(tempdir)

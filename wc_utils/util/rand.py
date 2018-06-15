@@ -11,13 +11,11 @@ from six import integer_types
 from wc_utils.util.types import is_iterable
 import math
 import numpy as np
+import wc_utils
 
 
 class RandomStateManager(object):
     """ Manager for singleton of :obj:`numpy.random.RandomState` """
-
-    DEFAULT_SEED = 117
-    #:obj:`int`: default seed for the random state
 
     _random_state = None
     #:obj:'numpy.random.RandomState': singleton random state
@@ -33,7 +31,8 @@ class RandomStateManager(object):
         if not cls._random_state:
             cls._random_state = RandomState(seed=seed)
         if seed is None:
-            seed = cls.DEFAULT_SEED
+            config = wc_utils.config.core.get_config()['wc_utils']['random']
+            seed = config['seed']
         cls._random_state.seed(seed)
 
     @classmethod

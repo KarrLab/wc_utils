@@ -8,6 +8,9 @@
 
 import importlib
 git = importlib.import_module('git', package='gitpython')
+import itertools
+import os
+import pathlib
 
 
 def get_repo_metadata(dirname='.', search_parent_directories=True):
@@ -24,9 +27,17 @@ def get_repo_metadata(dirname='.', search_parent_directories=True):
     Raises:
         :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository
     """
-    try:
-        repo = git.Repo(dirname, search_parent_directories=search_parent_directories)
-    except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError):
+    repo = None
+    pure_path = pathlib.PurePath(os.path.abspath(dirname))
+    parent_dirnames = itertools.chain([os.path.abspath(dirname)], pure_path.parents)
+    for parent_dirname in parent_dirnames:
+        try:
+            repo = git.Repo(str(parent_dirname), search_parent_directories=search_parent_directories)
+            break
+        except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError):
+            pass
+
+    if not repo:
         raise ValueError('"{}" is not a Git repository'.format(dirname))
     url = str(repo.remote('origin').url)
     branch = str(repo.active_branch.name)

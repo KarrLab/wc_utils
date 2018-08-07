@@ -5,9 +5,9 @@ with open(pkg_resources.resource_filename('wc_utils', 'VERSION'), 'r') as file:
 # :obj:`str`: version
 
 # define API
-from . import backup
 from . import config
 from . import data_logs
 from . import debug_logs
+from . import quilt
 from . import util
 from . import workbook

@@ -12,5 +12,5 @@ import wc_utils
 
 class ApiTestCase(unittest.TestCase):
     def test(self):
-        self.assertIsInstance(wc_utils.backup, types.ModuleType)
-        self.assertIsInstance(wc_utils.backup.BackupManager, type)
+        self.assertIsInstance(wc_utils.cache, types.ModuleType)
+        self.assertIsInstance(wc_utils.cache.Cache, type)

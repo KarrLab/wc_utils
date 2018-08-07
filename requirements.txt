@@ -1,8 +1,8 @@
 attrdict
+capturer
 configobj
 diskcache
 enum34
-ftputil
 gitpython
 git+https://github.com/KarrLab/log.git#egg=log-2016.10.12 # >= 2016.10.12
 mendeleev
@@ -12,9 +12,9 @@ pint
 pyexcel >= 0.5.0
 # avoid a bug in pyexcel_io 0.4.1; see https://github.com/pyexcel/pyexcel/issues/89
 pyexcel_io >= 0.4.2
-python_dateutil
 pyyaml
 qualname
+quilt
 requests
 setuptools
 six

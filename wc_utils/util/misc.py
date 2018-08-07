@@ -174,3 +174,92 @@ class OrderableNoneType(object):
 
 OrderableNone = OrderableNoneType()
 # Object than can be used for sorting in Python 3 in place of :obj:`None`
+
+
+class DFSMAcceptor(object):
+    """ Deterministic finite state machine (DFSM) that accepts sequences which move from the start to the end state
+
+        A data-driven finite state machine (finite state automatia). States and messages can be any
+        hashable type.
+
+    Attributes:
+        start_state (:obj:`object`): a DFSM's start state
+        accepting_state (:obj:`object`): a DFSM must be in this state to accept a message sequence
+        transitions_dict (:obj:`dict`): transitions, a map state -> message -> next state
+        state (:obj:`object`): a DFSM's current state
+    """
+
+    # acceptance fails
+    FAIL = 'fail'
+    # acceptance succeeds
+    ACCEPT = 'accept'
+
+    def __init__(self, start_state, accepting_state, transitions):
+        """
+        Args:
+            start_state (:obj:`object`): a DFSM's start state
+            accepting_state (:obj:`object`): a DFSM must be in this state to accept a message sequence
+            transitions (:obj:`iterator` of `tuple`): transitions, an iterator of
+                (state, message, next state) tuples
+
+        Raises:
+            :obj:`ValueError`: if `transitions` contains redundant transitions, or if no transitions
+                out of `start_state` are provided
+        """
+        self.start_state = start_state
+        self.accepting_state = accepting_state
+        self.transitions_dict = {}
+        for state, transition_message, new_state in transitions:
+            if state not in self.transitions_dict:
+                self.transitions_dict[state] = {}
+            if transition_message in self.transitions_dict[state]:
+                raise ValueError("'{}' already a transition from '{}'".format(transition_message,
+                    state))
+            self.transitions_dict[state][transition_message] = new_state
+        if start_state not in self.transitions_dict:
+            raise ValueError("no transitions available from start state '{}'".format(start_state))
+        self.reset()
+
+    def reset(self):
+        """ Reset a DFSM to it's start state
+        """
+        self.state = self.start_state
+
+    def get_state(self):
+        """ Get a DFSM's state
+        """
+        return self.state
+
+    def exec_transition(self, message):
+        """ Execute one DFSM state transition
+
+        Args:
+            message (:obj:`object`): a message that might transition the DFSM to another state
+
+        Returns:
+            :obj:`object`: returns `DFSMAcceptor.FAIL` if `message` does not transition the DFSM to
+                another state; otherwise returns `None`
+        """
+        if message not in self.transitions_dict[self.state]:
+            return DFSMAcceptor.FAIL
+        self.state = self.transitions_dict[self.state][message]
+
+    def run(self, transition_messages):
+        """ Execute one DFSM state transition
+
+        Args:
+            transition_messages (:obj:`iterator` of `object`): an iterator that provides messages that
+                might transition a DFSM from its `start_state` to its `accepting_state`
+
+        Returns:
+            :obj:`object`: returns `DFSMAcceptor.FAIL` if `transition_messages` do not transition the
+                DFSM to from its `start_state` to its `accepting_state`; otherwise returns `DFSMAcceptor.ACCEPT`
+        """
+        self.reset()
+        for transition_message in transition_messages:
+            rv = self.exec_transition(transition_message)
+            if rv == DFSMAcceptor.FAIL:
+                return DFSMAcceptor.FAIL
+        if self.state == self.accepting_state:
+            return DFSMAcceptor.ACCEPT
+        return DFSMAcceptor.FAIL

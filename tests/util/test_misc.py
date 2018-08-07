@@ -9,7 +9,7 @@
 import six
 import unittest
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
-    isclass_by_name, obj_to_str, as_dict)
+    isclass_by_name, obj_to_str, as_dict, DFSMAcceptor)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -165,3 +165,25 @@ class TestMisc(unittest.TestCase):
         c = C()
         with self.assertRaises(ValueError) as context:
             as_dict(c)
+
+
+class TestDFSMAcceptor(unittest.TestCase):
+
+    def test_dfsm_acceptor(self):
+        transitions_for_two_repititions_exercise = [     # (state, message, new state)
+            ('start', 'do exercise', 'done 1'),
+            ('done 1', 'do exercise', 'done 2'),
+        ]
+        dfsm_acceptor = DFSMAcceptor('start', 'done 2', transitions_for_two_repititions_exercise)
+        dfsm_acceptor.reset()
+        self.assertEqual(None, dfsm_acceptor.exec_transition('do exercise'))
+        self.assertEqual('done 1', dfsm_acceptor.get_state())
+        self.assertEqual(DFSMAcceptor.ACCEPT, dfsm_acceptor.run(['do exercise', 'do exercise']))
+        self.assertEqual(DFSMAcceptor.FAIL, dfsm_acceptor.run(['do exercise']))
+        self.assertEqual(DFSMAcceptor.FAIL, dfsm_acceptor.run([7, 'do exercise']))
+
+        with self.assertRaisesRegexp(ValueError, 'already a transition from'):
+            DFSMAcceptor('s', 'e', [('s', 'm', 0), ('s', 'm', 'e')])
+
+        with self.assertRaisesRegexp(ValueError, 'no transitions available from start state'):
+            DFSMAcceptor('s', 'e', [('f', 'm1', 0), ('e', 'm1', 'f')])

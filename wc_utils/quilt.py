@@ -82,11 +82,13 @@ class QuiltManager(object):
             dir_contents = contents
             if rel_dirname != '.':
                 for sub_dirname in rel_dirname.split(os.sep):
-                    if sub_dirname in dir_contents:
-                        dir_contents = dir_contents[sub_dirname]
+                    node_name = sub_dirname.replace('.', '__DOT__')
+                    
+                    if node_name in dir_contents:
+                        dir_contents = dir_contents[node_name]
                     else:
-                        dir_contents[sub_dirname] = {}
-                        dir_contents = dir_contents[sub_dirname]
+                        dir_contents[node_name] = {}
+                        dir_contents = dir_contents[node_name]
 
             for filename in filenames:
                 if rel_dirname == '.':
@@ -94,15 +96,16 @@ class QuiltManager(object):
                 else:
                     full_filename = os.path.join(rel_dirname, filename)
                 basename, ext = os.path.splitext(filename)
+                node_name = basename.replace('.', '__DOT__')
 
-                dir_contents[basename] = {
+                dir_contents[node_name] = {
                     'file': full_filename,
                 }
 
                 if ext in ['.csv', '.ssv', '.tsv']:
-                    dir_contents[basename]['transform'] = ext[1:]
+                    dir_contents[node_name]['transform'] = ext[1:]
                 elif ext != '.md':
-                    dir_contents[basename]['transform'] = 'id'
+                    dir_contents[node_name]['transform'] = 'id'
 
         return config
 

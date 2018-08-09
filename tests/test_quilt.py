@@ -49,6 +49,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         # delete package from Quilt server, if it exists
         try:
             with capturer.CaptureOutput(relay=False):
+                quilt.login_with_token(self.token)
                 quilt.access_list(self.owner_package)
                 with mock.patch('quilt.tools.command.input', return_value=self.owner_package):
                     quilt.delete(self.owner_package)
@@ -126,6 +127,7 @@ class QuiltManagerTestCase(unittest.TestCase):
 
         # check that package pushed to Quilt servers (i.e. no HTTPResponseException that package doesn't exist)
         with capturer.CaptureOutput(relay=False):
+            quilt.login_with_token(self.token)
             quilt.access_list(manager.get_owner_package())
 
     def test_download(self):

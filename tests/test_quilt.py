@@ -10,8 +10,12 @@ import capturer
 import csv
 import mock
 import os
-import quilt
-import quilt.tools.command
+try:
+    quilt_installed=True
+    import quilt
+    import quilt.tools.command
+except:
+    quilt_installed=False
 import random
 import shutil
 import tempfile
@@ -21,6 +25,7 @@ import wc_utils.quilt
 import wc_utils.workbook
 
 
+@unittest.skipUnless(quilt_installed, 'Quilt must be installed')
 class QuiltManagerTestCase(unittest.TestCase):
 
     def setUp(self):

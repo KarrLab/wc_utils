@@ -127,16 +127,24 @@ class ConfigManager(object):
             raise ExtraValuesError(config)
 
         # perform template substitution
-        def sub(section, key, context=context):
-            val = section[key]
-            if isinstance(val, (list, tuple)):
-                for i, v in enumerate(val):
-                    if isinstance(v, str):
-                        val[i] = string.Template(v).substitute(context)
-            elif isinstance(val, six.string_types):
-                val = string.Template(val).substitute(context)
-            section[key] = val
-        config.walk(sub)
+        to_sub = [config]
+        while to_sub:
+            dictionary = to_sub.pop()
+            keys = list(dictionary.keys())
+            for key in keys:
+                val = dictionary[key]
+                key2 = string.Template(key).substitute(context)
+
+                val2 = val
+                if isinstance(val, dict):                    
+                    to_sub.append(val)
+                elif isinstance(val, (list, tuple)):
+                    val2 = [string.Template(v).substitute(context) for v in val]
+                elif isinstance(val, six.string_types):
+                    val2 = string.Template(val).substitute(context)
+
+                dictionary.pop(key)
+                dictionary[key2] = val2
 
         # re-validate configuration against schema after substitution
         validator = Validator()

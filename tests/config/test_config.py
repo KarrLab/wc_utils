@@ -93,6 +93,8 @@ class TestConfig(unittest.TestCase):
             file.write(u'   attr_4 = list(default=list("a", "${root}/abc", "c"))\n')
             file.write(u'   attr_5 = boolean(default=true)\n')
             file.write(u'   attr_6 = string()\n')
+            file.write(u'   [[__many__]]\n')
+            file.write(u'       val = string()\n')
 
         _, default_filename = tempfile.mkstemp()
         with open(default_filename, 'w') as file:
@@ -101,6 +103,10 @@ class TestConfig(unittest.TestCase):
             file.write(u'   attr_3 = ${root}/xyz, xyz/${root}\n')
             file.write(u'   attr_5 = False\n')
             file.write(u'   attr_6 = $${root}\n')
+            file.write(u'   [[subsec-1-${root}]]\n')
+            file.write(u'       val = 1-${root}\n')
+            file.write(u'   [[subsec-2-${root}]]\n')
+            file.write(u'       val = 2-${root}\n')
 
         paths = mock.Mock(schema=schema_filename, default=default_filename, user=[])
         config = ConfigManager(paths).get_config(context={'root': 'ABC'})
@@ -111,6 +117,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config['sec']['attr_4'], ['a', 'ABC/abc', 'c'])
         self.assertEqual(config['sec']['attr_5'], False)
         self.assertEqual(config['sec']['attr_6'], '${root}')
+        self.assertEqual(config['sec']['subsec-1-ABC']['val'], '1-ABC')
+        self.assertEqual(config['sec']['subsec-2-ABC']['val'], '2-ABC')
 
         os.remove(schema_filename)
         os.remove(default_filename)

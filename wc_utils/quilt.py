@@ -7,7 +7,10 @@
 
 import capturer
 import os
-import quilt
+try:
+    import quilt
+except:
+    pass
 import requests
 import wc_utils.config
 import yaml

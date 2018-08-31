@@ -11,7 +11,7 @@ import os
 try:
     import quilt
 except:  # pragma: no cover
-    pass  # pragma: no cover
+    quilt = None  # pragma: no cover
 import requests
 import wc_utils.config
 import yaml
@@ -39,6 +39,11 @@ class QuiltManager(object):
             token (:obj:`str`, optional): authentication token for Quilt
             verbose (:obj:`bool`, optional): if :obj:`True`, display Quilt status
         """
+        # check that Quilt is installed
+        if not quilt:
+            raise ModuleNotFoundError('Quilt must be installed. Run `pip install quilt`')  # pragma: no cover
+
+        # initialize manager
         config = wc_utils.config.get_config()['wc_utils']['quilt']
         self.path = path
         self.package = package

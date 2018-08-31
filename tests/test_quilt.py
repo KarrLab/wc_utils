@@ -301,9 +301,10 @@ class QuiltManagerTestCase(unittest.TestCase):
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, 'package-id', owner='owner-id')
         self.assertEqual(manager.get_owner_package(), 'owner-id/package-id')
 
-    @unittest.skipIf(os.getenv('QUILT_USERNAME', None) is None or os.getenv('QUILT_PASSWORD', None) is None,
-                     'Quilt username and password required for test')
+    @unittest.skipUnless(wc_utils.config.get_config()['wc_utils']['quilt']['username'] and
+                         wc_utils.config.get_config()['wc_utils']['quilt']['password'],
+                         'Quilt username and password required for test')
     def test_get_token(self):
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package)
-        token = manager.get_token(os.getenv('QUILT_USERNAME'), os.getenv('QUILT_PASSWORD'))
+        token = manager.get_token()
         self.assertEqual(len(token), 225)

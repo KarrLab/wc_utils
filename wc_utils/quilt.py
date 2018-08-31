@@ -5,12 +5,15 @@
 :License: MIT
 """
 
-import capturer
+try:
+    import capturer
+except ModuleNotFoundError:  # pragma: no cover
+    capturer = None  # pragma: no cover
 import importlib
 import os
 try:
     import quilt
-except:  # pragma: no cover
+except ModuleNotFoundError:  # pragma: no cover
     quilt = None  # pragma: no cover
 import requests
 import wc_utils.config
@@ -62,10 +65,16 @@ class QuiltManager(object):
             yaml.dump(config, file, default_flow_style=False)
 
         # build and push package
-        with capturer.CaptureOutput(relay=self.verbose):
-            quilt.build(self.get_owner_package(), config_filename)
-            quilt.login_with_token(self.token)
-            quilt.push(self.get_owner_package(), is_public=True, is_team=False)
+        if capturer and not self.verbose:
+            capture_output = capturer.CaptureOutput(relay=False)
+            capture_output.start_capture()
+
+        quilt.build(self.get_owner_package(), config_filename)
+        quilt.login_with_token(self.token)
+        quilt.push(self.get_owner_package(), is_public=True, is_team=False)
+
+        if capturer and not self.verbose:
+            capture_output.finish_capture()
 
     def download(self, file_path=None):
         """ Download Quilt package or, optionally, a single path within the package
@@ -89,11 +98,17 @@ class QuiltManager(object):
         else:
             pkg_name_path = pkg_name
 
-        with capturer.CaptureOutput(relay=self.verbose):
-            quilt.login_with_token(self.token)
-            quilt.install(pkg_name_path, force=True, meta_only=False)
-            quilt.export(pkg_name_path, output_path=self.path,
-                         force=True)
+        if capturer and not self.verbose:
+            capture_output = capturer.CaptureOutput(relay=False)
+            capture_output.start_capture()
+
+        quilt.login_with_token(self.token)
+        quilt.install(pkg_name_path, force=True, meta_only=False)
+        quilt.export(pkg_name_path, output_path=self.path,
+                     force=True)
+
+        if capturer and not self.verbose:
+            capture_output.finish_capture()
 
     def get_package_path(self, file_path):
         """ Get the path for a file within the Quilt package
@@ -105,8 +120,14 @@ class QuiltManager(object):
             :obj:`str`: path within Quilt package
         """
         pkg_name = self.get_owner_package()
-        with capturer.CaptureOutput(relay=self.verbose):
-            quilt.install(pkg_name, force=True, meta_only=True)
+
+        if capturer and not self.verbose:
+            capture_output = capturer.CaptureOutput(relay=False)
+            capture_output.start_capture()
+        quilt.install(pkg_name, force=True, meta_only=True)
+        if capturer and not self.verbose:
+            capture_output.finish_capture()
+
         pkg = importlib.import_module('quilt.data.' + pkg_name.replace('/', '.'))
 
         nodes_to_visit = [((), pkg)]
@@ -175,20 +196,18 @@ class QuiltManager(object):
         """
         return '{}/{}'.format(self.owner, self.package)
 
-    def get_token(self, username, password):
+    def get_token(self):
         """ Get token
-
-        Args:
-            username (:obj:`str`): Quilt user name
-            password (:obj:`str`): Quilt password
 
         Returns
             :obj:`str`: authentication token for Quilt user
         """
+        config = wc_utils.config.get_config()['wc_utils']['quilt']
+
         endpoint = 'https://pkg.quiltdata.com/api'
         result = requests.post(endpoint + '/login', json={
-            'username': username,
-            'password': password,
+            'username': config['username'],
+            'password': config['password'],
         })
         result.raise_for_status()
         self.token = result.json()['token']

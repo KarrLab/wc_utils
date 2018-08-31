@@ -5,10 +5,7 @@
 :License: MIT
 """
 
-try:
-    import capturer
-except ModuleNotFoundError:  # pragma: no cover
-    capturer = None  # pragma: no cover
+import abduct
 import importlib
 import os
 try:
@@ -65,16 +62,10 @@ class QuiltManager(object):
             yaml.dump(config, file, default_flow_style=False)
 
         # build and push package
-        if capturer and not self.verbose:
-            capture_output = capturer.CaptureOutput(relay=False)
-            capture_output.start_capture()
-
-        quilt.build(self.get_owner_package(), config_filename)
-        quilt.login_with_token(self.token)
-        quilt.push(self.get_owner_package(), is_public=True, is_team=False)
-
-        if capturer and not self.verbose:
-            capture_output.finish_capture()
+        with abduct.captured(abduct.out(tee=self.verbose)):
+            quilt.build(self.get_owner_package(), config_filename)
+            quilt.login_with_token(self.token)
+            quilt.push(self.get_owner_package(), is_public=True, is_team=False)
 
     def download(self, file_path=None):
         """ Download Quilt package or, optionally, a single path within the package
@@ -98,17 +89,11 @@ class QuiltManager(object):
         else:
             pkg_name_path = pkg_name
 
-        if capturer and not self.verbose:
-            capture_output = capturer.CaptureOutput(relay=False)
-            capture_output.start_capture()
-
-        quilt.login_with_token(self.token)
-        quilt.install(pkg_name_path, force=True, meta_only=False)
-        quilt.export(pkg_name_path, output_path=self.path,
-                     force=True)
-
-        if capturer and not self.verbose:
-            capture_output.finish_capture()
+        with abduct.captured(abduct.out(tee=self.verbose)):        
+            quilt.login_with_token(self.token)
+            quilt.install(pkg_name_path, force=True, meta_only=False)
+            quilt.export(pkg_name_path, output_path=self.path,
+                         force=True)
 
     def get_package_path(self, file_path):
         """ Get the path for a file within the Quilt package
@@ -121,12 +106,8 @@ class QuiltManager(object):
         """
         pkg_name = self.get_owner_package()
 
-        if capturer and not self.verbose:
-            capture_output = capturer.CaptureOutput(relay=False)
-            capture_output.start_capture()
-        quilt.install(pkg_name, force=True, meta_only=True)
-        if capturer and not self.verbose:
-            capture_output.finish_capture()
+        with abduct.captured(abduct.out(tee=self.verbose)):        
+            quilt.install(pkg_name, force=True, meta_only=True)
 
         pkg = importlib.import_module('quilt.data.' + pkg_name.replace('/', '.'))
 

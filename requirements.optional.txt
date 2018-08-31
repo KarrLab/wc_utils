@@ -1,5 +1,2 @@
-[capture_stdout]
-capturer # to capture Quilt stdout to make Quilt silent
-
 [quilt]
 quilt # to backup data files to Quilt

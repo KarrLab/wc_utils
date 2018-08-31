@@ -9,9 +9,9 @@ mendeleev
 numpy
 openpyxl
 pint
-pyexcel >= 0.5.0, <= 0.5.8
+pyexcel >= 0.5.9.1
 # avoid a bug in pyexcel_io 0.4.1; see https://github.com/pyexcel/pyexcel/issues/89
-pyexcel_io >= 0.4.2
+pyexcel_io >= 0.5.9.1
 pyyaml
 qualname
 requests

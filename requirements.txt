@@ -1,5 +1,4 @@
 attrdict
-capturer
 configobj
 diskcache
 enum34

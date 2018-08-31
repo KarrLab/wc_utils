@@ -11,11 +11,11 @@ import csv
 import mock
 import os
 try:
-    quilt_installed=True
+    quilt_installed = True
     import quilt
     import quilt.tools.command
 except:
-    quilt_installed=False
+    quilt_installed = False
 import random
 import shutil
 import tempfile
@@ -207,6 +207,47 @@ class QuiltManagerTestCase(unittest.TestCase):
             self.assertEqual(row[2], self.rand6[4 * i_row + 2])
             self.assertEqual(row[3], self.rand6[4 * i_row + 3])
 
+    def test_download_single_path(self):
+        # create files for test package
+        self.create_test_package()
+
+        # build Quilt package and push to servers
+        up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
+        up_manager.upload()
+        self.delete_test_package_locally()
+
+        down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
+        down_manager.download(file_path='binary/test_binary_1.bin')
+
+        with open(os.path.join(self.tempdir_down, 'binary', 'test_binary_1.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand1)
+        self.assertFalse(os.path.isfile(os.path.join(self.tempdir_down, 'binary', 'test_binary_2.bin')))
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'csv')))
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
+
+        with self.assertRaisesRegexp(ValueError, 'does not contain'):
+            down_manager.download(file_path='binary/non_existent.bin')
+
+    def test_get_package_path(self):
+        # create files for test package
+        self.create_test_package()
+
+        # build Quilt package and push to servers
+        up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
+        up_manager.upload()
+
+        down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
+        self.assertEqual(down_manager.get_package_path('binary/test_binary_1.bin'),
+                         'binary/test_binary_1')
+        self.assertEqual(down_manager.get_package_path('binary/test_binary_2.bin'),
+                         'binary/test_binary_2')
+        self.assertEqual(down_manager.get_package_path('csv/subdir1/test_csv_3.csv'),
+                         'csv/subdir1/test_csv_3')
+        self.assertEqual(down_manager.get_package_path('csv/subdir1/subdir2/test_csv_4.csv'),
+                         'csv/subdir1/subdir2/test_csv_4')
+        self.assertEqual(down_manager.get_package_path('non_existent'),
+                         None)
+
     def create_test_package(self):
         # create files for test package
         # - binary
@@ -261,7 +302,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         self.assertEqual(manager.get_owner_package(), 'owner-id/package-id')
 
     @unittest.skipIf(os.getenv('QUILT_USERNAME', None) is None or os.getenv('QUILT_PASSWORD', None) is None,
-                     'Quilt username adn password required for test')
+                     'Quilt username and password required for test')
     def test_get_token(self):
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package)
         token = manager.get_token(os.getenv('QUILT_USERNAME'), os.getenv('QUILT_PASSWORD'))

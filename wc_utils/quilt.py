@@ -6,11 +6,12 @@
 """
 
 import capturer
+import importlib
 import os
 try:
     import quilt
-except:
-    pass
+except:  # pragma: no cover
+    pass  # pragma: no cover
 import requests
 import wc_utils.config
 import yaml
@@ -61,12 +62,61 @@ class QuiltManager(object):
             quilt.login_with_token(self.token)
             quilt.push(self.get_owner_package(), is_public=True, is_team=False)
 
-    def download(self):
-        """ Download Quilt package """
+    def download(self, file_path=None):
+        """ Download Quilt package or, optionally, a single path within the package
+
+        Args:
+            file_path (:obj:`str`, optional): if provided, download a specific path
+                within the package (e.g. `subdir/subsubdir/filename.ext`) rather
+                than downloading the entire package
+
+        Raises:
+            :obj:`ValueError`: if a specific file is requested, but there is no
+                file with the same path within the package
+        """
+        pkg_name = self.get_owner_package()
+        if file_path:
+            pkg_path = self.get_package_path(file_path)
+            if pkg_path is None:
+                raise ValueError('{} does not contain a file with the path `{}`'.format(
+                    pkg_name, file_path))
+            pkg_name_path = pkg_name + '/' + pkg_path
+        else:
+            pkg_name_path = pkg_name
+
         with capturer.CaptureOutput(relay=self.verbose):
             quilt.login_with_token(self.token)
-            quilt.install(self.get_owner_package(), force=True, meta_only=False)
-            quilt.export(self.get_owner_package(), output_path=self.path, force=True)
+            quilt.install(pkg_name_path, force=True, meta_only=False)
+            quilt.export(pkg_name_path, output_path=self.path,
+                         force=True)
+
+    def get_package_path(self, file_path):
+        """ Get the path for a file within the Quilt package
+
+        Args:
+            file_path (:obj:`str`): path to file
+
+        Returns:
+            :obj:`str`: path within Quilt package
+        """
+        pkg_name = self.get_owner_package()
+        with capturer.CaptureOutput(relay=self.verbose):
+            quilt.install(pkg_name, force=True, meta_only=True)
+        pkg = importlib.import_module('quilt.data.' + pkg_name.replace('/', '.'))
+
+        nodes_to_visit = [((), pkg)]
+        while nodes_to_visit:
+            parent_pkg_path, parent = nodes_to_visit.pop()
+            for child_name, child in parent._items():
+                if isinstance(child, quilt.nodes.DataNode):
+                    if child._meta['_system']['filepath'] == file_path:
+                        return '/'.join(list(parent_pkg_path) + [child_name])
+                elif isinstance(child, quilt.nodes.GroupNode):
+                    nodes_to_visit.append((
+                        tuple(list(parent_pkg_path) + [child_name]),
+                        child))
+
+        return None
 
     def gen_package_build_config(self):
         """ Generate the build configuration for a package
@@ -86,7 +136,7 @@ class QuiltManager(object):
             if rel_dirname != '.':
                 for sub_dirname in rel_dirname.split(os.sep):
                     node_name = sub_dirname.replace('.', '__DOT__')
-                    
+
                     if node_name in dir_contents:
                         dir_contents = dir_contents[node_name]
                     else:

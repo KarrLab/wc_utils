@@ -117,6 +117,12 @@ class QuiltManagerTestCase(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_gen_package_build_config_error(self):
+        self.create_test_package(empty=True)
+        manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
+        with self.assertRaisesRegexp(ValueError, 'Quilt does not support empty directories'):
+            manager.gen_package_build_config()
+
     def test_upload(self):
         # create files for test package
         self.create_test_package()
@@ -207,7 +213,7 @@ class QuiltManagerTestCase(unittest.TestCase):
             self.assertEqual(row[2], self.rand6[4 * i_row + 2])
             self.assertEqual(row[3], self.rand6[4 * i_row + 3])
 
-    def test_download_single_path(self):
+    def test_download_single_file(self):
         # create files for test package
         self.create_test_package()
 
@@ -217,7 +223,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         self.delete_test_package_locally()
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
-        down_manager.download(file_path='binary/test_binary_1.bin')
+        down_manager.download(system_path='binary/test_binary_1.bin')
 
         with open(os.path.join(self.tempdir_down, 'binary', 'test_binary_1.bin'), 'rb') as file:
             self.assertEqual([int(b) for b in file.read()], self.rand1)
@@ -226,7 +232,61 @@ class QuiltManagerTestCase(unittest.TestCase):
         self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
 
         with self.assertRaisesRegexp(ValueError, 'does not contain'):
-            down_manager.download(file_path='binary/non_existent.bin')
+            down_manager.download(system_path='binary/non_existent.bin')
+
+    def test_download_single_dir(self):
+        # create files for test package
+        self.create_test_package()
+
+        # build Quilt package and push to servers
+        up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
+        up_manager.upload()
+        self.delete_test_package_locally()
+
+        down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
+        down_manager.download(system_path='binary/')
+
+        with open(os.path.join(self.tempdir_down, 'binary', 'test_binary_1.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand1)
+        with open(os.path.join(self.tempdir_down, 'binary', 'test_binary_2.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand2)
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'csv')))
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
+
+        with self.assertRaisesRegexp(ValueError, 'does not contain'):
+            down_manager.download(system_path='binary/non_existent.bin')
+
+    def test_download_single_dir_2(self):
+        # create files for test package
+        self.create_test_package()
+
+        # build Quilt package and push to servers
+        up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
+        up_manager.upload()
+        self.delete_test_package_locally()
+
+        down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
+        down_manager.download(system_path='csv')
+
+        with open(os.path.join(self.tempdir_down, 'csv', 'subdir1', 'test_csv_3.csv'), 'r') as file:
+            self.assertEqual(file.readline(), 'X,Y\n')
+            csv_reader = csv.reader(file)
+            for i_row, row in enumerate(list(csv_reader)):
+                self.assertEqual(int(row[0]), self.rand3[2 * i_row])
+                self.assertEqual(int(row[1]), self.rand3[2 * i_row + 1])
+
+        with open(os.path.join(self.tempdir_down, 'csv', 'subdir1', 'subdir2', 'test_csv_4.csv'), 'r') as file:
+            self.assertEqual(file.readline(), 'X,Y\n')
+            csv_reader = csv.reader(file)
+            for i_row, row in enumerate(csv_reader):
+                self.assertEqual(int(row[0]), self.rand4[2 * i_row])
+                self.assertEqual(int(row[1]), self.rand4[2 * i_row + 1])
+
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'binary')))
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
+
+        with self.assertRaisesRegexp(ValueError, 'does not contain'):
+            down_manager.download(system_path='csv/non_existent.csv')
 
     def test_get_package_path(self):
         # create files for test package
@@ -248,7 +308,22 @@ class QuiltManagerTestCase(unittest.TestCase):
         self.assertEqual(down_manager.get_package_path('non_existent'),
                          None)
 
-    def create_test_package(self):
+        self.assertEqual(down_manager.get_package_path('binary'),
+                         'binary')
+        self.assertEqual(down_manager.get_package_path('binary/'),
+                         'binary')
+        self.assertEqual(down_manager.get_package_path('csv/subdir1'),
+                         'csv/subdir1')
+        self.assertEqual(down_manager.get_package_path('csv/subdir1/'),
+                         'csv/subdir1')
+        self.assertEqual(down_manager.get_package_path('csv/subdir1/subdir2'),
+                         'csv/subdir1/subdir2')
+        self.assertEqual(down_manager.get_package_path('csv/subdir1/subdir2/'),
+                         'csv/subdir1/subdir2')
+        self.assertEqual(down_manager.get_package_path('non_existent/subdir'),
+                         None)
+
+    def create_test_package(self, empty=False):
         # create files for test package
         # - binary
         # - CSV
@@ -262,6 +337,10 @@ class QuiltManagerTestCase(unittest.TestCase):
         os.mkdir(os.path.join(self.tempdir_up, 'csv', 'subdir1'))
         os.mkdir(os.path.join(self.tempdir_up, 'csv', 'subdir1', 'subdir2'))
         os.mkdir(os.path.join(self.tempdir_up, 'xlsx'))
+        if empty:
+            os.mkdir(os.path.join(self.tempdir_up, 'empty'))
+            os.mkdir(os.path.join(self.tempdir_up, 'empty', 'subdir3'))
+            os.mkdir(os.path.join(self.tempdir_up, 'empty', 'subdir3', 'subdir4'))
 
         self.rand1 = rand1 = [random.randint(0, 255) for i in range(1000)]
         self.rand2 = rand2 = [random.randint(0, 255) for i in range(1000)]

@@ -12,6 +12,7 @@ try:
     import quilt
 except ModuleNotFoundError:  # pragma: no cover
     quilt = None  # pragma: no cover
+import re
 import requests
 import wc_utils.config
 import yaml
@@ -67,11 +68,11 @@ class QuiltManager(object):
             quilt.login_with_token(self.token)
             quilt.push(self.get_owner_package(), is_public=True, is_team=False)
 
-    def download(self, file_path=None):
+    def download(self, system_path=None):
         """ Download Quilt package or, optionally, a single path within the package
 
         Args:
-            file_path (:obj:`str`, optional): if provided, download a specific path
+            system_path (:obj:`str`, optional): if provided, download a specific path
                 within the package (e.g. `subdir/subsubdir/filename.ext`) rather
                 than downloading the entire package
 
@@ -80,33 +81,34 @@ class QuiltManager(object):
                 file with the same path within the package
         """
         pkg_name = self.get_owner_package()
-        if file_path:
-            pkg_path = self.get_package_path(file_path)
+        if system_path:
+            pkg_path = self.get_package_path(system_path)
             if pkg_path is None:
                 raise ValueError('{} does not contain a file with the path `{}`'.format(
-                    pkg_name, file_path))
+                    pkg_name, system_path))
             pkg_name_path = pkg_name + '/' + pkg_path
         else:
             pkg_name_path = pkg_name
 
-        with abduct.captured(abduct.out(tee=self.verbose)):        
+        with abduct.captured(abduct.out(tee=self.verbose)):
             quilt.login_with_token(self.token)
             quilt.install(pkg_name_path, force=True, meta_only=False)
             quilt.export(pkg_name_path, output_path=self.path,
                          force=True)
 
-    def get_package_path(self, file_path):
-        """ Get the path for a file within the Quilt package
+    def get_package_path(self, system_path):
+        """ Get the path for a file or directory within the Quilt package
 
         Args:
-            file_path (:obj:`str`): path to file
+            system_path (:obj:`str`): path to file or directory
 
         Returns:
-            :obj:`str`: path within Quilt package
+            :obj:`str`: corresponding path within Quilt package to file or directory
         """
+        system_path = re.sub('/+$', '', system_path)
         pkg_name = self.get_owner_package()
 
-        with abduct.captured(abduct.out(tee=self.verbose)):        
+        with abduct.captured(abduct.out(tee=self.verbose)):
             quilt.install(pkg_name, force=True, meta_only=True)
 
         pkg = importlib.import_module('quilt.data.' + pkg_name.replace('/', '.'))
@@ -116,7 +118,11 @@ class QuiltManager(object):
             parent_pkg_path, parent = nodes_to_visit.pop()
             for child_name, child in parent._items():
                 if isinstance(child, quilt.nodes.DataNode):
-                    if child._meta['_system']['filepath'] == file_path:
+                    if child._meta['_system']['filepath'].startswith(system_path + '/'):
+                        n_parts = system_path.count('/') + 1
+                        pkg_path = list(parent_pkg_path) + [child_name]
+                        return '/'.join(pkg_path[0:n_parts])
+                    elif child._meta['_system']['filepath'] == system_path:
                         return '/'.join(list(parent_pkg_path) + [child_name])
                 elif isinstance(child, quilt.nodes.GroupNode):
                     nodes_to_visit.append((
@@ -136,7 +142,7 @@ class QuiltManager(object):
         config = {}
         contents = config['contents'] = {}
 
-        for abs_dirname, _, filenames in os.walk(self.path):
+        for abs_dirname, subdirnames, filenames in os.walk(self.path):
             rel_dirname = os.path.relpath(abs_dirname, self.path)
 
             dir_contents = contents
@@ -149,6 +155,9 @@ class QuiltManager(object):
                     else:
                         dir_contents[node_name] = {}
                         dir_contents = dir_contents[node_name]
+
+            if not subdirnames and not filenames:
+                raise ValueError('Quilt does not support empty directories: {}'.format(rel_dirname))
 
             for filename in filenames:
                 if rel_dirname == '.':

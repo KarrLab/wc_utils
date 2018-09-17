@@ -1,4 +1,5 @@
 downstream_dependencies:
+  - datanator_website
   - h1_hesc
   - intro_to_wc_modeling
   - karr_lab_build_utils
@@ -6,11 +7,12 @@ downstream_dependencies:
   - mycoplasma_pneumoniae
   - obj_model
   - rand_wc_model_gen
+  - wc
+  - wc_env_manager
   - wc_kb
   - wc_lang
   - wc_model_gen
   - wc_sim
-  - wc
 email_notifications:
   - jonrkarr@gmail.com
   - arthur.p.goldberg@mssm.edu

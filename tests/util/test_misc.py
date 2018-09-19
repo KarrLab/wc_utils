@@ -182,8 +182,8 @@ class TestDFSMAcceptor(unittest.TestCase):
         self.assertEqual(DFSMAcceptor.FAIL, dfsm_acceptor.run(['do exercise']))
         self.assertEqual(DFSMAcceptor.FAIL, dfsm_acceptor.run([7, 'do exercise']))
 
-        with self.assertRaisesRegexp(ValueError, 'already a transition from'):
+        with self.assertRaisesRegex(ValueError, 'already a transition from'):
             DFSMAcceptor('s', 'e', [('s', 'm', 0), ('s', 'm', 'e')])
 
-        with self.assertRaisesRegexp(ValueError, 'no transitions available from start state'):
+        with self.assertRaisesRegex(ValueError, 'no transitions available from start state'):
             DFSMAcceptor('s', 'e', [('f', 'm1', 0), ('e', 'm1', 'f')])

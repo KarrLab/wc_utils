@@ -25,6 +25,6 @@ class TestGit(unittest.TestCase):
 
     def test_no_repo(self):
         tempdir = tempfile.mkdtemp()
-        with self.assertRaisesRegexp(ValueError, 'is not a Git repository'):
+        with self.assertRaisesRegex(ValueError, 'is not a Git repository'):
             git.get_repo_metadata(dirname=tempdir)
         shutil.rmtree(tempdir)

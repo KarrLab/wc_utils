@@ -90,7 +90,7 @@ x.auto_test( %s )
                     self.assertEquals(out, correct_value)
 
     def test_error(self):
-        with self.assertRaisesRegexp(ValueError, 'Arguments to @default_mutable_params must indicate their type'):
+        with self.assertRaisesRegex(ValueError, 'Arguments to @default_mutable_params must indicate their type'):
             @default_mutable_params(['d_OrderedDict'])
             def test(d_OrderedDict=OrderedDict()): 
                 pass

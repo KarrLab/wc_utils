@@ -113,10 +113,10 @@ class TestStringUtils(unittest.TestCase):
 
         self.assertEqual(string.find_nth('123232323', '1234', 1), -1)
 
-        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+        with self.assertRaisesRegex(ValueError, 'sep cannot be empty'):
             string.find_nth('123232323', '', 1)
 
-        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+        with self.assertRaisesRegex(ValueError, 'n must be at least 1'):
             string.find_nth('123232323', '1234', -1)
 
     def test_rfind_nth(self):
@@ -142,10 +142,10 @@ class TestStringUtils(unittest.TestCase):
 
         self.assertEqual(string.rfind_nth('123232323', '1234', 1), -1)
 
-        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+        with self.assertRaisesRegex(ValueError, 'sep cannot be empty'):
             string.rfind_nth('123232323', '', 1)
 
-        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+        with self.assertRaisesRegex(ValueError, 'n must be at least 1'):
             string.rfind_nth('123232323', '1234', -1)
 
     def test_partition_nth(self):
@@ -171,10 +171,10 @@ class TestStringUtils(unittest.TestCase):
 
         self.assertEqual(string.partition_nth('123232323', '1234', 1), ('123232323', '', ''))
 
-        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+        with self.assertRaisesRegex(ValueError, 'sep cannot be empty'):
             string.partition_nth('123232323', '', 1)
 
-        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+        with self.assertRaisesRegex(ValueError, 'n must be at least 1'):
             string.partition_nth('123232323', '1234', -1)
 
     def test_rpartition_nth(self):
@@ -200,10 +200,10 @@ class TestStringUtils(unittest.TestCase):
 
         self.assertEqual(string.rpartition_nth('123232323', '1234', 1), ('', '', '123232323'))
 
-        with self.assertRaisesRegexp(ValueError, 'sep cannot be empty'):
+        with self.assertRaisesRegex(ValueError, 'sep cannot be empty'):
             string.rpartition_nth('123232323', '', 1)
 
-        with self.assertRaisesRegexp(ValueError, 'n must be at least 1'):
+        with self.assertRaisesRegex(ValueError, 'n must be at least 1'):
             string.rpartition_nth('123232323', '1234', -1)
 
     def test_camel_case_to_snake_case(self):

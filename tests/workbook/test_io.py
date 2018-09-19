@@ -65,7 +65,7 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         wk = deepcopy(self.wk)
         wk['Ws-0'][0][1] = []
-        with self.assertRaisesRegexp(ValueError, '^Unsupported type '):
+        with self.assertRaisesRegex(ValueError, '^Unsupported type '):
             io.ExcelWriter(filename).run(wk)
 
     def test_read_write_excel(self):
@@ -216,7 +216,7 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
 
-        with self.assertRaisesRegexp(ValueError, 'Formula are not supported'):
+        with self.assertRaisesRegex(ValueError, 'Formula are not supported'):
             io.ExcelReader(filename).run()
 
     def test_excel_read_formula_cache_string(self):
@@ -230,7 +230,7 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
 
-        with self.assertRaisesRegexp(ValueError, 'Formula are not supported'):
+        with self.assertRaisesRegex(ValueError, 'Formula are not supported'):
             io.ExcelReader(filename).run()
 
     def test_excel_read_error(self):
@@ -244,7 +244,7 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
 
-        with self.assertRaisesRegexp(ValueError, 'Errors are not supported'):
+        with self.assertRaisesRegex(ValueError, 'Errors are not supported'):
             io.ExcelReader(filename).run()
 
     def test_excel_ignore_empty_final_rows_and_cols(self):
@@ -453,7 +453,7 @@ class TestIo(unittest.TestCase):
         wk = io.ExcelReader(dest).run()
         self.assertEqual(set(wk.keys()), set(['Ws-0', 'Ws-1', 'Ws-2']))
 
-        with self.assertRaisesRegexp(ValueError, ' missing worksheets:'):
+        with self.assertRaisesRegex(ValueError, ' missing worksheets:'):
             io.convert(source, dest, worksheet_order=['Ws-3'], ignore_extra_sheets=False)
 
     def test_convert_exceptions(self):
@@ -469,7 +469,7 @@ class TestIo(unittest.TestCase):
         # copy sv->excel
         source = path.join(self.tempdir, 'test-2-*.csv')
         dest = path.join(self.tempdir, 'test2-*.csv')
-        with self.assertRaisesRegexp(ValueError, ' does not match any files$'):
+        with self.assertRaisesRegex(ValueError, ' does not match any files$'):
             io.convert(source, dest)
 
     def test_get_reader(self):
@@ -493,5 +493,5 @@ class TestIo(unittest.TestCase):
 
         # read from files
         filename_pattern = path.join(self.tempdir, 'test-2-*.csv')
-        with self.assertRaisesRegexp(ValueError, 'does not match any files$'):
+        with self.assertRaisesRegex(ValueError, 'does not match any files$'):
             io.SeparatedValuesReader(filename_pattern).run()

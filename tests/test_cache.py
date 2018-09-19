@@ -403,17 +403,17 @@ class CacheTestCase(unittest.TestCase):
             self.assertEqual(func(a=1, b=2, e=5), 11)
             self.assertEqual(captured.stdout.get_text(), '')
 
-        with self.assertRaisesRegexp(TypeError, 'missing required positional argument'):
+        with self.assertRaisesRegex(TypeError, 'missing required positional argument'):
             func(1, e=5)
 
         @cache.memoize()
         def func(a, **kwargs):
             return a
-        with self.assertRaisesRegexp(NotImplementedError, 'only supports positional-or-keyword arguments'):
+        with self.assertRaisesRegex(NotImplementedError, 'only supports positional-or-keyword arguments'):
             func(1, e=5)
 
         @cache.memoize()
         def func(*args, c=3, d=None):
             return a
-        with self.assertRaisesRegexp(NotImplementedError, 'Submit issue to request support for optional arguments'):
+        with self.assertRaisesRegex(NotImplementedError, 'Submit issue to request support for optional arguments'):
             func(1, 2, e=5)

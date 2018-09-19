@@ -49,16 +49,16 @@ class TestStats(unittest.TestCase):
         self.assertNotEqual(exp, exp2)
         self.assertNotEqual(exp, stats.ExponentialMovingAverage(1., alpha=0.6))
 
-        with self.assertRaisesRegexp(ValueError, '^Only one of `alpha` or `center_of_mass` should be provided$'):
+        with self.assertRaisesRegex(ValueError, '^Only one of `alpha` or `center_of_mass` should be provided$'):
             stats.ExponentialMovingAverage(1., alpha=0.5, center_of_mass=0.)
 
-        with self.assertRaisesRegexp(ValueError, '^`alpha` or `center_of_mass` must be provided$'):
+        with self.assertRaisesRegex(ValueError, '^`alpha` or `center_of_mass` must be provided$'):
             stats.ExponentialMovingAverage(1.)
 
-        with self.assertRaisesRegexp(ValueError, '^`alpha` must satisfy 0 <= `alpha` <= 1: '):
+        with self.assertRaisesRegex(ValueError, '^`alpha` must satisfy 0 <= `alpha` <= 1: '):
             stats.ExponentialMovingAverage(1., alpha=-.1)
 
-        with self.assertRaisesRegexp(ValueError, '^`alpha` must satisfy 0 <= `alpha` <= 1: '):
+        with self.assertRaisesRegex(ValueError, '^`alpha` must satisfy 0 <= `alpha` <= 1: '):
             stats.ExponentialMovingAverage(1., center_of_mass=-2.)
 
         # test sequences of averages that have simple analyic solutions

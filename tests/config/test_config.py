@@ -135,7 +135,7 @@ class TestConfig(unittest.TestCase):
             file.write(u'   attr_1 = ${root}\n')
 
         paths = mock.Mock(schema=schema_filename, default=default_filename, user=[])
-        with self.assertRaisesRegexp(InvalidConfigError, 'is too long'):
+        with self.assertRaisesRegex(InvalidConfigError, 'is too long'):
             config = ConfigManager(paths).get_config(context={'root': 'a long root more than 7 chars'})
 
         os.remove(schema_filename)
@@ -217,7 +217,7 @@ class TestConfig(unittest.TestCase):
 
         config_paths = ConfigPaths(schema=filename, default=filename, user=())
 
-        with self.assertRaisesRegexp(ValueError, '^no config found in envt. variables or'):
+        with self.assertRaisesRegex(ValueError, '^no config found in envt. variables or'):
             ConfigManager(config_paths).get_config()
 
     def test_any_checker(self):

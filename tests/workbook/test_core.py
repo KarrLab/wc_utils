@@ -149,17 +149,17 @@ class TestCore(unittest.TestCase):
         self.assertEqual(wk.difference(self.wk),
                          {'Ws-1': WorksheetDifference({1: RowDifference({2: CellDifference('test != 2.0')})})})
 
-        with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Workbook`'):
+        with self.assertRaisesRegex(ValueError, '`other` must be an instance of `Workbook`'):
             self.wk.difference('wk')
 
         wk = deepcopy(self.wk)
         wk['Ws-1'] = 'Ws-1'
-        with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Worksheet`'):
+        with self.assertRaisesRegex(ValueError, '`other` must be an instance of `Worksheet`'):
             self.wk.difference(wk)
 
         wk = deepcopy(self.wk)
         wk['Ws-1'][1] = ['a1', 1, 2.]
-        with self.assertRaisesRegexp(ValueError, '`other` must be an instance of `Row`'):
+        with self.assertRaisesRegex(ValueError, '`other` must be an instance of `Row`'):
             self.wk.difference(wk)
 
     def test_remove_empty_final_rows(self):

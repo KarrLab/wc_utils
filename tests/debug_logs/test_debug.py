@@ -55,7 +55,7 @@ class DefaultDebugLogsTest(unittest.TestCase):
             file.seek(prev_size)
             new_log = file.read()
 
-        self.assertRegexpMatches(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
+        self.assertRegex(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
         # test str(DebugLogsManager())
         self.assertIn(filename, str(self.debug_log_manager))
@@ -74,7 +74,7 @@ class DefaultDebugLogsTest(unittest.TestCase):
         with CaptureOutput() as capturer:
             logger.debug(msg)
             logged_line = capturer.get_text()
-        self.assertRegexpMatches(logged_line, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}$'.format(msg))
+        self.assertRegex(logged_line, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}$'.format(msg))
 
 
 class DebugFileLogTest(unittest.TestCase):
@@ -127,7 +127,7 @@ class DebugFileLogTest(unittest.TestCase):
         # assert message saved to file
         with open(self._temp_log_file, 'r') as file:
             log = file.read()
-        self.assertRegexpMatches(log, '^.+?; .+?; .+?:.+?:\d+; 1.5; {:s}\n$'.format(msg))
+        self.assertRegex(log, '^.+?; .+?; .+?:.+?:\d+; 1.5; {:s}\n$'.format(msg))
 
 
 class DebugConsoleLogTest(unittest.TestCase):
@@ -185,20 +185,20 @@ class DebugConsoleLogTest(unittest.TestCase):
         logger.debug(msg, sim_time=sim_time)
 
         # check message is correct
-        self.assertRegexpMatches(self.stream.getvalue(), '^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(sim_time, msg))
+        self.assertRegex(self.stream.getvalue(), '^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(sim_time, msg))
 
 
 class DebugErrorTest(unittest.TestCase):
 
     def test_no_logs(self):
         debug_log_manager = DebugLogsManager()
-        with self.assertRaisesRegexp(ValueError, "^No log initialized.$"):
+        with self.assertRaisesRegex(ValueError, "^No log initialized.$"):
             debug_log_manager.get_log('')
 
     def test_undefined_log(self):
         debug_log_manager = DebugLogsManager()
         debug_log_manager.setup_logs({})
-        with self.assertRaisesRegexp(ValueError, "' not found in logs '"):
+        with self.assertRaisesRegex(ValueError, "' not found in logs '"):
             debug_log_manager.get_log('not_exists')
 
 
@@ -324,7 +324,7 @@ class TestLoggerConfigurator(unittest.TestCase):
                 },
             },
         }
-        with self.assertRaisesRegexp(ConfigurationError, '^Unsupported handler class: '):
+        with self.assertRaisesRegex(ConfigurationError, '^Unsupported handler class: '):
             LoggerConfigurator.from_dict(config)
 
     def test_undefined_formatter(self):
@@ -346,7 +346,7 @@ class TestLoggerConfigurator(unittest.TestCase):
                 },
             },
         }
-        with self.assertRaisesRegexp(ConfigurationError, ' not found.$'):
+        with self.assertRaisesRegex(ConfigurationError, ' not found.$'):
             LoggerConfigurator.from_dict(config)
 
     def test_no_level(self):
@@ -370,7 +370,7 @@ class TestLoggerConfigurator(unittest.TestCase):
                 },
             },
         }
-        with self.assertRaisesRegexp(ConfigurationError, "^Level must be defined$"):
+        with self.assertRaisesRegex(ConfigurationError, "^Level must be defined$"):
             LoggerConfigurator.from_dict(config)
 
     def test_no_formatter(self):
@@ -391,7 +391,7 @@ class TestLoggerConfigurator(unittest.TestCase):
                 },
             },
         }
-        with self.assertRaisesRegexp(ConfigurationError, '^At least one formatter must be defined.$'):
+        with self.assertRaisesRegex(ConfigurationError, '^At least one formatter must be defined.$'):
             LoggerConfigurator.from_dict(config)
 
     def test_no_handler(self):
@@ -411,7 +411,7 @@ class TestLoggerConfigurator(unittest.TestCase):
                 },
             },
         }
-        with self.assertRaisesRegexp(ConfigurationError, '^At least one handler must be defined.$'):
+        with self.assertRaisesRegex(ConfigurationError, '^At least one handler must be defined.$'):
             LoggerConfigurator.from_dict(config)
 
 

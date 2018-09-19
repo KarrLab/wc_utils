@@ -40,10 +40,10 @@ class TestChem(unittest.TestCase):
         f = chem.EmpiricalFormula('RaRb')
         self.assertEqual(f, {'Ra': 1, 'Rb': 1})
 
-        with self.assertRaisesRegexp(ValueError, 'not a valid formula'):
+        with self.assertRaisesRegex(ValueError, 'not a valid formula'):
             chem.EmpiricalFormula('Hee2')
 
-        with self.assertRaisesRegexp(ValueError, 'not a valid formula'):
+        with self.assertRaisesRegex(ValueError, 'not a valid formula'):
             chem.EmpiricalFormula('h2')
 
     def test_EmpiricalFormula_get_attr(self):
@@ -67,7 +67,7 @@ class TestChem(unittest.TestCase):
         self.assertEqual(str(f), '')
 
         f = chem.EmpiricalFormula()
-        with self.assertRaisesRegexp(ValueError, 'Coefficient must be an integer'):
+        with self.assertRaisesRegex(ValueError, 'Coefficient must be an integer'):
             f.A = -1.5
 
     def test_EmpiricalFormula_get_molecular_weight(self):

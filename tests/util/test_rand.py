@@ -61,8 +61,8 @@ class TestRandomState(unittest.TestCase):
     def test_round_midpoint(self):
         random_state = RandomState()
 
-        self.assertEquals(random_state.round_midpoint(3.4), 3)
-        self.assertEquals(random_state.round_midpoint(3.6), 4)
+        self.assertEqual(random_state.round_midpoint(3.4), 3)
+        self.assertEqual(random_state.round_midpoint(3.6), 4)
 
         avg = 3.5
         samples = 2000
@@ -131,7 +131,7 @@ class TestRandomState(unittest.TestCase):
             down = [x for x, r in results if r == 0]
             up = [x for x, r in results if r == 1]
             labels = ["{}: {}".format(method, r) for r in ['down', 'up']]
-            pyplot.hist([down, up], bins=n_intervals+1, histtype='step', label=labels, normed=True, )
+            pyplot.hist([down, up], bins=n_intervals+1, histtype='step', label=labels, density=True, )
             legend = pyplot.legend(loc='upper right', )
             # pyplot.show()
             pyplot.close()

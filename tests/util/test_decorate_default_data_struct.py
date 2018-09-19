@@ -81,13 +81,13 @@ x.auto_test( %s )
                     with CaptureOutput() as capturer:
                         exec(code_instance)
                         out = capturer.get_text()
-                    self.assertEquals(out, correct_value)
+                    self.assertEqual(out, correct_value)
 
                     class_instance = test_class % test_tuple
                     with CaptureOutput() as capturer:
                         exec(code_instance)
                         out = capturer.get_text()
-                    self.assertEquals(out, correct_value)
+                    self.assertEqual(out, correct_value)
 
     def test_error(self):
         with self.assertRaisesRegex(ValueError, 'Arguments to @default_mutable_params must indicate their type'):

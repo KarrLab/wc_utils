@@ -243,12 +243,12 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(validator.check('any', '2.1'), 2.1)
 
         # lists
-        self.assertEquals(validator.check('any', ','), [])
-        self.assertEquals(validator.check('any', '1,'), [1])
-        self.assertEquals(validator.check('any', '1,2'), [1, 2])
-        self.assertEquals(validator.check('any', '1,false'), [1, False])
-        self.assertEquals(validator.check('any', '1,false, string'), [1, False, 'string'])
-        self.assertEquals(validator.check('any', '1,false, string, 2.1'), [1, False, 'string', 2.1])
+        self.assertEqual(validator.check('any', ','), [])
+        self.assertEqual(validator.check('any', '1,'), [1])
+        self.assertEqual(validator.check('any', '1,2'), [1, 2])
+        self.assertEqual(validator.check('any', '1,false'), [1, False])
+        self.assertEqual(validator.check('any', '1,false, string'), [1, False, 'string'])
+        self.assertEqual(validator.check('any', '1,false, string, 2.1'), [1, False, 'string', 2.1])
         assert_value_equal(validator.check('any', '1,false, string, 2.1, nan'),
                            [1, False, 'string', 2.1, float('nan')])
 

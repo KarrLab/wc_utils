@@ -185,5 +185,5 @@ class TestValidateRandomState(unittest.TestCase):
         with self.assertRaisesRegex(InvalidRandomStateException, '^Random state must have length 5$'):
             validate_random_state((1,))
 
-        with self.assertRaisesRegex(InvalidRandomStateException, '^Random number generator random_state\[1\] must be an array of length 624 of unsigned ints$'):
+        with self.assertRaisesRegex(InvalidRandomStateException, r'^Random number generator random_state\[1\] must be an array of length 624 of unsigned ints$'):
             validate_random_state(('MT19937', [1.] * 624, 1, 1, 1))

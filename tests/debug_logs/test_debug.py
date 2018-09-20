@@ -55,7 +55,7 @@ class DefaultDebugLogsTest(unittest.TestCase):
             file.seek(prev_size)
             new_log = file.read()
 
-        self.assertRegex(new_log, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
+        self.assertRegex(new_log, r'^.+?; .+?; .+?; .+?:.+?:\d+; {:s}\n$'.format(msg))
 
         # test str(DebugLogsManager())
         self.assertIn(filename, str(self.debug_log_manager))
@@ -74,7 +74,7 @@ class DefaultDebugLogsTest(unittest.TestCase):
         with CaptureOutput() as capturer:
             logger.debug(msg)
             logged_line = capturer.get_text()
-        self.assertRegex(logged_line, '^.+?; .+?; .+?; .+?:.+?:\d+; {:s}$'.format(msg))
+        self.assertRegex(logged_line, r'^.+?; .+?; .+?; .+?:.+?:\d+; {:s}$'.format(msg))
 
 
 class DebugFileLogTest(unittest.TestCase):
@@ -127,7 +127,7 @@ class DebugFileLogTest(unittest.TestCase):
         # assert message saved to file
         with open(self._temp_log_file, 'r') as file:
             log = file.read()
-        self.assertRegex(log, '^.+?; .+?; .+?:.+?:\d+; 1.5; {:s}\n$'.format(msg))
+        self.assertRegex(log, r'^.+?; .+?; .+?:.+?:\d+; 1.5; {:s}\n$'.format(msg))
 
 
 class DebugConsoleLogTest(unittest.TestCase):
@@ -185,7 +185,7 @@ class DebugConsoleLogTest(unittest.TestCase):
         logger.debug(msg, sim_time=sim_time)
 
         # check message is correct
-        self.assertRegex(self.stream.getvalue(), '^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(sim_time, msg))
+        self.assertRegex(self.stream.getvalue(), r'^.+?; .+?; .+?:.+?:\d+; {:f}; {:s}\n$'.format(sim_time, msg))
 
 
 class DebugErrorTest(unittest.TestCase):

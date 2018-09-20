@@ -10,6 +10,7 @@ import importlib
 import os
 try:
     import quilt
+    quilt._DEV_MODE = True
 except ModuleNotFoundError:  # pragma: no cover
     quilt = None  # pragma: no cover
 import re
@@ -30,7 +31,6 @@ class QuiltManager(object):
     """
 
     # TODO: support Quilt teams
-    # TODO: support symbolic links
 
     def __init__(self, path, package, owner=None, token=None, verbose=None):
         """
@@ -69,13 +69,14 @@ class QuiltManager(object):
             quilt.login_with_token(self.token)
             quilt.push(self.get_owner_package(), is_public=True, is_team=False)
 
-    def download(self, system_path=None):
+    def download(self, system_path=None, sym_links=False):
         """ Download Quilt package or, optionally, a single path within the package
 
         Args:
             system_path (:obj:`str`, optional): if provided, download a specific path
                 within the package (e.g. `subdir/subsubdir/filename.ext`) rather
                 than downloading the entire package
+            sym_links (:obj:`bool`, optional): if :obj:`True`, export files as symbolic links
 
         Raises:
             :obj:`ValueError`: if a specific file is requested, but there is no
@@ -95,7 +96,7 @@ class QuiltManager(object):
             quilt.login_with_token(self.token)
             quilt.install(pkg_name_path, force=True, meta_only=False)
             quilt.export(pkg_name_path, output_path=self.path,
-                         force=True)
+                         force=True, symlinks=sym_links)
 
     def get_package_path(self, system_path):
         """ Get the path for a file or directory within the Quilt package

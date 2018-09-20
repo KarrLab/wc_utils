@@ -234,6 +234,24 @@ class QuiltManagerTestCase(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'does not contain'):
             down_manager.download(system_path='binary/non_existent.bin')
 
+    def test_download_single_file_sym_links(self):
+        # create files for test package
+        self.create_test_package()
+
+        # build Quilt package and push to servers
+        up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
+        up_manager.upload()
+        self.delete_test_package_locally()
+
+        down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
+        down_manager.download(system_path='binary/test_binary_1.bin', sym_links=True)
+
+        with open(os.path.join(self.tempdir_down, 'binary', 'test_binary_1.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand1)
+        self.assertFalse(os.path.isfile(os.path.join(self.tempdir_down, 'binary', 'test_binary_2.bin')))
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'csv')))
+        self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
+
     def test_download_single_dir(self):
         # create files for test package
         self.create_test_package()

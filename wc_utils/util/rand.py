@@ -18,7 +18,7 @@ class RandomStateManager(object):
     """ Manager for singleton of :obj:`numpy.random.RandomState` """
 
     _random_state = None
-    #:obj:'numpy.random.RandomState': singleton random state
+    #:obj:`numpy.random.RandomState`: singleton random state
 
     @classmethod
     def initialize(cls, seed=None):

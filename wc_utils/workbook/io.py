@@ -647,8 +647,8 @@ class WorksheetStyle(object):
     """ Worksheet style
 
     Attributes:
-        head_rows (:obj: `int`): number of head rows
-        head_columns (:obj: `int`): number of head columns
+        head_rows (:obj:`int`): number of head rows
+        head_columns (:obj:`int`): number of head columns
         head_row_font_bold (:obj:`bool`): head row bold
         head_row_fill_pattern (:obj:`str`): head row fill pattern
         head_row_fill_fgcolor (:obj:`str`): head row background color
@@ -662,8 +662,8 @@ class WorksheetStyle(object):
                  auto_filter=True):
         """
         Args:
-            head_rows (:obj: `int`, optional): number of head rows
-            head_columns (:obj: `int`, optional): number of head columns
+            head_rows (:obj:`int`, optional): number of head rows
+            head_columns (:obj:`int`, optional): number of head columns
             head_row_font_bold (:obj:`bool`, optional): head row bold
             head_row_fill_pattern (:obj:`str`, optional): head row fill pattern
             head_row_fill_fgcolor (:obj:`str`, optional): head row background color

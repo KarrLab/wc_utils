@@ -30,6 +30,7 @@ class QuiltManager(object):
     """
 
     # TODO: support Quilt teams
+    # TODO: support symbolic links
 
     def __init__(self, path, package, owner=None, token=None, verbose=None):
         """

@@ -69,6 +69,11 @@ class QuiltManager(object):
             quilt.login_with_token(self.token)
             quilt.push(self.get_owner_package(), is_public=True, is_team=False)
 
+        # correct file permissions of Quilt package
+        quilt_cache = os.path.expanduser(os.path.join('~', '.local', 'share', 'QuiltCli', 'quilt_packages', 'objs'))
+        for filename in os.listdir(quilt_cache):
+            os.chmod(os.path.join(quilt_cache, filename), 0o664)
+
     def download(self, system_path=None, sym_links=False):
         """ Download Quilt package or, optionally, a single path within the package
 

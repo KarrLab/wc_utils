@@ -1,5 +1,4 @@
 downstream_dependencies:
-  - datanator_website
   - h1_hesc
   - intro_to_wc_modeling
   - karr_lab_build_utils

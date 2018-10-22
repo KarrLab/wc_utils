@@ -1,8 +1,8 @@
 downstream_dependencies:
+  - datanator
   - h1_hesc
   - intro_to_wc_modeling
   - karr_lab_build_utils
-  - kinetic_datanator
   - mycoplasma_pneumoniae
   - obj_model
   - rand_wc_model_gen

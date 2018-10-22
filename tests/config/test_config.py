@@ -11,6 +11,8 @@ from validate import Validator
 import configobj
 import mock
 import os
+import re
+import shutil
 import sys
 import tempfile
 import types
@@ -149,15 +151,22 @@ class TestConfig(unittest.TestCase):
         config.merge({'__extra__': True})
         validator = Validator()
         result = config.validate(validator, preserve_errors=True)
-        if configobj.get_extra_values(config):
-            str(ExtraValuesError(config))
-        else:
-            raise Exception('Error not raised')
+        self.assertNotEqual(configobj.get_extra_values(config), None)
 
         # extra section
         extra = {'__extra__': True}
-        self.assertRaises(ExtraValuesError,
-                          lambda: ConfigManager(debug_logs_default_paths).get_config(extra))
+
+        with self.assertRaisesRegex(ExtraValuesError, "The following configuration sources"):
+            ConfigManager(debug_logs_default_paths).get_config(extra)
+
+        with self.assertRaisesRegex(ExtraValuesError, re.escape(debug_logs_default_paths.default)):
+            ConfigManager(debug_logs_default_paths).get_config(extra)
+
+        with self.assertRaisesRegex(ExtraValuesError, "  'extra' argument"):
+            ConfigManager(debug_logs_default_paths).get_config(extra)
+
+        with self.assertRaisesRegex(ExtraValuesError, "Extra entry in section 'top level'. Entry '__extra__' is a value"):
+            ConfigManager(debug_logs_default_paths).get_config(extra)
 
         # extra subsection, extra key
         extra = {
@@ -168,8 +177,49 @@ class TestConfig(unittest.TestCase):
                 }
             }
         }
-        self.assertRaises(ExtraValuesError,
-                          lambda: ConfigManager(debug_logs_default_paths).get_config(extra))
+        with self.assertRaisesRegex(ExtraValuesError, "Entry '__extra__2' is a section"):
+            ConfigManager(debug_logs_default_paths).get_config(extra)
+
+    def test_extra_2(self):
+        tempdir = tempfile.mkdtemp()
+
+        schema_path = os.path.join(tempdir, 'schema.cfg')
+        with open(schema_path, 'w') as file:
+            file.write('[section1]\n')
+            file.write('    attr_1 = integer()\n')
+            file.write('    [[section2]]\n')
+            file.write('        attr_2 = integer()\n')
+
+        default_path = os.path.join(tempdir, 'default.cfg')
+        with open(default_path, 'w') as file:
+            file.write('[section1]\n')
+            file.write('    attr_1 = 1\n')
+            file.write('    [[section2]]\n')
+            file.write('        attr_2 = 2\n')
+
+        user_path = os.path.join(tempdir, 'user.cfg')
+        with open(user_path, 'w') as file:
+            file.write('[section1]\n')
+            file.write('    attr_1 = 2\n')
+            file.write('    [[section3]]\n')
+            file.write('        attr_3 = 3\n')
+
+        cfg_mgr = ConfigManager(ConfigPaths(schema=schema_path, default=default_path, user=(user_path,)))
+        with self.assertRaisesRegex(ExtraValuesError, "Extra entry in section 'section1'. Entry 'section3' is a section."):
+            cfg_mgr.get_config(extra={})
+
+        user_path = os.path.join(tempdir, 'user.cfg')
+        with open(user_path, 'w') as file:
+            file.write('[section1]\n')
+            file.write('    [[section2]]\n')
+            file.write('        attr_2 = 3\n')
+            file.write('    attr_1 = 2\n')
+
+        cfg_mgr = ConfigManager(ConfigPaths(schema=schema_path, default=default_path, user=(user_path,)))
+        with self.assertRaisesRegex(ExtraValuesError, "Extra entry in section 'section1'. Entry 'section2' is a section."):
+            cfg_mgr.get_config(extra={})
+
+        shutil.rmtree(tempdir)
 
     def test_invalid_config(self):
         # missing section
@@ -179,10 +229,7 @@ class TestConfig(unittest.TestCase):
         config = configobj.ConfigObj(configspec=config_specification)
         validator = Validator()
         result = config.validate(validator, preserve_errors=True)
-        if result is not True:
-            str(InvalidConfigError(config, result))
-        else:
-            raise Exception('Error not raised')
+        self.assertNotEqual(result, True)
 
         # incorrect type
         extra = {

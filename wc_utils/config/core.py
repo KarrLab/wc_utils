@@ -89,6 +89,7 @@ class ConfigManager(object):
         config_specification = ConfigObj(self.paths.schema, list_values=False, _inspec=True)
 
         # read default configuration
+        value_sources = [self.paths.default]
         config = ConfigObj(infile=self.paths.default, configspec=config_specification)
 
         # read user's configuration files
@@ -96,6 +97,7 @@ class ConfigManager(object):
             if os.path.isfile(user_config_filename):
                 override_config = ConfigObj(infile=user_config_filename, configspec=config_specification)
                 config.merge(override_config)
+                value_sources.append(user_config_filename)
                 break
 
         # read configuration from environment variables
@@ -104,10 +106,13 @@ class ConfigManager(object):
                 nested_keys = key[13:].split('__DOT__')
                 if nested_keys[0] in config:
                     DictUtil.nested_set(config, nested_keys, val)
+                    value_sources.append("Environment variable '{}'".format(key))
 
         # merge extra configuration
         if extra is None:
             extra = {}
+        else:
+            value_sources.append("'extra' argument")
         config.merge(extra)
 
         # ensure that a configuration is found
@@ -121,10 +126,10 @@ class ConfigManager(object):
         result = config.validate(validator, copy=True, preserve_errors=True)
 
         if result is not True:
-            raise InvalidConfigError(config, result)
+            raise InvalidConfigError(value_sources, config, result)
 
         if get_extra_values(config):
-            raise ExtraValuesError(config)
+            raise ExtraValuesError(value_sources, config)
 
         # perform template substitution
         to_sub = [config]
@@ -136,7 +141,7 @@ class ConfigManager(object):
                 key2 = string.Template(key).substitute(context)
 
                 val2 = val
-                if isinstance(val, dict):                    
+                if isinstance(val, dict):
                     to_sub.append(val)
                 elif isinstance(val, (list, tuple)):
                     val2 = [string.Template(v).substitute(context) for v in val]
@@ -152,10 +157,11 @@ class ConfigManager(object):
         result = config.validate(validator, copy=True, preserve_errors=True)
 
         if result is not True:
-            raise InvalidConfigError(config, result)
+            raise InvalidConfigError(value_sources, config, result)
 
         if get_extra_values(config):
-            raise ExtraValuesError(config)  # pragma: no cover # unreachable because we have already checked for extra values
+            raise ExtraValuesError(
+                value_sources, config)  # pragma: no cover # unreachable because we have already checked for extra values
 
         # return config
         return config
@@ -213,17 +219,20 @@ class InvalidConfigError(Exception):
     """ Represents an error due to reading an invalid configuration that doesn't adhere to the schema
 
     Attributes:
+        sources (:obj:`list` of :obj:`str`): list of sources of configuration values
         config (:obj:`configobj.ConfigObj`): configuration
         result (:obj:`dict`): dictionary of configuration errors
         msg (:obj:`str`): string representation of message
     """
 
-    def __init__(self, config, result):
+    def __init__(self, sources, config, result):
         """
         Args:
+            sources (:obj:`list` of :obj:`str`): list of sources of configuration values
             config (:obj:`configobj.ConfigObj`): configuration
             result (:obj:`dict`): dictionary of configuration errors
         """
+        self.sources = sources
         self.config = config
         self.result = result
 
@@ -247,7 +256,9 @@ class InvalidConfigError(Exception):
 
             messages.append(message)
 
-        self.msg = '\n'.join(messages)
+        self.msg = ('The following configuration sources\n  {}\n\n'
+                    'contain the following configuration errors\n  {}').format(
+            '\n  '.join(sources), '\n  '.join(messages))
 
     def __str__(self):
         """ Get string representation of error
@@ -262,15 +273,18 @@ class ExtraValuesError(Exception):
     """ Represents an error due to extra configuration that is not part of the schema
 
     Attributes:
+        sources (:obj:`list` of :obj:`str`): list of sources of configuration values
         config (:obj:`configobj.ConfigObj`): configuration
         msg (:obj:`str`): string representation of message
     """
 
-    def __init__(self, config):
+    def __init__(self, sources, config):
         """
         Args:
+            sources (:obj:`list` of :obj:`str`): list of sources of configuration values
             config (:obj:`configobj.ConfigObj`): configuration
         """
+        self.sources = sources
         self.config = config
 
         messages = []
@@ -280,8 +294,13 @@ class ExtraValuesError(Exception):
 
             # this code gets the extra values themselves
             the_section = config
-            for section in section_list:
-                the_section = config[section]
+            for i_section, section in enumerate(section_list):
+                if section in config:
+                    the_section = config[section]
+                else:
+                    section_list = section_list[0:i_section]
+                    name = section
+                    break
 
             # the_value may be a section or a value
             the_value = the_section[name]
@@ -295,7 +314,9 @@ class ExtraValuesError(Exception):
             messages.append("Extra entry in section '{:s}'. Entry '{}' is a {:s}.".format(
                 section_string, name, section_or_value))
 
-        self.msg = '\n'.join(messages)
+        self.msg = ('The following configuration sources\n  {}\n\n'
+                    'contain the following configuration errors\n  {}').format(
+            '\n  '.join(sources), '\n  '.join(messages))
 
     def __str__(self):
         """ Get string representation of error

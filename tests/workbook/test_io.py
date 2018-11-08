@@ -205,7 +205,36 @@ class TestIo(unittest.TestCase):
         self.assertEqual(wb2['Sheet-1'][4][0], None)
         self.assertEqual(wb2['Sheet-1'][4][1], None)
 
-    def test_excel_read_formula(self):
+    def test_excel_read_formula_boolean(self):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet('Sheet-1')
+
+        cell = ws.cell(row=1, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.value = '=TRUE()'
+
+        cell = ws.cell(row=1, column=2)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.value = '=TRUE'
+
+        cell = ws.cell(row=2, column=1)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.value = '=FALSE()'
+
+        cell = ws.cell(row=2, column=2)
+        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.value = '=FALSE'
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        wb.save(filename)
+
+        wb2 = io.ExcelReader(filename).run()
+        self.assertEqual(wb2['Sheet-1'][0][0], True)
+        self.assertEqual(wb2['Sheet-1'][0][1], True)
+        self.assertEqual(wb2['Sheet-1'][1][0], False)
+        self.assertEqual(wb2['Sheet-1'][1][1], False)
+
+    def test_excel_read_formula_algebra(self):
         wb = openpyxl.Workbook()
         ws = wb.create_sheet('Sheet-1')
 

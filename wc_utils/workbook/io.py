@@ -240,7 +240,7 @@ class ExcelWriter(Writer):
                     data_type = Cell.TYPE_NUMERIC
                 else:
                     raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(value.__class__.__name__,
-                        self.path, sheet_name, get_column_letter(i_col), i_row))
+                                                                                self.path, sheet_name, get_column_letter(i_col), i_row))
 
                 if value is not None:
                     xls_cell.set_explicit_value(value=value, data_type=data_type)
@@ -333,16 +333,22 @@ class ExcelReader(Reader):
                 cell = xls_worksheet.cell(row=i_row, column=i_col)
 
                 if cell.data_type in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC, Cell.TYPE_NULL, Cell.TYPE_BOOL):
-                    pass
+                    value = cell.value
                 elif cell.data_type == Cell.TYPE_ERROR:
                     raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name, get_column_letter(i_col), i_row))
                 elif cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
-                    raise ValueError('Formula are not supported: {}:{}:{}{}'.format(self.path, sheet_name, get_column_letter(i_col), i_row))
+                    if cell.value in ['=FALSE()', '=FALSE']:
+                        value = False
+                    elif cell.value in ['=TRUE()', '=TRUE']:
+                        value = True
+                    else:
+                        raise ValueError('Formula are not supported: {}:{}:{}{}'.format(
+                            self.path, sheet_name, get_column_letter(i_col), i_row))
                 else:
                     raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(
                         cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
 
-                row.append(cell.value)
+                row.append(value)
 
         if ignore_empty_final_rows:
             worksheet.remove_empty_final_rows()

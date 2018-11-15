@@ -77,7 +77,9 @@ class TestIo(unittest.TestCase):
         # write to file with style
         style = io.WorkbookStyle()
         style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
-                                          head_row_font_bold=True, head_row_fill_fgcolor='CCCCCC', row_height=15)
+                                          head_row_font_bold=True,
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=15)
         io.ExcelWriter(filename).run(self.wk, style=style)
         self.assertTrue(path.isfile(filename))
 

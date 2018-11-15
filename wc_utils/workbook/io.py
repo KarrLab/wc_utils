@@ -211,10 +211,13 @@ class ExcelWriter(Writer):
         style = style or WorksheetStyle()
         alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
 
+        n_cols = max(len(row) for row in data)
         frozen_rows = style.head_rows
         frozen_columns = style.head_columns
         row_height = style.row_height
-        head_font = Font(bold=style.head_row_font_bold)
+        col_width = style.col_width
+        head_font = Font(name=style.font_family, sz=style.font_size, bold=style.head_row_font_bold)
+        body_font = Font(name=style.font_family, sz=style.font_size, bold=False)
         kwargs = {}
         if style.head_row_fill_pattern:
             kwargs['patternType'] = style.head_row_fill_pattern
@@ -222,7 +225,20 @@ class ExcelWriter(Writer):
             kwargs['fgColor'] = style.head_row_fill_fgcolor
         head_fill = PatternFill(**kwargs)
 
+        if data:
+            for i_col in range(1, n_cols + 1):
+                col = xls_worksheet.column_dimensions[get_column_letter(i_col)]
+                if not isnan(col_width):
+                    col.width = col_width
+                col.font = body_font
+
         for i_row, row in enumerate(data):
+            xls_row = xls_worksheet.row_dimensions[i_row + 1]
+            if i_row < frozen_rows or i_col < frozen_columns:
+                xls_row.font = head_font
+            else:
+                xls_row.font = body_font
+
             for i_col, cell in enumerate(row):
                 xls_cell = xls_worksheet.cell(row=i_row + 1, column=i_col + 1)
 
@@ -239,8 +255,9 @@ class ExcelWriter(Writer):
                 elif isinstance(value, float):
                     data_type = Cell.TYPE_NUMERIC
                 else:
-                    raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(value.__class__.__name__,
-                                                                                self.path, sheet_name, get_column_letter(i_col), i_row))
+                    raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
+                        value.__class__.__name__,
+                        self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
 
                 if value is not None:
                     xls_cell.set_explicit_value(value=value, data_type=data_type)
@@ -252,16 +269,19 @@ class ExcelWriter(Writer):
                         xls_cell.font = head_font
                     if head_fill:
                         xls_cell.fill = head_fill
+                else:
+                    xls_cell.font = body_font
 
             if not isnan(row_height):
-                xls_worksheet.row_dimensions[i_row + 1].height = row_height
+                xls_row.height = row_height
+            xls_row.font = head_font
 
         xls_worksheet.freeze_panes = xls_worksheet.cell(row=frozen_rows + 1, column=frozen_columns + 1)
 
         if style.auto_filter and len(data) > 0 and len(data[0]) > 0 and frozen_rows > 0:
             xls_worksheet.auto_filter.ref = '{}{}:{}{}'.format(
                 get_column_letter(1), frozen_rows,
-                get_column_letter(max(len(row) for row in data)), len(data))
+                get_column_letter(n_cols), len(data))
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -335,7 +355,8 @@ class ExcelReader(Reader):
                 if cell.data_type in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC, Cell.TYPE_NULL, Cell.TYPE_BOOL):
                     value = cell.value
                 elif cell.data_type == Cell.TYPE_ERROR:
-                    raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name, get_column_letter(i_col), i_row))
+                    raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name,
+                                                                                   get_column_letter(i_col), i_row))
                 elif cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
                     if cell.value in ['=FALSE()', '=FALSE']:
                         value = False
@@ -658,13 +679,17 @@ class WorksheetStyle(object):
         head_row_font_bold (:obj:`bool`): head row bold
         head_row_fill_pattern (:obj:`str`): head row fill pattern
         head_row_fill_fgcolor (:obj:`str`): head row background color
+        font_family (:obj:`str`): font family
+        font_size (:obj:`float`): font size
         row_height (:obj:`float`): row height
+        col_width (:obj:`float`): column width
         auto_filter (:obj:`bool`): whether or not to activate auto filters for row
     """
 
     def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
                  head_row_fill_pattern='solid', head_row_fill_fgcolor='',
-                 row_height=float('nan'),
+                 font_family='Arial', font_size=11.,
+                 row_height=15., col_width=15.,
                  auto_filter=True):
         """
         Args:
@@ -673,7 +698,10 @@ class WorksheetStyle(object):
             head_row_font_bold (:obj:`bool`, optional): head row bold
             head_row_fill_pattern (:obj:`str`, optional): head row fill pattern
             head_row_fill_fgcolor (:obj:`str`, optional): head row background color
+            font_family (:obj:`str`, optional): font family
+            font_size (:obj:`float`, optional): font size
             row_height (:obj:`float`, optional): row height
+            col_width (:obj:`float`, optional): column width
             auto_filter (:obj:`bool`, optional): whether or not to activate auto filters for row
         """
         self.head_rows = head_rows
@@ -681,5 +709,8 @@ class WorksheetStyle(object):
         self.head_row_font_bold = head_row_font_bold
         self.head_row_fill_pattern = head_row_fill_pattern
         self.head_row_fill_fgcolor = head_row_fill_fgcolor
+        self.font_family = font_family
+        self.font_size = font_size
         self.row_height = row_height
+        self.col_width = col_width
         self.auto_filter = auto_filter

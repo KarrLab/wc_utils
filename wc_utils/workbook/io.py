@@ -211,7 +211,10 @@ class ExcelWriter(Writer):
         style = style or WorksheetStyle()
         alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
 
-        n_cols = max(len(row) for row in data)
+        if data:
+            n_cols = max(len(row) for row in data)
+        else:
+            n_cols = 0
         frozen_rows = style.head_rows
         frozen_columns = style.head_columns
         row_height = style.row_height

@@ -44,14 +44,14 @@ def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
     """ Private, recursive method to generate a list of lines indented by their depth in a forest
 
     Args:
-        forest (:obj:`list` of `list`): a forest as an iterator of nested iterators
+        forest (:obj:`list` of :obj:`list`): a forest as an iterator of nested iterators
         indentation (:obj:`int`): number of spaces to indent at each level
         depth (:obj:`int`): recursion depth, used by recursion
         keep_trailing_blank_lines (:obj:`Boolean`): if set, keep trailing blank lines in strings in
             `forest`
 
     Returns:
-        :obj:`list` of `str`: list of strings, appropriately indented
+        :obj:`list` of :obj:`str`: list of strings, appropriately indented
     """
     indent = ' ' * depth * indentation
     output = []
@@ -85,7 +85,7 @@ def delete_trailing_blanks(l_of_strings):
     A line is blank if it is empty after applying `String.rstrip()`.
 
     Args:
-        l_of_strings (:obj:`list` of `str`): a list of strings
+        l_of_strings (:obj:`list` of :obj:`str`): a list of strings
     """
     last = None
     for i, e in reversed(list(enumerate(l_of_strings))):

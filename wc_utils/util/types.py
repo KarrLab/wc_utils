@@ -202,7 +202,7 @@ def get_superclasses(cls, immediate_only=False):
         immediate_only (:obj:`bool`): if true, only return direct superclasses
 
     Returns:
-        :obj:`list` of `type`: list of superclasses
+        :obj:`list` of :obj:`type`: list of superclasses
     """
     superclasses = list(cls.__bases__)
 

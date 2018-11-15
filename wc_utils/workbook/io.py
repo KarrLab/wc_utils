@@ -616,7 +616,7 @@ def convert(source, destination, worksheet_order=None, style=None, ignore_extra_
     Args:
         source (:obj:`str`): path to source file
         destination (:obj:`str`): path to save converted file
-        worksheet_order (:obj:`list` of `str`): worksheet order
+        worksheet_order (:obj:`list` of :obj:`str`): worksheet order
         style (:obj:`WorkbookStyle`, optional): workbook style for Excel
         ignore_extra_sheets (:obj:`bool`, optional): true/false should extra sheets in worksheet_order be ignored or should an error be thrown
 

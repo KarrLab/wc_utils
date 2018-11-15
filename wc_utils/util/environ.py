@@ -50,7 +50,7 @@ class MakeEnvironArgs(object):
         """ Add a value to an environment dict
 
         Args:
-            path (:obj:`list` of `str`): configuration path components
+            path (:obj:`list` of :obj:`str`): configuration path components
             value (:obj:`obj`): the value that the path should have
 
         Returns:

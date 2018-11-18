@@ -35,6 +35,26 @@ class TestCore(unittest.TestCase):
         ws2.append(Row(['b2', 3, 4.]))
         ws2.append(Row(['c2', 5, 6.]))
 
+    def test_init(self):
+        self.assertEqual(
+            Worksheet(Row([0, 1, 2])),
+            Worksheet(Worksheet(Row([0, 1, 2]))))
+        self.assertEqual(
+            Row([0, 1, 2]),
+            Row(Row([0, 1, 2])))
+
+    def test_getitem(self):
+        ws = self.wk['Ws-0']
+        self.assertEqual(ws[0], Row(['Id', 'Val-1', 'Val-2', 'Val-3']))
+        self.assertEqual(ws[0:1], Worksheet([Row(['Id', 'Val-1', 'Val-2', 'Val-3'])]))
+        self.assertEqual(ws[1:3], Worksheet([
+            Row(['a0\taa0\naaa0', 1, 2., True]),
+            Row([u'b0\u20ac', 3, 4., False]),        
+        ]))
+
+        self.assertEqual(ws[0][1], 'Val-1')
+        self.assertEqual(ws[0][2:4], Row(['Val-2', 'Val-3']))
+
     def test_eq(self):
         wk = deepcopy(self.wk)
         self.assertEqual(self.wk == wk, True)

@@ -80,6 +80,18 @@ class Workbook(collections.OrderedDict):
 class Worksheet(list):
     """ Represents a table of data, such as an Excel worksheet or a csv/tsv file"""
 
+    def __getitem__(self, i_row):
+        """ Get a row or a range of rows
+
+        Args:
+            i_row (:obj:`int` of :obj:`slice`): row index or range
+                of row indices
+        """
+        item = super(Worksheet, self).__getitem__(i_row)
+        if isinstance(i_row, slice):
+            item = self.__class__(item)
+        return item
+
     def __eq__(self, other):
         """ Compare two worksheets
 
@@ -161,11 +173,23 @@ class Worksheet(list):
                     break
 
         for i_row, row in enumerate(self):
-            self[i_row] = Row(row[0:max_col])
+            self[i_row] = row[0:max_col]
 
 
 class Row(list):
     """ Represents a row in a table of data """
+
+    def __getitem__(self, i_cell):
+        """ Get a cell or a range of cells
+
+        Args:
+            i_cell (:obj:`int` of :obj:`slice`): cell index or range
+                of cell indices
+        """
+        item = super(Row, self).__getitem__(i_cell)
+        if isinstance(i_cell, slice):
+            item = self.__class__(item)
+        return item
 
     def __eq__(self, other):
         """ Compare rows

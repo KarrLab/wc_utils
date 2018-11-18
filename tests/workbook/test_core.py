@@ -181,29 +181,27 @@ class TestCore(unittest.TestCase):
 
     def test_remove_empty_final_cols(self):
         ws = Worksheet()
-        ws.append(Row(['a', None, 'c', None, None]))
-        ws.append(Row(['b', None, 'd', None, None]))
+        ws.append(Row(['a', None, None]))
+        ws.append(Row(['b', None, 'd', None, '']))
 
         self.assertEqual(len(ws), 2)
-        self.assertEqual(len(ws[0]), 5)
-        self.assertEqual(len(ws[1]), 5)
 
         ws.remove_empty_final_cols()
 
         self.assertEqual(len(ws), 2)
-        self.assertEqual(ws[0], ['a', None, 'c'])
-        self.assertEqual(ws[1], ['b', None, 'd'])
+        self.assertEqual(ws[0], Row(['a', None, None]))
+        self.assertEqual(ws[1], Row(['b', None, 'd']))
 
     def test_remove_empty_final_rows_and_cols(self):
         ws = Worksheet()
         ws.append(Row(['a', None, 'c', None, None]))
-        ws.append(Row(['b', None, 'd', None, None]))
+        ws.append(Row(['b', None, 'd', '']))
         ws.append(Row([None, None, None, None, None]))
-        ws.append(Row([None, None, None, None, None]))
+        ws.append(Row([None, None]))
 
         ws.remove_empty_final_rows()
         ws.remove_empty_final_cols()
 
         self.assertEqual(len(ws), 2)
-        self.assertEqual(ws[0], ['a', None, 'c'])
-        self.assertEqual(ws[1], ['b', None, 'd'])
+        self.assertEqual(ws[0], Row(['a', None, 'c']))
+        self.assertEqual(ws[1], Row(['b', None, 'd']))

@@ -155,14 +155,13 @@ class Worksheet(list):
         """ Remove empty final columns """
         max_col = 0
         for row in self:
-            max_col = max(max_col, next((len(row) - i_row for i_row, cell in enumerate(reversed(row))
-                                         if cell not in (None, '')), 0))
-            if max_col == len(row):
-                break
+            for i_rev_col, cell in enumerate(reversed(row)):
+                if cell not in (None, ''):
+                    max_col = max(max_col, len(row) - i_rev_col)
+                    break
 
-        if len(self) > 0 and max_col < len(self[0]):
-            for i_row, row in enumerate(self):
-                self[i_row] = row[0:max_col]
+        for i_row, row in enumerate(self):
+            self[i_row] = Row(row[0:max_col])
 
 
 class Row(list):

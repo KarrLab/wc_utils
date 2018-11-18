@@ -86,6 +86,9 @@ class Worksheet(list):
         Args:
             i_row (:obj:`int` of :obj:`slice`): row index or range
                 of row indices
+
+        Returns:
+            :obj:`Row` or :obj:`Worksheet`: row or range of rows
         """
         item = super(Worksheet, self).__getitem__(i_row)
         if isinstance(i_row, slice):
@@ -185,6 +188,9 @@ class Row(list):
         Args:
             i_cell (:obj:`int` of :obj:`slice`): cell index or range
                 of cell indices
+
+        Returns:
+            :obj:`object` or :obj:`Row`: cell or range of cells
         """
         item = super(Row, self).__getitem__(i_cell)
         if isinstance(i_cell, slice):

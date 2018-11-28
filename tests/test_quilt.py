@@ -112,6 +112,14 @@ class QuiltManagerTestCase(unittest.TestCase):
                         'transform': 'id',
                     },
                 },
+                'a_b_c': {
+                    'd_e_f': {
+                        'g_h_i_j_k': {
+                            'file': 'a.b-c/d.e-f/g.h-i.j-k.l',
+                            'transform': 'id',
+                        }
+                    }
+                }
             },
         }
 
@@ -213,6 +221,9 @@ class QuiltManagerTestCase(unittest.TestCase):
             self.assertEqual(row[2], self.rand6[4 * i_row + 2])
             self.assertEqual(row[3], self.rand6[4 * i_row + 3])
 
+        with open(os.path.join(self.tempdir_down, 'a.b-c', 'd.e-f', 'g.h-i.j-k.l'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand7)
+
     def test_download_single_file(self):
         # create files for test package
         self.create_test_package()
@@ -230,6 +241,10 @@ class QuiltManagerTestCase(unittest.TestCase):
         self.assertFalse(os.path.isfile(os.path.join(self.tempdir_down, 'binary', 'test_binary_2.bin')))
         self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'csv')))
         self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
+
+        down_manager.download(system_path='a.b-c/d.e-f/g.h-i.j-k.l')
+        with open(os.path.join(self.tempdir_down, 'a.b-c', 'd.e-f', 'g.h-i.j-k.l'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand7)
 
         with self.assertRaisesRegex(ValueError, 'does not contain'):
             down_manager.download(system_path='binary/non_existent.bin')
@@ -270,6 +285,10 @@ class QuiltManagerTestCase(unittest.TestCase):
             self.assertEqual([int(b) for b in file.read()], self.rand2)
         self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'csv')))
         self.assertFalse(os.path.isdir(os.path.join(self.tempdir_down, 'xlsx')))
+
+        down_manager.download(system_path='a.b-c/d.e-f')
+        with open(os.path.join(self.tempdir_down, 'a.b-c', 'd.e-f', 'g.h-i.j-k.l'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand7)
 
         with self.assertRaisesRegex(ValueError, 'does not contain'):
             down_manager.download(system_path='binary/non_existent.bin')
@@ -355,6 +374,8 @@ class QuiltManagerTestCase(unittest.TestCase):
         os.mkdir(os.path.join(self.tempdir_up, 'csv', 'subdir1'))
         os.mkdir(os.path.join(self.tempdir_up, 'csv', 'subdir1', 'subdir2'))
         os.mkdir(os.path.join(self.tempdir_up, 'xlsx'))
+        os.mkdir(os.path.join(self.tempdir_up, 'a.b-c'))
+        os.mkdir(os.path.join(self.tempdir_up, 'a.b-c', 'd.e-f'))
         if empty:
             os.mkdir(os.path.join(self.tempdir_up, 'empty'))
             os.mkdir(os.path.join(self.tempdir_up, 'empty', 'subdir3'))
@@ -393,6 +414,10 @@ class QuiltManagerTestCase(unittest.TestCase):
         for i in range(0, 1000, 4):
             ws.append(wc_utils.workbook.Row(rand6[i:i+4]))
         wc_utils.workbook.io.ExcelWriter(os.path.join(self.tempdir_up, 'xlsx', 'test_xlsx_6.xlsx')).run(wb)
+
+        self.rand7 = rand7 = [random.randint(0, 255) for i in range(1000)]
+        with open(os.path.join(self.tempdir_up, 'a.b-c', 'd.e-f', 'g.h-i.j-k.l'), 'wb') as file:
+            file.write(bytes(rand7))
 
     def test_get_owner_package(self):
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, 'package-id', owner='owner-id')

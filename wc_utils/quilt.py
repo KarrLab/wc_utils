@@ -155,7 +155,7 @@ class QuiltManager(object):
             dir_contents = contents
             if rel_dirname != '.':
                 for sub_dirname in rel_dirname.split(os.sep):
-                    node_name = sub_dirname.replace('.', '__DOT__')
+                    node_name = re.sub('[^a-z0-9_]', '_', sub_dirname, flags=re.IGNORECASE)
 
                     if node_name in dir_contents:
                         dir_contents = dir_contents[node_name]
@@ -172,7 +172,7 @@ class QuiltManager(object):
                 else:
                     full_filename = os.path.join(rel_dirname, filename)
                 basename, ext = os.path.splitext(filename)
-                node_name = basename.replace('.', '__DOT__')
+                node_name = re.sub('[^a-z0-9_]', '_', basename, flags=re.IGNORECASE)
 
                 dir_contents[node_name] = {
                     'file': full_filename,

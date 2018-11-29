@@ -87,6 +87,34 @@ def det_dedupe(l):
             s.add(e)
     return t
 
+
+def det_find_dupes(l):
+    """ Deterministically find dupes in an iterable
+
+    Returns the duplicates in `l`. That is, returns a new list that contains one instance of
+    each element that has multiple copies in `l` and orders these instances by their first occurrence in `l`.
+    Costs O(n), where n is the length of `l`.
+
+    Args:
+        l (:obj:`list`): a list with hashable elements
+
+    Returns:
+        :obj:`list`: a deterministically deduplicated copy of `l`
+
+    Raises:
+        `TypeError` if an element of `l` is an unhashable (mutable) type
+    """
+    counts_to_2 = {}
+    dupes = []
+    for e in l:
+        if e not in counts_to_2:
+            counts_to_2[e] = 1
+        elif counts_to_2[e] == 1:
+            counts_to_2[e] += 1
+            dupes.append(e)
+    return dupes
+
+
 def elements_to_str(l):
     """ Convert each element in an iterator to a string representation
 

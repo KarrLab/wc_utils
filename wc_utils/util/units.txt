@@ -7,11 +7,23 @@
 # :License: MIT
 
 
+# Substance
+molecule = 1 / avogadro_number
+cell = [cell]
+
 # Concentration
 [concentration] = [substance] / [volume]
 molar = mole / liter = M
 
+# Reaction
+reaction = [reaction]
+
 # Catalytic activity
-[catalytic_activity] = [substance] / [time]
+[catalytic_activity] = [reaction] / [time]
 katal = mole / second = katal_base = kat
 enzyme_unit = 1 / 60 * microkatal = U
+
+# Flux balance analysis (FBA)
+gDCW = [gDCW]
+gCell = [gCell]
+gsCellCycle = [gsCellCycle]

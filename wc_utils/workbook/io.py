@@ -473,10 +473,10 @@ class SeparatedValuesReader(Reader):
         return Workbook()
 
     def get_sheet_names(self):
-        """ Get names of sheets contained within path
+        """ Get names of files contained within path glob
 
         Returns:
-            obj:`list` of `str`: list of sheet names
+            obj:`list` of `str`: list of file names
 
         Raises:
             :obj:`ValueError`: if glob does not find any matching files

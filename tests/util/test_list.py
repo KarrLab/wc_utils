@@ -8,10 +8,10 @@
 """
 
 import unittest
-from wc_utils.util.list import is_sorted, transpose, difference, det_dedupe, elements_to_str
+from wc_utils.util.list import is_sorted, transpose, difference, det_dedupe, det_find_dupes, elements_to_str
 
 
-class TestTranspose(unittest.TestCase):
+class TestListUtilities(unittest.TestCase):
 
     def test_is_sorted(self):
         self.assertTrue(is_sorted([1, 2, 3]))
@@ -42,6 +42,13 @@ class TestTranspose(unittest.TestCase):
         self.assertEqual(det_dedupe(l), expected)
         with self.assertRaises(TypeError):
             det_dedupe([[]])
+
+    def test_det_find_dupes(self):
+        l = [0, 1, 2, 0, 1, 7, 1]
+        expected = [0, 1]
+        self.assertEqual(det_find_dupes(l), expected)
+        with self.assertRaises(TypeError):
+            det_find_dupes([[]])
 
     def test_elements_to_str(self):
         l = 'a b c'.split()

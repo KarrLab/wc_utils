@@ -40,6 +40,9 @@ class QuiltManager(object):
             owner (:obj:`str`, optional): identifier of the owner of the Quilt package
             token (:obj:`str`, optional): authentication token for Quilt
             verbose (:obj:`bool`, optional): if :obj:`True`, display Quilt status
+
+        Raises:
+            :obj:`ModuleNotFoundError`: if Quilt is not installed
         """
         # check that Quilt is installed
         if not quilt:
@@ -145,9 +148,14 @@ class QuiltManager(object):
 
         Returns:
             :obj:`dict`: package build configuration
+
+        Raises:
+            :obj:`ValueError`: if Quilt node names will not be unique or there a directory is empty
         """
         config = {}
         contents = config['contents'] = {}
+
+        dir_node_names = {}
 
         for abs_dirname, subdirnames, filenames in os.walk(self.path):
             rel_dirname = os.path.relpath(abs_dirname, self.path)
@@ -155,13 +163,15 @@ class QuiltManager(object):
             dir_contents = contents
             if rel_dirname != '.':
                 for sub_dirname in rel_dirname.split(os.sep):
-                    node_name = re.sub('[^a-z0-9_]', '_', sub_dirname, flags=re.IGNORECASE)
+                    node_name = re.sub('[^a-z0-9_]', self._unique_node_name_replace_func, sub_dirname, flags=re.IGNORECASE)
 
-                    if node_name in dir_contents:
-                        dir_contents = dir_contents[node_name]
-                    else:
+                    if node_name not in dir_contents:
                         dir_contents[node_name] = {}
-                        dir_contents = dir_contents[node_name]
+                    dir_contents = dir_contents[node_name]
+
+                    if node_name in dir_node_names and dir_node_names[node_name] != sub_dirname:
+                        raise ValueError('Directory node name "{}" is not unique'.format(sub_dirname))
+                    dir_node_names[node_name] = sub_dirname
 
             if not subdirnames and not filenames:
                 raise ValueError('Quilt does not support empty directories: {}'.format(rel_dirname))
@@ -171,19 +181,35 @@ class QuiltManager(object):
                     full_filename = filename
                 else:
                     full_filename = os.path.join(rel_dirname, filename)
-                basename, ext = os.path.splitext(filename)
-                node_name = re.sub('[^a-z0-9_]', '_', basename, flags=re.IGNORECASE)
+
+                node_name = re.sub('[^a-z0-9_]', self._unique_node_name_replace_func, filename, flags=re.IGNORECASE)
+
+                if node_name in dir_contents:
+                    raise ValueError('File node name "{}" is not unique'.format(node_name))
 
                 dir_contents[node_name] = {
                     'file': full_filename,
                 }
 
+                basename, ext = os.path.splitext(filename)
                 if ext in ['.csv', '.ssv', '.tsv']:
                     dir_contents[node_name]['transform'] = ext[1:]
                 elif ext != '.md':
                     dir_contents[node_name]['transform'] = 'id'
 
         return config
+
+    @staticmethod
+    def _unique_node_name_replace_func(match):
+        """
+        Args:
+            match (:obj:`re.MatchObject`): regular expression match to a non-alphanumeric character
+                that can't be contained in the name of a Quilt node
+
+        Returns:
+            :obj:`str`: encoded character for substitution into the name of the Quilt node
+        """
+        return '__' + str(ord(match.group(0))) + '__'
 
     def get_owner_package(self):
         """ Get the full identifier (owner/package) of the Quilt package

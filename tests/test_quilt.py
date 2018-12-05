@@ -75,15 +75,15 @@ class QuiltManagerTestCase(unittest.TestCase):
 
         expected = {
             'contents': {
-                'README': {
+                'README__46__md': {
                     'file': 'README.md'
                 },
                 'binary': {
-                    'test_binary_1': {
+                    'test_binary_1__46__bin': {
                         'file': 'binary/test_binary_1.bin',
                         'transform': 'id',
                     },
-                    'test_binary_2': {
+                    'test_binary_2__46__bin': {
                         'file': 'binary/test_binary_2.bin',
                         'transform': 'id',
                     },
@@ -91,39 +91,107 @@ class QuiltManagerTestCase(unittest.TestCase):
                 'csv': {
                     'subdir1': {
                         'subdir2': {
-                            'test_csv_4': {
+                            'test_csv_4__46__csv': {
                                 'file': 'csv/subdir1/subdir2/test_csv_4.csv',
                                 'transform': 'csv',
                             },
                         },
-                        'test_csv_3': {
+                        'test_csv_3__46__csv': {
                             'file': 'csv/subdir1/test_csv_3.csv',
                             'transform': 'csv',
                         },
                     },
                 },
                 'xlsx': {
-                    'test_xlsx_5': {
+                    'test_xlsx_5__46__xlsx': {
                         'file': 'xlsx/test_xlsx_5.xlsx',
                         'transform': 'id',
                     },
-                    'test_xlsx_6': {
+                    'test_xlsx_6__46__xlsx': {
                         'file': 'xlsx/test_xlsx_6.xlsx',
                         'transform': 'id',
                     },
                 },
-                'a_b_c': {
-                    'd_e_f': {
-                        'g_h_i_j_k': {
+                'a__46__b__45__c': {
+                    'd__46__e__45__f': {
+                        'g__46__h__45__i__46__j__45__k__46__l': {
                             'file': 'a.b-c/d.e-f/g.h-i.j-k.l',
                             'transform': 'id',
                         }
                     }
+                },
+                'rand__46__8': {
+                    'file': 'rand.8',
+                    'transform': 'id',
+                },
+                'rand__46__9': {
+                    'file': 'rand.9',
+                    'transform': 'id',
+                },
+                'rand__45____38____46__bin': {
+                    'file': 'rand-&.bin',
+                    'transform': 'id',
+                },
+                'rand__45____36____46__bin': {
+                    'file': 'rand-$.bin',
+                    'transform': 'id',
+                },
+                'a__45__b__45__c': {
+                    'rand__46__bin': {
+                        'file': 'a-b-c/rand.bin',
+                        'transform': 'id',
+                    },
+                },
+                'a__94__b__94__c': {
+                    'rand__46__bin': {
+                        'file': 'a^b^c/rand.bin',
+                        'transform': 'id',
+                    },
                 }
             },
         }
 
         self.assertEqual(actual, expected)
+
+    def test_gen_package_build_config_errors(self):
+        dir_1 = os.path.join(self.tempdir_up, '1')
+        dir_2 = os.path.join(self.tempdir_up, '2')
+        dir_3 = os.path.join(self.tempdir_up, '3')
+
+        os.mkdir(dir_1)
+        os.mkdir(dir_2)
+        os.mkdir(dir_3)
+
+        os.mkdir(os.path.join(dir_1, 'dir.name'))
+        os.mkdir(os.path.join(dir_1, 'dir$name'))
+        with open(os.path.join(dir_1, 'dir.name', 'rand.bin'), 'w') as file:
+            pass
+        with open(os.path.join(dir_1, 'dir$name', 'rand.bin'), 'w') as file:
+            pass
+        with open(os.path.join(dir_1, 'rand.bin'), 'w') as file:
+            pass
+        with open(os.path.join(dir_1, 'rand$bin'), 'w') as file:
+            pass
+        manager = wc_utils.quilt.QuiltManager(dir_1, self.package, owner=self.owner, token=self.token)
+        manager.gen_package_build_config()
+
+        os.mkdir(os.path.join(dir_2, 'dir.name'))
+        os.mkdir(os.path.join(dir_2, 'dir__46__name'))
+        with open(os.path.join(dir_2, 'dir.name', 'rand.bin'), 'w') as file:
+            pass
+        with open(os.path.join(dir_2, 'dir__46__name', 'rand.bin'), 'w') as file:
+            pass
+        manager = wc_utils.quilt.QuiltManager(dir_2, self.package, owner=self.owner, token=self.token)
+        with self.assertRaisesRegex(ValueError, 'is not unique'):
+            manager.gen_package_build_config()
+
+        with open(os.path.join(dir_3, 'rand.bin'), 'w') as file:
+            pass
+        with open(os.path.join(dir_3, 'rand__46__bin'), 'w') as file:
+            pass
+        manager = wc_utils.quilt.QuiltManager(dir_3, self.package, owner=self.owner, token=self.token)
+        with self.assertRaisesRegex(ValueError, 'is not unique'):
+            manager.gen_package_build_config()
 
     def test_gen_package_build_config_error(self):
         self.create_test_package(empty=True)
@@ -223,6 +291,21 @@ class QuiltManagerTestCase(unittest.TestCase):
 
         with open(os.path.join(self.tempdir_down, 'a.b-c', 'd.e-f', 'g.h-i.j-k.l'), 'rb') as file:
             self.assertEqual([int(b) for b in file.read()], self.rand7)
+
+        with open(os.path.join(self.tempdir_down, 'rand.8'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand8)
+        with open(os.path.join(self.tempdir_down, 'rand.9'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand9)
+
+        with open(os.path.join(self.tempdir_down, 'rand-&.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand10)
+        with open(os.path.join(self.tempdir_down, 'rand-$.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand11)
+
+        with open(os.path.join(self.tempdir_down, 'a-b-c', 'rand.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand12)
+        with open(os.path.join(self.tempdir_down, 'a^b^c', 'rand.bin'), 'rb') as file:
+            self.assertEqual([int(b) for b in file.read()], self.rand13)
 
     def test_download_single_file(self):
         # create files for test package
@@ -335,13 +418,13 @@ class QuiltManagerTestCase(unittest.TestCase):
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         self.assertEqual(down_manager.get_package_path('binary/test_binary_1.bin'),
-                         'binary/test_binary_1')
+                         'binary/test_binary_1__46__bin')
         self.assertEqual(down_manager.get_package_path('binary/test_binary_2.bin'),
-                         'binary/test_binary_2')
+                         'binary/test_binary_2__46__bin')
         self.assertEqual(down_manager.get_package_path('csv/subdir1/test_csv_3.csv'),
-                         'csv/subdir1/test_csv_3')
+                         'csv/subdir1/test_csv_3__46__csv')
         self.assertEqual(down_manager.get_package_path('csv/subdir1/subdir2/test_csv_4.csv'),
-                         'csv/subdir1/subdir2/test_csv_4')
+                         'csv/subdir1/subdir2/test_csv_4__46__csv')
         self.assertEqual(down_manager.get_package_path('non_existent'),
                          None)
 
@@ -376,6 +459,8 @@ class QuiltManagerTestCase(unittest.TestCase):
         os.mkdir(os.path.join(self.tempdir_up, 'xlsx'))
         os.mkdir(os.path.join(self.tempdir_up, 'a.b-c'))
         os.mkdir(os.path.join(self.tempdir_up, 'a.b-c', 'd.e-f'))
+        os.mkdir(os.path.join(self.tempdir_up, 'a-b-c'))
+        os.mkdir(os.path.join(self.tempdir_up, 'a^b^c'))
         if empty:
             os.mkdir(os.path.join(self.tempdir_up, 'empty'))
             os.mkdir(os.path.join(self.tempdir_up, 'empty', 'subdir3'))
@@ -418,6 +503,26 @@ class QuiltManagerTestCase(unittest.TestCase):
         self.rand7 = rand7 = [random.randint(0, 255) for i in range(1000)]
         with open(os.path.join(self.tempdir_up, 'a.b-c', 'd.e-f', 'g.h-i.j-k.l'), 'wb') as file:
             file.write(bytes(rand7))
+
+        self.rand8 = rand8 = [random.randint(0, 255) for i in range(1000)]
+        self.rand9 = rand9 = [random.randint(0, 255) for i in range(1000)]
+        with open(os.path.join(self.tempdir_up, 'rand.8'), 'wb') as file:
+            file.write(bytes(rand8))
+        with open(os.path.join(self.tempdir_up, 'rand.9'), 'wb') as file:
+            file.write(bytes(rand9))
+
+        self.rand10 = rand10 = [random.randint(0, 255) for i in range(1000)]
+        self.rand11 = rand11 = [random.randint(0, 255) for i in range(1000)]
+        self.rand12 = rand12 = [random.randint(0, 255) for i in range(1000)]
+        self.rand13 = rand13 = [random.randint(0, 255) for i in range(1000)]
+        with open(os.path.join(self.tempdir_up, 'rand-&.bin'), 'wb') as file:
+            file.write(bytes(rand10))
+        with open(os.path.join(self.tempdir_up, 'rand-$.bin'), 'wb') as file:
+            file.write(bytes(rand11))
+        with open(os.path.join(self.tempdir_up, 'a-b-c', 'rand.bin'), 'wb') as file:
+            file.write(bytes(rand12))
+        with open(os.path.join(self.tempdir_up, 'a^b^c', 'rand.bin'), 'wb') as file:
+            file.write(bytes(rand13))
 
     def test_get_owner_package(self):
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, 'package-id', owner='owner-id')

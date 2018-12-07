@@ -22,6 +22,21 @@ class TestChem(unittest.TestCase):
         f = chem.EmpiricalFormula('H2')
         self.assertEqual(f, {'H': 2})
 
+        f = chem.EmpiricalFormula('H2.5')
+        self.assertEqual(f, {'H': 2.5})
+
+        f = chem.EmpiricalFormula('H2.5e3')
+        self.assertEqual(f, {'H': 2.5e3})
+
+        f = chem.EmpiricalFormula('H-2.5e3')
+        self.assertEqual(f, {'H': -2.5e3})
+
+        f = chem.EmpiricalFormula('H2.5e+3')
+        self.assertEqual(f, {'H': 2.5e3})
+
+        f = chem.EmpiricalFormula('H2.5e-3')
+        self.assertEqual(f, {'H': 2.5e-3})
+
         f = chem.EmpiricalFormula('He2')
         self.assertEqual(f, {'He': 2})
 
@@ -65,10 +80,12 @@ class TestChem(unittest.TestCase):
         self.assertEqual(f, {})
         self.assertEqual(dict(f), {})
         self.assertEqual(str(f), '')
+        f.A = 1.5
+        self.assertEqual(f, {'A': 1.5})
 
         f = chem.EmpiricalFormula()
-        with self.assertRaisesRegex(ValueError, 'Coefficient must be an integer'):
-            f.A = -1.5
+        with self.assertRaisesRegex(ValueError, 'Coefficient must be a float'):
+            f.A = 'a'
 
     def test_EmpiricalFormula_get_molecular_weight(self):
         f = chem.EmpiricalFormula('H2O')
@@ -103,3 +120,15 @@ class TestChem(unittest.TestCase):
 
         f = chem.EmpiricalFormula('N0OH2')
         self.assertEqual(str(f), 'H2O')
+
+        f = chem.EmpiricalFormula('H2O1.1')
+        self.assertEqual(str(f), 'H2O1.1')
+
+        f = chem.EmpiricalFormula('H2O1.1e-3')
+        self.assertEqual(str(f), 'H2O0.0011')
+
+        f = chem.EmpiricalFormula('H2O1.1e+3')
+        self.assertEqual(str(f), 'H2O1100')
+
+        f = chem.EmpiricalFormula('H2O-1.1e+3')
+        self.assertEqual(str(f), 'H2O-1100')

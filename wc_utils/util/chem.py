@@ -22,33 +22,35 @@ class EmpiricalFormula(attrdict.AttrDefault):
         Raises:
             :obj:`ValueError`: if :obj:`value` is not a valid formula
         """
-        super(EmpiricalFormula, self).__init__(int)
+        super(EmpiricalFormula, self).__init__(float)
 
         if isinstance(value, dict):
             for element, coefficient in value.items():
                 self[element] = coefficient
         else:
-            if not re.match('^(([A-Z][a-z]?)(\-?[0-9]*))*$', value):
+            if not re.match(r'^(([A-Z][a-z]?)(\-?[0-9]+(\.?[0-9]*)?(e[\-\+]?[0-9]*)?)?)*$', value):
                 raise ValueError('"{}" is not a valid formula'.format(value))
 
-            for element, coefficient in re.findall('([A-Z][a-z]?)(\-?[0-9]*)', value):
-                self[element] += int(coefficient or '1')
+            for element, coefficient, _, _ in re.findall(r'([A-Z][a-z]?)(\-?[0-9]+(\.?[0-9]*)?(e[\-\+]?[0-9]*)?)?', value):
+                self[element] += float(coefficient or '1')
 
     def __setitem__(self, element, coefficient):
         """ Set the count of an element
 
         Args:
             element (:obj:`str`): element symbol
-            coefficient (:obj:`int`): element coefficient
+            coefficient (:obj:`float`): element coefficient
 
         Raises:
-            :obj:`ValueError`: if the coefficient is not an integer
+            :obj:`ValueError`: if the coefficient is not a float
         """
-        if int(coefficient) != coefficient:
-            raise ValueError('Coefficient must be an integer')
+        try:
+            float(coefficient)
+        except ValueError:
+            raise ValueError('Coefficient must be a float')
 
         super(EmpiricalFormula, self).__setitem__(element, coefficient)
-        if coefficient == 0:
+        if coefficient == 0.:
             self.pop(element)
 
     def get_molecular_weight(self):
@@ -66,10 +68,12 @@ class EmpiricalFormula(attrdict.AttrDefault):
         """ Generate a string representation of the formula """
         vals = []
         for element, coefficient in self.items():
-            if coefficient == 0:
+            if coefficient == 0.:
                 pass  # pragma: no cover # unreachable due to `__setitem__`
-            elif coefficient == 1:
+            elif coefficient == 1.:
                 vals.append(element)
+            elif coefficient == int(coefficient):
+                vals.append(element + str(int(coefficient)))
             else:
                 vals.append(element + str(coefficient))
         vals.sort()

@@ -44,8 +44,11 @@ class EmpiricalFormula(attrdict.AttrDefault):
         Raises:
             :obj:`ValueError`: if the coefficient is not a float
         """
+        if not re.match(r'^[A-Z][a-z]?$', element):
+            raise ValueError('Element must be a one or two letter string')
+
         try:
-            float(coefficient)
+            coefficient = float(coefficient)
         except ValueError:
             raise ValueError('Coefficient must be a float')
 
@@ -78,6 +81,16 @@ class EmpiricalFormula(attrdict.AttrDefault):
                 vals.append(element + str(coefficient))
         vals.sort()
         return ''.join(vals)
+
+    def __contains__(self, element):
+        """
+        Args:
+            element (:obj:`str`): element symbol
+
+        Returns:
+            :obj:`bool`: :obj:`True` if the empirical formula contains the element
+        """
+        return re.match(r'^[A-Z][a-z]?$', element) is not None
 
     def __add__(self, other):
         """ Add two empirical formulae

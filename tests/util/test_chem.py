@@ -87,6 +87,10 @@ class TestChem(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Coefficient must be a float'):
             f.A = 'a'
 
+        f = chem.EmpiricalFormula()
+        with self.assertRaisesRegex(ValueError, 'Element must be a one or two letter string'):
+            f.Aaa = 1
+
     def test_EmpiricalFormula_get_molecular_weight(self):
         f = chem.EmpiricalFormula('H2O')
         self.assertAlmostEqual(f.get_molecular_weight(), 18.015)
@@ -132,3 +136,9 @@ class TestChem(unittest.TestCase):
 
         f = chem.EmpiricalFormula('H2O-1.1e+3')
         self.assertEqual(str(f), 'H2O-1100')
+
+    def test_EmpiricalFormula___contains__(self):
+        f = chem.EmpiricalFormula('H2O')
+        self.assertIn('H', f)
+        self.assertIn('C', f)
+        self.assertNotIn('Ccc', f)

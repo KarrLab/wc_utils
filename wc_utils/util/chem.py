@@ -24,7 +24,7 @@ class EmpiricalFormula(attrdict.AttrDefault):
         """
         super(EmpiricalFormula, self).__init__(float)
 
-        if isinstance(value, dict):
+        if isinstance(value, (dict, attrdict.AttrDict, attrdict.AttrDefault)):
             for element, coefficient in value.items():
                 self[element] = coefficient
         else:

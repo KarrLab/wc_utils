@@ -7,6 +7,7 @@
 """
 
 from wc_utils.util import chem
+import attrdict
 import unittest
 
 
@@ -53,6 +54,15 @@ class TestChem(unittest.TestCase):
         self.assertEqual(f, {'He': 10})
 
         f = chem.EmpiricalFormula('RaRb')
+        self.assertEqual(f, {'Ra': 1, 'Rb': 1})
+
+        f = chem.EmpiricalFormula(attrdict.AttrDict({'Ra': 1, 'Rb': 1}))
+        self.assertEqual(f, {'Ra': 1, 'Rb': 1})
+
+        f = chem.EmpiricalFormula(attrdict.AttrDefault(int, {'Ra': 1, 'Rb': 1}))
+        self.assertEqual(f, {'Ra': 1, 'Rb': 1})
+
+        f = chem.EmpiricalFormula(chem.EmpiricalFormula('RaRb'))
         self.assertEqual(f, {'Ra': 1, 'Rb': 1})
 
         with self.assertRaisesRegex(ValueError, 'not a valid formula'):

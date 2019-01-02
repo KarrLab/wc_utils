@@ -8,7 +8,8 @@
 """
 
 import unittest
-from wc_utils.util.list import is_sorted, transpose, difference, det_dedupe, det_find_dupes, elements_to_str
+from wc_utils.util.list import (is_sorted, transpose, difference, det_dedupe, det_find_dupes,
+    elements_to_str, det_count_elements)
 
 
 class TestListUtilities(unittest.TestCase):
@@ -40,6 +41,7 @@ class TestListUtilities(unittest.TestCase):
         l = [0, 1, 2, 0, 1, 0, 7, 1]
         expected = [0, 1, 2, 7]
         self.assertEqual(det_dedupe(l), expected)
+        self.assertEqual(det_dedupe([]), [])
         with self.assertRaises(TypeError):
             det_dedupe([[]])
 
@@ -47,8 +49,17 @@ class TestListUtilities(unittest.TestCase):
         l = [0, 1, 2, 0, 1, 7, 1]
         expected = [0, 1]
         self.assertEqual(det_find_dupes(l), expected)
+        self.assertEqual(det_find_dupes([]), [])
         with self.assertRaises(TypeError):
             det_find_dupes([[]])
+
+    def test_det_count_elements(self):
+        l = 'a b c b b c'.split()
+        expected = [('a', 1), ('b', 3), ('c', 2)]
+        self.assertEqual(det_count_elements(l), expected)
+        self.assertEqual(det_count_elements([]), [])
+        with self.assertRaises(TypeError):
+            det_count_elements([[]])
 
     def test_elements_to_str(self):
         l = 'a b c'.split()

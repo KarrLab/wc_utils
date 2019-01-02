@@ -115,6 +115,30 @@ def det_find_dupes(l):
     return dupes
 
 
+def det_count_elements(l):
+    """ Deterministically count elements in an iterable
+
+    Returns the count of each element in `l`. Costs O(n), where n is the length of `l`.
+
+    Args:
+        l (:obj:`iterable`): an iterable with hashable elements
+
+    Returns:
+        :obj:`list` of :obj:`tuple`: a list of pairs, (element, count), for each element in `l`
+
+    Raises:
+        `TypeError` if an element of `l` is an unhashable (mutable) type
+    """
+    counts = {}
+    found = []
+    for e in l:
+        if e not in counts:
+            counts[e] = 0
+            found.append(e)
+        counts[e] += 1
+    return [(e, counts[e]) for e in found]
+
+
 def elements_to_str(l):
     """ Convert each element in an iterator to a string representation
 

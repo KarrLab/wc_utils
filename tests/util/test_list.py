@@ -9,7 +9,7 @@
 
 import unittest
 from wc_utils.util.list import (is_sorted, transpose, difference, det_dedupe, det_find_dupes,
-    elements_to_str, det_count_elements)
+    elements_to_str, det_count_elements, dict_by_class)
 
 
 class TestListUtilities(unittest.TestCase):
@@ -66,3 +66,7 @@ class TestListUtilities(unittest.TestCase):
         self.assertEqual(elements_to_str(l), l)
         l = [1, 'x']
         self.assertEqual(elements_to_str(l), ['1', 'x'])
+
+    def test_dict_by_class(self):
+        self.assertEqual(dict_by_class([]), {})
+        self.assertEqual(dict_by_class([1, 3, 'hi', 'mom']), {int: [1, 3], str: ['hi', 'mom']})

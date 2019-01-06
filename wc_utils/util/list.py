@@ -149,3 +149,21 @@ def elements_to_str(l):
         :obj:`list`: a list containing each element of the iterator converted to a string
     """
     return [str(e) for e in l]
+
+
+def dict_by_class(obj_list):
+    """ Create a `dict` keyed by class from a list of objects
+
+    Args:
+        obj_list (:obj:`list`) list of objects
+
+    Returns:
+        :obj:`dict`: mapping from object class to list of objects of that class
+    """
+    obj_dict = {}
+    for obj in obj_list:
+        cls = obj.__class__
+        if cls not in obj_dict:
+            obj_dict[cls] = []
+        obj_dict[cls].append(obj)
+    return obj_dict

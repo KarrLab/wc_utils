@@ -179,7 +179,7 @@ OrderableNone = OrderableNoneType()
 class DFSMAcceptor(object):
     """ Deterministic finite state machine (DFSM) that accepts sequences which move from the start to the end state
 
-        A data-driven finite state machine (finite state automatia). States and messages can be any
+        A data-driven finite state machine (finite-state automaton). States and messages can be any
         hashable type.
 
     Attributes:

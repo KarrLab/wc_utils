@@ -7,6 +7,7 @@ from . import files
 from . import git
 from . import list
 from . import misc
+from . import ontology
 from . import rand
 from . import stats
 from . import string

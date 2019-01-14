@@ -1,0 +1,65 @@
+7format-version: 1.2
+date: 14:01:2019 13:00
+data-version: 0.0.1
+saved-by: Jonathan Karr <karr@mssm.edu>
+default-namespace: wcm
+remark: distributed under the MIT License (https://github.com/KarrLab/wc_lang/blob/master/LICENSE)
+
+[Term]
+id: WCM:0000000
+name: whole-cell modeling representation
+def: "Representation of an entity used in whole-cell modeling"
+
+[Term]
+id: WCM:0000001
+name: compartment
+def: "Compartment"
+is_a: WCM:0000000 ! whole-cell modeling representation
+
+[Term]
+id: WCM:0000002
+name: biological compartment
+def: "Biological compartment"
+is_a: WCM:0000001 ! compartment
+
+[Term]
+id: WCM:0000003
+name: cellular compartment
+def: "Cellular compartment"
+is_a: WCM:0000002 ! biological compartment
+
+[Term]
+id: WCM:0000004
+name: extracellular compartment
+def: "Extracellular compartment"
+is_a: WCM:0000002 ! biological compartment
+
+[Term]
+id: WCM:0000005
+name: physical compartment
+def: "Physical compartment"
+is_a: WCM:0000001 ! compartment
+
+[Term]
+id: WCM:0000006
+name: fluid compartment
+def: "Fluid compartment"
+is_a: WCM:0000005 ! physical compartment
+
+[Term]
+id: WCM:0000007
+name: membrane compartment
+def: "Membrane compartment"
+is_a: WCM:0000005 ! physical compartment
+
+[Term]
+id: WCM:0000008
+name: geometric compartment
+def: "Geometric compartment"
+is_a: WCM:0000001 ! compartment
+
+[Term]
+id: WCM:0000009
+name: 3d compartment
+def: "3d compartment"
+is_a: WCM:0000008 ! geometric compartment

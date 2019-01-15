@@ -103,7 +103,7 @@ is_a: WCM:0000014 ! species type
 [Term]
 id: WCM:0000017
 name: RNA
-def: "Rna"
+def: "RNA"
 is_a: WCM:0000014 ! species type
 xref: SBO:0000250 ! ribonucleic acid
 
@@ -168,7 +168,7 @@ xref: SBO:0000001 ! rate law
 
 [Term]
 id: WCM:0000021
-name: hill rate law
+name: Hill rate law
 def: "Hill rate law"
 is_a: WCM:0000020 ! rate law
 xref: SBO:0000192 ! Hill-type rate law, generalised form
@@ -259,7 +259,7 @@ is_a: WCM:0000030 ! evidence
 
 [Term]
 id: WCM:0000033
-name: Theoretical evidence
+name: theoretical evidence
 def: "Theoretical evidence"
 is_a: WCM:0000030 ! evidence
 
@@ -350,3 +350,224 @@ name: thesis
 def: "Thesis"
 is_a: WCM:0000040 ! reference
 xref: BRO:Thesis ! Thesis
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Random distribution
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000046
+name: random distribution
+def: "Random distribution"
+is_a: WCM:0000000 ! whole-cell modeling representation
+
+[Term]
+id: WCM:0000047
+name: beta distribution
+def: "Beta distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000048
+name: binomial distribution
+def: "Binomial distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000049
+name: chi square distribution
+def: "Chi square distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000050
+name: Dirichlet distribution
+def: "Dirichlet distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000051
+name: exponential distribution
+def: "Exponential distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000052
+name: f distribution
+def: "F distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000053
+name: gamma distribution
+def: "Gamma distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000054
+name: geometric distribution
+def: "Geometric distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000055
+name: Gumbel distribution
+def: "Gumbel distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000055
+name: hypergeometric distribution
+def: "Hypergeometric distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000056
+name: Laplace distribution
+def: "Laplace distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000057
+name: logisitic distribution
+def: "Logisitic distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000058
+name: log normal distribution
+def: "Log normal distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000059
+name: log series distribution
+def: "Log series distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000060
+name: multinomial distribution
+def: "Multinomial distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000061
+name: multivariate-normal distribution
+def: "Multivariate-normal distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000062
+name: negative-binomial distribution
+def: "Negative-binomial distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000063
+name: noncentral-chi square distribution
+def: "Noncentral-chi square distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000064
+name: noncentral-f distribution
+def: "Noncentral-f distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000065
+name: normal distribution
+def: "Normal distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000066
+name: Pareto distribution
+def: "Pareto distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000067
+name: Poisson distribution
+def: "Poisson distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000068
+name: power distribution
+def: "Power distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000069
+name: Rayleigh distribution
+def: "Rayleigh distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000070
+name: standard-Cauchy distribution
+def: "Standard-Cauchy distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000071
+name: standard-exponential distribution
+def: "Standard-exponential distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000072
+name: standard-gamma distribution
+def: "Standard-gamma distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000073
+name: standard-normal distribution
+def: "Standard-normal distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000074
+name: standard-t distribution
+def: "Standard-t distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000075
+name: triangular distribution
+def: "Triangular distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000076
+name: uniform distribution
+def: "Uniform distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000077
+name: Vonmises distribution
+def: "Vonmises distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000078
+name: Wald distribution
+def: "Wald distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000079
+name: Weibull distribution
+def: "Weibull distribution"
+is_a: WCM:0000046 ! random distribution
+
+[Term]
+id: WCM:0000080
+name: Zipf distribution
+def: "Zipf distribution"
+is_a: WCM:0000046 ! random distribution

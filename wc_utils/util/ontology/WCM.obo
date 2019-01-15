@@ -10,7 +10,7 @@ default-namespace: wcm
 remark: distributed under the MIT License (https://github.com/KarrLab/wc_lang/blob/master/LICENSE)
 
 [Term]
-id: WCM:0000000
+id: WCM:representation
 name: whole-cell modeling representation
 def: "Representation of an entity used in whole-cell modeling"
 
@@ -20,61 +20,61 @@ def: "Representation of an entity used in whole-cell modeling"
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000001
+id: WCM:compartment
 name: compartment
 def: "Compartment"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 xref: SBO:0000289 ! functional compartment
 
 [Term]
-id: WCM:0000002
+id: WCM:biological_compartment
 name: biological compartment
 def: "Biological compartment"
-is_a: WCM:0000001 ! compartment
+is_a: WCM:compartment
 
 [Term]
-id: WCM:0000003
+id: WCM:cellular_compartment
 name: cellular compartment
 def: "Cellular compartment"
-is_a: WCM:0000002 ! biological compartment
+is_a: WCM:biological_compartment
 xref: sao1337158144 ! Cellular Component
 
 [Term]
-id: WCM:0000004
+id: WCM:extracellular_compartment
 name: extracellular compartment
 def: "Extracellular compartment"
-is_a: WCM:0000002 ! biological compartment
+is_a: WCM:biological_compartment
 
 [Term]
-id: WCM:0000005
+id: WCM:physical_compartment
 name: physical compartment
 def: "Physical compartment"
-is_a: WCM:0000001 ! compartment
+is_a: WCM:compartment
 xref: SBO:0000290 ! physical compartment
 
 [Term]
-id: WCM:0000006
+id: WCM:fluid_compartment
 name: fluid compartment
 def: "Fluid compartment"
-is_a: WCM:0000005 ! physical compartment
+is_a: WCM:physical_compartment
 
 [Term]
-id: WCM:0000007
+id: WCM:membrane_compartment
 name: membrane compartment
 def: "Membrane compartment"
-is_a: WCM:0000005 ! physical compartment
+is_a: WCM:physical_compartment
 
 [Term]
-id: WCM:0000008
+id: WCM:geometric_compartment
 name: geometric compartment
 def: "Geometric compartment"
-is_a: WCM:0000001 ! compartment
+is_a: WCM:compartment
 
 [Term]
-id: WCM:0000009
+id: WCM:3D_compartment
 name: 3D compartment
 def: "3D compartment"
-is_a: WCM:0000008 ! geometric compartment
+is_a: WCM:geometric_compartment
 
 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -82,76 +82,79 @@ is_a: WCM:0000008 ! geometric compartment
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000014
+id: WCM:species_type
 name: species type
 def: "Type of species"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 
 [Term]
-id: WCM:0000015
+id: WCM:metabolite
 name: metabolite
 def: "Metabolite"
-is_a: WCM:0000014 ! species type
+is_a: WCM:species_type
 xref: SBO:0000299 ! metabolite
 
 [Term]
-id: WCM:0000016
+id: WCM:protein
 name: protein
 def: "Protein"
-is_a: WCM:0000014 ! species type
+is_a: WCM:species_type
 
 [Term]
-id: WCM:0000017
+id: WCM:RNA
 name: RNA
 def: "RNA"
-is_a: WCM:0000014 ! species type
+is_a: WCM:species_type
 xref: SBO:0000250 ! ribonucleic acid
 
 [Term]
-id: WCM:0000018
+id: WCM:DNA
 name: DNA
 def: "DNA"
-is_a: WCM:0000014 ! species type
+is_a: WCM:species_type
 xref: SBO:0000251 ! deoxyribonucleic acid
 
 [Term]
-id: WCM:0000019
+id: WCM:pseudo_species
 name: pseudo-species
 def: "Pseudo-species"
-is_a: WCM:0000014 ! species type
+is_a: WCM:species_type
 
 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- !!! Submodels
+ !!! Modeling frameworks
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000010
-name: submodel
-def: "Submodel"
-is_a: WCM:0000000 ! whole-cell modeling representation
+id: WCM:modeling_framework
+name: modeling framework
+def: "Modeling framework"
+is_a: WCM:representation
 xref: kisao:KISAO_0000000 ! modelling and simulation algorithm
 
 [Term]
-id: WCM:0000011
-name: SSA
+id: WCM:stochastic_simulation_algorithm
+name: stochastic simulation algorithm
 def: "Stochastic simulation algorithm"
-is_a: WCM:0000010 ! submodel
+! synonym: "SSA" EXACT
+is_a: WCM:modeling_framework
 xref: SBO:0000295 ! non-spatial discrete framework
 xref: kisao:KISAO_0000241 ! Gillespie-like method
 
 [Term]
-id: WCM:0000012
-name: ODE
+id: WCM:ordinary_differential_equations
+name: ordinary differential equations
 def: "Ordinary differential equations"
-is_a: WCM:0000010 ! submodel
+! synonym: "ODEs" EXACT
+is_a: WCM:modeling_framework
 xref: SBO:0000062 ! continuous framework
 
 [Term]
-id: WCM:0000013
-name: dFBA
+id: WCM:dynamic_flux_balance_analysis
+name: dynamic flux balance analysis
 def: "Dynamic flux balance analysis"
-is_a: WCM:0000010 ! submodel
+! synonym: "dFBA" EXACT
+is_a: WCM:modeling_framework
 xref: SBO:0000624 ! flux balance framework
 xref: kisao:KISAO_0000499 ! dynamic flux balance analysis
 
@@ -160,38 +163,38 @@ xref: kisao:KISAO_0000499 ! dynamic flux balance analysis
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000020
+id: WCM:rate_law
 name: rate law
 def: "Rate law"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 xref: SBO:0000001 ! rate law
 
 [Term]
-id: WCM:0000021
-name: Hill rate law
+id: WCM:hill_rate_law
+name: hill rate law
 def: "Hill rate law"
-is_a: WCM:0000020 ! rate law
+is_a: WCM:rate_law
 xref: SBO:0000192 ! Hill-type rate law, generalised form
 
 [Term]
-id: WCM:0000022
+id: WCM:mass_action_rate_law
 name: mass-action rate law
 def: "Mass-action rate law"
-is_a: WCM:0000020 ! rate law
+is_a: WCM:rate_law
 xref: SBO:0000012 ! mass action rate law
 
 [Term]
-id: WCM:0000023
+id: WCM:Michaelis_Menten_rate_law
 name: Michaelis-Menten rate law
 def: "Michaelis-Menten rate law"
-is_a: WCM:0000020 ! rate law
+is_a: WCM:rate_law
 xref: SBO:0000029 ! Henri-Michaelis-Menten rate law
 
 [Term]
-id: WCM:0000024
+id: WCM:modular_rate_law
 name: modular rate law
 def: "Modular rate law"
-is_a: WCM:0000020 ! rate law
+is_a: WCM:rate_law
 xref: SBO:0000527 ! modular rate law
 
 
@@ -200,38 +203,38 @@ xref: SBO:0000527 ! modular rate law
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000025
+id: WCM:parameter
 name: parameter
 def: "Parameter"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 xref: SBO:0000002 ! quantitative systems description parameter
 
 [Term]
-id: WCM:0000026
+id: WCM:k_cat
 name: k_cat
 def: "k_cat"
-is_a: WCM:0000025 ! parameter
+is_a: WCM:parameter
 xref: SBO:0000025 ! catalytic rate constant
 
 [Term]
-id: WCM:0000027
+id: WCM:K_m
 name: K_m
 def: "K_m"
-is_a: WCM:0000025 ! parameter
+is_a: WCM:parameter
 xref: SBO:0000027 ! Michaelis constant
 
 [Term]
-id: WCM:0000028
+id: WCM:v_max
 name: v_max
 def: "v_max"
-is_a: WCM:0000025 ! parameter
+is_a: WCM:parameter
 xref: SBO:0000186 ! maximal velocity
 
 [Term]
-id: WCM:0000029
+id: WCM:K_i
 name: K_i
 def: "K_i"
-is_a: WCM:0000025 ! parameter
+is_a: WCM:parameter
 xref: SBO:0000261 ! inhibitory constant
 
 
@@ -240,28 +243,28 @@ xref: SBO:0000261 ! inhibitory constant
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000030
+id: WCM:evidence
 name: evidence
 def: "Evidence"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 
 [Term]
-id: WCM:0000031
+id: WCM:experimental_evidence
 name: experimental evidence
 def: "Experimental evidence"
-is_a: WCM:0000030 ! evidence
+is_a: WCM:evidence
 
 [Term]
-id: WCM:0000032
+id: WCM:computational_evidence
 name: computational evidence
 def: "Computational evidence"
-is_a: WCM:0000030 ! evidence
+is_a: WCM:evidence
 
 [Term]
-id: WCM:0000033
+id: WCM:theoretical_evidence
 name: theoretical evidence
 def: "Theoretical evidence"
-is_a: WCM:0000030 ! evidence
+is_a: WCM:evidence
 
 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -269,40 +272,40 @@ is_a: WCM:0000030 ! evidence
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000034
+id: WCM:interpretation
 name: interpretation
 def: "Interpretation"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 
 [Term]
-id: WCM:0000035
+id: WCM:assumption
 name: assumption
 def: "Assumption"
-is_a: WCM:0000034 ! interpretation
+is_a: WCM:interpretation
 
 [Term]
-id: WCM:0000036
+id: WCM:approximation
 name: approximation
 def: "Approximation"
-is_a: WCM:0000034 ! interpretation
+is_a: WCM:interpretation
 
 [Term]
-id: WCM:0000037
+id: WCM:coarse_graining
 name: coarse-graining
 def: "Coarse-graining"
-is_a: WCM:0000036 ! interpretation
+is_a: WCM:approximation
 
 [Term]
-id: WCM:0000038
+id: WCM:computation
 name: computation
 def: "Computation"
-is_a: WCM:0000034 ! interpretation
+is_a: WCM:interpretation
 
 [Term]
-id: WCM:0000039
+id: WCM:decision
 name: decision
 def: "Decision"
-is_a: WCM:0000034 ! interpretation
+is_a: WCM:interpretation
 
 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -310,45 +313,45 @@ is_a: WCM:0000034 ! interpretation
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000040
+id: WCM:reference
 name: reference
 def: "Reference"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 xref: BRO:Information_Resource ! Information Resource
 
 [Term]
-id: WCM:0000041
+id: WCM:article
 name: article
 def: "Article"
-is_a: WCM:0000040 ! reference
+is_a: WCM:reference
 xref: BRO:Journal_Article ! Journal Article
 
 [Term]
-id: WCM:0000042
+id: WCM:book
 name: book
 def: "Book"
-is_a: WCM:0000040 ! reference
+is_a: WCM:reference
 xref: BRO:Book ! book
 
 [Term]
-id: WCM:0000043
+id: WCM:website
 name: online
 def: "Online"
-is_a: WCM:0000040 ! reference
+is_a: WCM:reference
 xref: BRO:Website ! Website
 
 [Term]
-id: WCM:0000044
+id: WCM:proceedings
 name: proceedings
 def: "Proceedings"
-is_a: WCM:0000040 ! reference
+is_a: WCM:reference
 xref: BRO:Conference_Proceeding ! Conference Proceeding
 
 [Term]
-id: WCM:0000045
+id: WCM:thesis
 name: thesis
 def: "Thesis"
-is_a: WCM:0000040 ! reference
+is_a: WCM:reference
 xref: BRO:Thesis ! Thesis
 
 
@@ -357,217 +360,217 @@ xref: BRO:Thesis ! Thesis
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 [Term]
-id: WCM:0000046
+id: WCM:random_distribution
 name: random distribution
 def: "Random distribution"
-is_a: WCM:0000000 ! whole-cell modeling representation
+is_a: WCM:representation
 
 [Term]
-id: WCM:0000047
+id: WCM:beta_distribution
 name: beta distribution
 def: "Beta distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000048
+id: WCM:binomial_distribution
 name: binomial distribution
 def: "Binomial distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000049
+id: WCM:chi_square_distribution
 name: chi square distribution
 def: "Chi square distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000050
+id: WCM:Dirichlet_distribution
 name: Dirichlet distribution
 def: "Dirichlet distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000051
+id: WCM:exponential_distribution
 name: exponential distribution
 def: "Exponential distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000052
+id: WCM:f_distribution
 name: f distribution
 def: "F distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000053
+id: WCM:gamma_distribution
 name: gamma distribution
 def: "Gamma distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000054
+id: WCM:geometric_distribution
 name: geometric distribution
 def: "Geometric distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000055
+id: WCM:Gumbel_distribution
 name: Gumbel distribution
 def: "Gumbel distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000055
+id: WCM:hypergeometric_distribution
 name: hypergeometric distribution
 def: "Hypergeometric distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000056
+id: WCM:Laplace_distribution
 name: Laplace distribution
 def: "Laplace distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000057
+id: WCM:logisitic_distribution
 name: logisitic distribution
 def: "Logisitic distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000058
+id: WCM:log_normal_distribution
 name: log normal distribution
 def: "Log normal distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000059
+id: WCM:log_series_distribution
 name: log series distribution
 def: "Log series distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000060
+id: WCM:multinomial_distribution
 name: multinomial distribution
 def: "Multinomial distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000061
+id: WCM:multivariate_normal_distribution
 name: multivariate-normal distribution
 def: "Multivariate-normal distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000062
+id: WCM:negative_binomial_distribution
 name: negative-binomial distribution
 def: "Negative-binomial distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000063
+id: WCM:noncentral-chi square_distribution
 name: noncentral-chi square distribution
 def: "Noncentral-chi square distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000064
+id: WCM:noncentral-f_distribution
 name: noncentral-f distribution
 def: "Noncentral-f distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000065
+id: WCM:normal_distribution
 name: normal distribution
 def: "Normal distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000066
+id: WCM:Pareto_distribution
 name: Pareto distribution
 def: "Pareto distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000067
+id: WCM:Poisson_distribution
 name: Poisson distribution
 def: "Poisson distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000068
+id: WCM:power_distribution
 name: power distribution
 def: "Power distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000069
+id: WCM:Rayleigh_distribution
 name: Rayleigh distribution
 def: "Rayleigh distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000070
+id: WCM:standard-Cauchy_distribution
 name: standard-Cauchy distribution
 def: "Standard-Cauchy distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000071
+id: WCM:standard-exponential_distribution
 name: standard-exponential distribution
 def: "Standard-exponential distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000072
+id: WCM:standard-gamma_distribution
 name: standard-gamma distribution
 def: "Standard-gamma distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000073
+id: WCM:standard-normal_distribution
 name: standard-normal distribution
 def: "Standard-normal distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000074
+id: WCM:standard-t_distribution
 name: standard-t distribution
 def: "Standard-t distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000075
+id: WCM:triangular_distribution
 name: triangular distribution
 def: "Triangular distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000076
+id: WCM:uniform_distribution
 name: uniform distribution
 def: "Uniform distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000077
+id: WCM:Vonmises_distribution
 name: Vonmises distribution
 def: "Vonmises distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000078
+id: WCM:Wald_distribution
 name: Wald distribution
 def: "Wald distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000079
+id: WCM:Weibull_distribution
 name: Weibull distribution
 def: "Weibull distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution
 
 [Term]
-id: WCM:0000080
+id: WCM:Zipf_distribution
 name: Zipf distribution
 def: "Zipf distribution"
-is_a: WCM:0000046 ! random distribution
+is_a: WCM:random_distribution

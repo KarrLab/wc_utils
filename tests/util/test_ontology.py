@@ -14,4 +14,4 @@ class OntologyTestCase(unittest.TestCase):
     def test(self):
         from wc_utils.util import ontology
         self.assertIsInstance(ontology.wcm_ontology, pronto.Ontology)
-        self.assertIsInstance(ontology.wcm_ontology['WCM:0000000'], pronto.term.Term)
+        self.assertIsInstance(ontology.wcm_ontology['WCM:representation'], pronto.term.Term)

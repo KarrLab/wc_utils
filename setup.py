@@ -15,7 +15,7 @@ package_data = {
         'config/*.cfg',
         'debug_logs/*.cfg',
         'util/units.txt',
-        'util/WCM.obo',
+        'util/ontology/WCM.obo',
     ],
 }
 

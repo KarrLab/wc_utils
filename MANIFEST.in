@@ -17,4 +17,4 @@ recursive-include wc_utils *.cfg
 include wc_utils/util/units.txt
 
 # ontology
-include wc_utils/util/WCM.obo
+include wc_utils/util/ontology/WCM.obo

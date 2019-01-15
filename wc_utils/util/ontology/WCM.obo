@@ -1,0 +1,352 @@
+format-version: 1.2
+date: 14:01:2019 13:00
+data-version: 0.0.1
+saved-by: Jonathan Karr <karr@mssm.edu>
+ ! import: SBO
+ ! import: KISAO
+ ! import: SAO
+ ! import: BRO
+default-namespace: wcm
+remark: distributed under the MIT License (https://github.com/KarrLab/wc_lang/blob/master/LICENSE)
+
+[Term]
+id: WCM:0000000
+name: whole-cell modeling representation
+def: "Representation of an entity used in whole-cell modeling"
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Compartments
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000001
+name: compartment
+def: "Compartment"
+is_a: WCM:0000000 ! whole-cell modeling representation
+xref: SBO:0000289 ! functional compartment
+
+[Term]
+id: WCM:0000002
+name: biological compartment
+def: "Biological compartment"
+is_a: WCM:0000001 ! compartment
+
+[Term]
+id: WCM:0000003
+name: cellular compartment
+def: "Cellular compartment"
+is_a: WCM:0000002 ! biological compartment
+xref: sao1337158144 ! Cellular Component
+
+[Term]
+id: WCM:0000004
+name: extracellular compartment
+def: "Extracellular compartment"
+is_a: WCM:0000002 ! biological compartment
+
+[Term]
+id: WCM:0000005
+name: physical compartment
+def: "Physical compartment"
+is_a: WCM:0000001 ! compartment
+xref: SBO:0000290 ! physical compartment
+
+[Term]
+id: WCM:0000006
+name: fluid compartment
+def: "Fluid compartment"
+is_a: WCM:0000005 ! physical compartment
+
+[Term]
+id: WCM:0000007
+name: membrane compartment
+def: "Membrane compartment"
+is_a: WCM:0000005 ! physical compartment
+
+[Term]
+id: WCM:0000008
+name: geometric compartment
+def: "Geometric compartment"
+is_a: WCM:0000001 ! compartment
+
+[Term]
+id: WCM:0000009
+name: 3D compartment
+def: "3D compartment"
+is_a: WCM:0000008 ! geometric compartment
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Species types
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000014
+name: species type
+def: "Type of species"
+is_a: WCM:0000000 ! whole-cell modeling representation
+
+[Term]
+id: WCM:0000015
+name: metabolite
+def: "Metabolite"
+is_a: WCM:0000014 ! species type
+xref: SBO:0000299 ! metabolite
+
+[Term]
+id: WCM:0000016
+name: protein
+def: "Protein"
+is_a: WCM:0000014 ! species type
+
+[Term]
+id: WCM:0000017
+name: RNA
+def: "Rna"
+is_a: WCM:0000014 ! species type
+xref: SBO:0000250 ! ribonucleic acid
+
+[Term]
+id: WCM:0000018
+name: DNA
+def: "DNA"
+is_a: WCM:0000014 ! species type
+xref: SBO:0000251 ! deoxyribonucleic acid
+
+[Term]
+id: WCM:0000019
+name: pseudo-species
+def: "Pseudo-species"
+is_a: WCM:0000014 ! species type
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Submodels
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000010
+name: submodel
+def: "Submodel"
+is_a: WCM:0000000 ! whole-cell modeling representation
+xref: kisao:KISAO_0000000 ! modelling and simulation algorithm
+
+[Term]
+id: WCM:0000011
+name: SSA
+def: "Stochastic simulation algorithm"
+is_a: WCM:0000010 ! submodel
+xref: SBO:0000295 ! non-spatial discrete framework
+xref: kisao:KISAO_0000241 ! Gillespie-like method
+
+[Term]
+id: WCM:0000012
+name: ODE
+def: "Ordinary differential equations"
+is_a: WCM:0000010 ! submodel
+xref: SBO:0000062 ! continuous framework
+
+[Term]
+id: WCM:0000013
+name: dFBA
+def: "Dynamic flux balance analysis"
+is_a: WCM:0000010 ! submodel
+xref: SBO:0000624 ! flux balance framework
+xref: kisao:KISAO_0000499 ! dynamic flux balance analysis
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Rate laws
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000020
+name: rate law
+def: "Rate law"
+is_a: WCM:0000000 ! whole-cell modeling representation
+xref: SBO:0000001 ! rate law
+
+[Term]
+id: WCM:0000021
+name: hill rate law
+def: "Hill rate law"
+is_a: WCM:0000020 ! rate law
+xref: SBO:0000192 ! Hill-type rate law, generalised form
+
+[Term]
+id: WCM:0000022
+name: mass-action rate law
+def: "Mass-action rate law"
+is_a: WCM:0000020 ! rate law
+xref: SBO:0000012 ! mass action rate law
+
+[Term]
+id: WCM:0000023
+name: Michaelis-Menten rate law
+def: "Michaelis-Menten rate law"
+is_a: WCM:0000020 ! rate law
+xref: SBO:0000029 ! Henri-Michaelis-Menten rate law
+
+[Term]
+id: WCM:0000024
+name: modular rate law
+def: "Modular rate law"
+is_a: WCM:0000020 ! rate law
+xref: SBO:0000527 ! modular rate law
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Parameters
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000025
+name: parameter
+def: "Parameter"
+is_a: WCM:0000000 ! whole-cell modeling representation
+xref: SBO:0000002 ! quantitative systems description parameter
+
+[Term]
+id: WCM:0000026
+name: k_cat
+def: "k_cat"
+is_a: WCM:0000025 ! parameter
+xref: SBO:0000025 ! catalytic rate constant
+
+[Term]
+id: WCM:0000027
+name: K_m
+def: "K_m"
+is_a: WCM:0000025 ! parameter
+xref: SBO:0000027 ! Michaelis constant
+
+[Term]
+id: WCM:0000028
+name: v_max
+def: "v_max"
+is_a: WCM:0000025 ! parameter
+xref: SBO:0000186 ! maximal velocity
+
+[Term]
+id: WCM:0000029
+name: K_i
+def: "K_i"
+is_a: WCM:0000025 ! parameter
+xref: SBO:0000261 ! inhibitory constant
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Evidence
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000030
+name: evidence
+def: "Evidence"
+is_a: WCM:0000000 ! whole-cell modeling representation
+
+[Term]
+id: WCM:0000031
+name: experimental evidence
+def: "Experimental evidence"
+is_a: WCM:0000030 ! evidence
+
+[Term]
+id: WCM:0000032
+name: computational evidence
+def: "Computational evidence"
+is_a: WCM:0000030 ! evidence
+
+[Term]
+id: WCM:0000033
+name: Theoretical evidence
+def: "Theoretical evidence"
+is_a: WCM:0000030 ! evidence
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Interpretation
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000034
+name: interpretation
+def: "Interpretation"
+is_a: WCM:0000000 ! whole-cell modeling representation
+
+[Term]
+id: WCM:0000035
+name: assumption
+def: "Assumption"
+is_a: WCM:0000034 ! interpretation
+
+[Term]
+id: WCM:0000036
+name: approximation
+def: "Approximation"
+is_a: WCM:0000034 ! interpretation
+
+[Term]
+id: WCM:0000037
+name: coarse-graining
+def: "Coarse-graining"
+is_a: WCM:0000036 ! interpretation
+
+[Term]
+id: WCM:0000038
+name: computation
+def: "Computation"
+is_a: WCM:0000034 ! interpretation
+
+[Term]
+id: WCM:0000039
+name: decision
+def: "Decision"
+is_a: WCM:0000034 ! interpretation
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! References
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:0000040
+name: reference
+def: "Reference"
+is_a: WCM:0000000 ! whole-cell modeling representation
+xref: BRO:Information_Resource ! Information Resource
+
+[Term]
+id: WCM:0000041
+name: article
+def: "Article"
+is_a: WCM:0000040 ! reference
+xref: BRO:Journal_Article ! Journal Article
+
+[Term]
+id: WCM:0000042
+name: book
+def: "Book"
+is_a: WCM:0000040 ! reference
+xref: BRO:Book ! book
+
+[Term]
+id: WCM:0000043
+name: online
+def: "Online"
+is_a: WCM:0000040 ! reference
+xref: BRO:Website ! Website
+
+[Term]
+id: WCM:0000044
+name: proceedings
+def: "Proceedings"
+is_a: WCM:0000040 ! reference
+xref: BRO:Conference_Proceeding ! Conference Proceeding
+
+[Term]
+id: WCM:0000045
+name: thesis
+def: "Thesis"
+is_a: WCM:0000040 ! reference
+xref: BRO:Thesis ! Thesis

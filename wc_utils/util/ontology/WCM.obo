@@ -468,7 +468,7 @@ def: "Negative-binomial distribution"
 is_a: WCM:random_distribution
 
 [Term]
-id: WCM:noncentral-chi square_distribution
+id: WCM:noncentral-chi_square_distribution
 name: noncentral-chi square distribution
 def: "Noncentral-chi square distribution"
 is_a: WCM:random_distribution

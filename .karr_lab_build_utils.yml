@@ -6,7 +6,7 @@ downstream_dependencies:
   - mycoplasma_pneumoniae
   - obj_model
   - rand_wc_model_gen
-  - wc
+  - wc_cli
   - wc_env_manager
   - wc_kb
   - wc_lang

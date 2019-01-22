@@ -37,3 +37,23 @@ class TestUnits(unittest.TestCase):
         self.assertAlmostEqual((2.5 * ureg('enzyme_unit')).to('kat').magnitude, 2.5 / 60 * 1e-6)
         self.assertAlmostEqual((2.5 * ureg('U')).to('kat').magnitude, 2.5 / 60 * 1e-6)
         self.assertAlmostEqual(str((2.5 * ureg('U')).to('kat').units), 'katal')
+
+    def test_are_units_equivalent(self):
+        registry1 = units.unit_registry
+        registry2 = pint.UnitRegistry()
+        registry3 = pint.UnitRegistry()
+
+        self.assertTrue(units.are_units_equivalent(registry1.parse_units('g'), registry1.parse_units('g')))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('g'), registry2.parse_units('g')))
+        self.assertTrue(units.are_units_equivalent(registry1.parse_units('g'), registry1.parse_units('g / l * l')))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('g'), registry2.parse_units('g / l * l')))
+        self.assertTrue(units.are_units_equivalent(registry1.parse_units('M'), registry1.parse_units('mol / l')))
+        self.assertTrue(units.are_units_equivalent(None, None))
+        self.assertFalse(units.are_units_equivalent(None, registry1.parse_units('mol / l')))
+        self.assertFalse(units.are_units_equivalent('g', registry1.parse_units('mol / l')))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('mol / l'), None))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('g'), registry1.parse_units('l')))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('ag'), registry1.parse_units('g'),
+                                                    check_same_magnitude=True))
+        self.assertTrue(units.are_units_equivalent(registry1.parse_units('ag'), registry1.parse_units('g'),
+                                                   check_same_magnitude=False))

@@ -35,3 +35,39 @@ def get_unit_registry(base_filename='', extra_filenames=None):
 
 unit_registry = get_unit_registry(extra_filenames=[DEFAULT_UNIT_DEFINITION_FILENAME])
 # :obj:`pint.UnitRegistry`: unit registry
+
+
+def are_units_equivalent(units1, units2, check_same_magnitude=True):
+    """ Determine if two units are equivalent
+
+    Args:
+        units1 (:obj:`pint.unit._Unit`): units
+        units2 (:obj:`pint.unit._Unit`): other units
+        check_same_magnitude (:obj:`bool`, optional): if :obj:`True`, units are only equivalent if they
+            have the same magnitude
+
+    Returns:
+        :obj:`bool`: :obj:`True` if the units are equivalent
+    """
+    if units1 is None:
+        if units2 is None:
+            return True
+        return False
+    else:
+        if units2 is None:
+            return False
+        else:
+            if not isinstance(units1, pint.unit._Unit):
+                return False
+            registry = units1._REGISTRY
+            if not isinstance(units2, registry.Unit):
+                return False
+            if units1 == units2:
+                return True
+            units1_expr = registry.parse_expression(str(units1))
+            try:
+                units2_expr = units1_expr.to(units2)
+            except pint.DimensionalityError:
+                return False
+
+            return not check_same_magnitude or units2_expr.magnitude == 1

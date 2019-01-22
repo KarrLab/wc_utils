@@ -8,7 +8,7 @@ git+https://github.com/KarrLab/log.git#egg=log-2016.10.12 # >= 2016.10.12
 mendeleev
 numpy
 openpyxl
-pint
+pint >= 0.9
 git+https://github.com/KarrLab/pronto.git#egg=pronto-0.12.1 >= 0.12.1
 pyexcel >= 0.5.9.1
 # avoid a bug in pyexcel_io 0.4.1; see https://github.com/pyexcel/pyexcel/issues/89

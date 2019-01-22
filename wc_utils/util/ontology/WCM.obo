@@ -211,31 +211,51 @@ is_a: WCM:representation
 xref: SBO:0000002 ! quantitative systems description parameter
 
 [Term]
+id: WCM:physical_constant
+name: physical constant
+def: "Physical constant"
+is_a: WCM:parameter
+
+[Term]
+id: WCM:kinetic_constant
+name: kinetic constant
+def: "Kinetic constant"
+is_a: WCM:parameter
+xref: SBO:0000009 ! kinetic constant
+
+[Term]
+id: WCM:K_i
+name: K_i
+def: "K_i"
+is_a: kinetic_constant
+xref: SBO:0000261 ! inhibitory constant
+
+[Term]
 id: WCM:k_cat
 name: k_cat
 def: "k_cat"
-is_a: WCM:parameter
+is_a: kinetic_constant
 xref: SBO:0000025 ! catalytic rate constant
 
 [Term]
 id: WCM:K_m
 name: K_m
 def: "K_m"
-is_a: WCM:parameter
+is_a: kinetic_constant
 xref: SBO:0000027 ! Michaelis constant
 
 [Term]
 id: WCM:v_max
 name: v_max
 def: "v_max"
-is_a: WCM:parameter
+is_a: kinetic_constant
 xref: SBO:0000186 ! maximal velocity
 
 [Term]
 id: WCM:K_i
 name: K_i
 def: "K_i"
-is_a: WCM:parameter
+is_a: kinetic_constant
 xref: SBO:0000261 ! inhibitory constant
 
 
@@ -636,6 +656,12 @@ is_a: WCM:change_provenance
 id: WCM:copy_change_provenance
 name: copy
 def: "Copy"
+is_a: WCM:change_provenance
+
+[Term]
+id: WCM:revert_change_provenance
+name: revert
+def: "Revert"
 is_a: WCM:change_provenance
 
 [Term]

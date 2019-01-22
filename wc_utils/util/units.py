@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+import operator
 import os
 import pint
 import pkg_resources
@@ -64,10 +65,12 @@ def are_units_equivalent(units1, units2, check_same_magnitude=True):
                 return False
             if units1 == units2:
                 return True
-            units1_expr = registry.parse_expression(str(units1))
-            try:
-                units2_expr = units1_expr.to(units2)
-            except pint.DimensionalityError:
-                return False
 
-            return not check_same_magnitude or units2_expr.magnitude == 1
+            if check_same_magnitude:
+                try:
+                    return units1.compare(units2, operator.eq)
+                except pint.DimensionalityError:
+                    return False
+            else:
+                units1_expr = registry.parse_expression(str(units1))
+                return units1_expr.check(units2)

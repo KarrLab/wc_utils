@@ -20,7 +20,8 @@ class TestUnits(unittest.TestCase):
         quantity = ureg.parse_expression('s^(-1)')
         self.assertEqual(str(quantity.units), '1 / second')
 
-        self.assertRaises(pint.UndefinedUnitError, ureg.parse_expression, 'M')
+        with self.assertRaises(pint.UndefinedUnitError):
+            ureg.parse_expression('NOT_A_UNIT')
 
     def test_unit_registry(self):
         ureg = units.unit_registry
@@ -52,7 +53,10 @@ class TestUnits(unittest.TestCase):
         self.assertFalse(units.are_units_equivalent(None, registry1.parse_units('mol / l')))
         self.assertFalse(units.are_units_equivalent('g', registry1.parse_units('mol / l')))
         self.assertFalse(units.are_units_equivalent(registry1.parse_units('mol / l'), None))
-        self.assertFalse(units.are_units_equivalent(registry1.parse_units('g'), registry1.parse_units('l')))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('g'), registry1.parse_units('l'),
+                                                    check_same_magnitude=True))
+        self.assertFalse(units.are_units_equivalent(registry1.parse_units('g'), registry1.parse_units('l'),
+                                                    check_same_magnitude=False))
         self.assertFalse(units.are_units_equivalent(registry1.parse_units('ag'), registry1.parse_units('g'),
                                                     check_same_magnitude=True))
         self.assertTrue(units.are_units_equivalent(registry1.parse_units('ag'), registry1.parse_units('g'),

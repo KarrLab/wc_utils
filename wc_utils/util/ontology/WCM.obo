@@ -1,11 +1,12 @@
-format-version: 1.2
-date: 14:01:2019 13:00
+format-version: 1.4
 data-version: 0.0.1
+date: 14:01:2019 13:00
 saved-by: Jonathan Karr <karr@mssm.edu>
- ! import: SBO
+ ! import: BRO
+ ! import: COMODI
  ! import: KISAO
  ! import: SAO
- ! import: BRO
+ ! import: SBO
 default-namespace: wcm
 remark: distributed under the MIT License (https://github.com/KarrLab/wc_lang/blob/master/LICENSE)
 
@@ -239,6 +240,17 @@ xref: SBO:0000261 ! inhibitory constant
 
 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Provenance
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:provenance
+name: provenance
+def: "Provenance"
+is_a: WCM:representation
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  !!! Evidence
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -246,7 +258,7 @@ xref: SBO:0000261 ! inhibitory constant
 id: WCM:evidence
 name: evidence
 def: "Evidence"
-is_a: WCM:representation
+is_a: WCM:provenance
 
 [Term]
 id: WCM:experimental_evidence
@@ -275,7 +287,7 @@ is_a: WCM:evidence
 id: WCM:interpretation
 name: interpretation
 def: "Interpretation"
-is_a: WCM:representation
+is_a: WCM:provenance
 
 [Term]
 id: WCM:assumption
@@ -316,7 +328,7 @@ is_a: WCM:interpretation
 id: WCM:reference
 name: reference
 def: "Reference"
-is_a: WCM:representation
+is_a: WCM:provenance
 xref: BRO:Information_Resource ! Information Resource
 
 [Term]
@@ -574,3 +586,183 @@ id: WCM:Zipf_distribution
 name: Zipf distribution
 def: "Zipf distribution"
 is_a: WCM:random_distribution
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!! Changes
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Term]
+id: WCM:change_provenance
+name: change
+def: "Change"
+is_a: WCM:provenance
+xref: COMODI:Change
+
+[Term]
+id: WCM:deletion_change_provenance
+name: deletion
+def: "Deletion"
+is_a: WCM:change_provenance
+xref: COMODI:Deletion
+
+[Term]
+id: WCM:insertion_change_provenance
+name: insertion
+def: "Insertion"
+is_a: WCM:change_provenance
+xref: COMODI:Insertion
+
+[Term]
+id: WCM:move_change_provenance
+name: move
+def: "Move"
+is_a: WCM:change_provenance
+xref: COMODI:Move
+
+[Term]
+id: WCM:update_change_provenance
+name: update
+def: "Update"
+is_a: WCM:change_provenance
+xref: COMODI:Update
+
+[Term]
+id: WCM:merge_change_provenance
+name: merge
+def: "Merge"
+is_a: WCM:change_provenance
+
+[Term]
+id: WCM:copy_change_provenance
+name: copy
+def: "Copy"
+is_a: WCM:change_provenance
+
+[Term]
+id: WCM:intention_provenance
+name: intention
+def: "Intention"
+is_a: WCM:provenance
+xref: COMODI:Intention
+
+[Term]
+id: WCM:correct_intention_provenance
+name: correct
+def: "Correct"
+is_a: WCM:intention_provenance
+xref: COMODI:Correction
+
+[Term]
+id: WCM:elaborate_intention_provenance
+name: elaborate
+def: "Add more detail"
+is_a: WCM:intention_provenance
+xref: COMODI:Elaboration
+
+[Term]
+id: WCM:expand_intention_provenance
+name: expand
+def: "Expand the scope"
+is_a: WCM:intention_provenance
+xref: COMODI:Expansion
+
+[Term]
+id: WCM:simplify_intention_provenance
+name: simplify
+def: "Simplify"
+is_a: WCM:intention_provenance
+xref: COMODI:Simplification
+
+[Term]
+id: WCM:reason_provenance
+name: reason
+def: "Reason"
+is_a: WCM:provenance
+xref: COMODI:Reason
+
+[Term]
+id: WCM:new_goal_reason_provenance
+name: new goal for a project
+def: "New goal for a project. For example, a new phenotype that a model should predict or a new molecular mechanism that a model should account for"
+is_a: WCM:reason_provenance
+
+[Term]
+id: WCM:new_knowledge_reason_provenance
+name: new knowledge
+def: "New knowledge"
+is_a: WCM:reason_provenance
+xref: COMODI:KnowledgeGain
+
+[Term]
+id: WCM:incorrect_interpretation_reason_provenance
+name: incorrect interpretation of existing knowledge
+def: "Incorrect interpretation of existing knowledge"
+is_a: WCM:reason_provenance
+xref: COMODI:MismatchWithPublication
+
+[Term]
+id: WCM:implementation_error_reason_provenance
+name: implementation error
+def: "Implementation error such as a typo"
+is_a: WCM:reason_provenance
+xref: COMODI:Typo
+
+[Term]
+id: WCM:migrate_version_reason_provenance
+name: migrate to another version
+def: "Migrate object to another version of a specification"
+is_a: WCM:reason_provenance
+xref: COMODI:ChangedSpecification
+
+[Term]
+id: WCM:add_metadata_reason_provenance
+name: add metadata
+def: "Add metadata to facilitate comprehension"
+is_a: WCM:reason_provenance
+xref: COMODI:ModelCuration
+
+[Term]
+id: WCM:target_provenance
+name: target
+def: "Target"
+is_a: WCM:provenance
+xref: COMODI:Target
+
+[Term]
+id: WCM:data_target_provenance
+name: data
+def: "Data"
+is_a: WCM:target_provenance
+
+[Term]
+id: WCM:model_target_provenance
+name: model
+def: "Model"
+is_a: WCM:data_target_provenance
+xref: COMODI:ModelDefinition
+
+[Term]
+id: WCM:model_initial_conditions_target_provenance
+name: initial conditions
+def: "Initial conditions"
+is_a: WCM:model_target_provenance
+
+[Term]
+id: WCM:model_dynamics_target_provenance
+name: dynamics
+def: "Dynamics"
+is_a: WCM:model_target_provenance
+
+[Term]
+id: WCM:metadata_target_provenance
+name: metadata
+def: "Metadata"
+is_a: WCM:target_provenance
+xref: COMODI:ModelAnnotation
+
+[Term]
+id: WCM:encoding_target_provenance
+name: encoding
+def: "Encoding (e.g. a different or revised file format)"
+is_a: WCM:target_provenance
+xref: COMODI:ModelEncoding

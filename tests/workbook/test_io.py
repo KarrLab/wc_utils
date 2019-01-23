@@ -53,8 +53,7 @@ class TestIo(unittest.TestCase):
 
     def tearDown(self):
         # remove temp directory
-        print(self.tempdir)
-        # rmtree(self.tempdir)
+        rmtree(self.tempdir)
 
     def test_exceptions_excel(self):
         filename = path.join(self.tempdir, 'test.foo')

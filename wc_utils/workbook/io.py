@@ -254,7 +254,7 @@ class ExcelWriter(Writer):
         hide_unused_rows = not isinf(style.extra_rows)
         xls_worksheet.set_default_row(default_row_height, True)
 
-        if not isnan(col_width):
+        if not isnan(col_width) and n_cols >= 1:
             result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
             assert result != -1
 

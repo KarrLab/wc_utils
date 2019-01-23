@@ -48,7 +48,8 @@ class TestIo(unittest.TestCase):
 
     def tearDown(self):
         # remove temp directory
-        rmtree(self.tempdir)
+        print(self.tempdir)
+        # rmtree(self.tempdir)
 
     def test_exceptions_excel(self):
         filename = path.join(self.tempdir, 'test.foo')
@@ -96,6 +97,18 @@ class TestIo(unittest.TestCase):
         self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
+
+    def test_write_excel_hidden_rows_cols(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = io.WorkbookStyle()
+        style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
+                                          head_row_fill_pattern='solid',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=15.01,
+                                          col_width=10.,
+                                          extra_rows=2, extra_columns=2)
+        io.ExcelWriter(filename).run(self.wk, style=style)
+        self.assertTrue(path.isfile(filename))
 
     def test_excel_read_valid_types(self):
         wb = openpyxl.Workbook()

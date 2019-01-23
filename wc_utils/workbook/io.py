@@ -11,11 +11,12 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from glob import glob
 from itertools import chain
-from math import isnan
+from math import isnan, isinf
 from openpyxl import Workbook as XlsWorkbook, load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
+from openpyxl.styles.protection import Protection
 from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
@@ -23,6 +24,7 @@ from six import integer_types, string_types, with_metaclass
 from wc_utils.workbook.core import Workbook, Worksheet, Row
 
 import pyexcel
+import xlsxwriter
 
 
 class Writer(with_metaclass(ABCMeta, object)):
@@ -180,23 +182,26 @@ class ExcelWriter(Writer):
                                           title=title, description=description,
                                           keywords=keywords, version=version, language=language, creator=creator)
         self.xls_workbook = None
+        self._worksheet_styles = None
 
     def initialize_workbook(self):
         """ Initialize workbook """
         # Initialize workbook
-        self.xls_workbook = xls_workbook = XlsWorkbook()
-        xls_workbook.remove(xls_workbook.active)
+        self.xls_workbook = wb = xlsxwriter.Workbook(self.path)
 
         # set metadata
-        props = xls_workbook.properties
-        props.title = self.title
-        props.description = self.description
-        props.keywords = self.keywords
-        props.version = self.version
-        props.language = self.language
-        props.creator = self.creator
-        props.created = datetime.now()
-        props.modified = props.created
+        wb.set_properties({
+            'title': self.title,
+            'keywords': self.keywords,
+        })
+
+        now = datetime.now()
+        wb.set_custom_property('description', self.description)
+        wb.set_custom_property('version', self.version)
+        wb.set_custom_property('language', self.language)
+        wb.set_custom_property('creator', self.creator)
+        wb.set_custom_property('created', now)
+        wb.set_custom_property('modified', now)
 
     def write_worksheet(self, sheet_name, data, style=None):
         """ Write worksheet to file
@@ -206,10 +211,32 @@ class ExcelWriter(Writer):
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
         """
-        xls_worksheet = self.xls_workbook.create_sheet(sheet_name)
+        xls_worksheet = self.xls_workbook.add_worksheet(sheet_name)
 
         style = style or WorksheetStyle()
-        alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+
+        head_format = self.xls_workbook.add_format()
+        head_format.set_align('left')
+        head_format.set_align('top')
+        head_format.set_text_wrap(True)
+        head_format.set_font_name(style.font_family)
+        head_format.set_font_size(style.font_size)
+        head_format.set_bold(True)
+        if style.head_row_fill_pattern:
+            if style.head_row_fill_pattern == 'solid':
+                head_format.set_pattern(1)
+            else:
+                raise ValueError('Unsupport pattern {}'.format(style.head_row_fill_pattern))
+        if style.head_row_fill_fgcolor:
+            head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
+
+        body_format = self.xls_workbook.add_format()
+        body_format.set_align('left')
+        body_format.set_align('top')
+        body_format.set_text_wrap(True)
+        body_format.set_font_name(style.font_family)
+        body_format.set_font_size(style.font_size)
+        body_format.set_bold(False)
 
         if data:
             n_cols = max(len(row) for row in data)
@@ -219,76 +246,63 @@ class ExcelWriter(Writer):
         frozen_columns = style.head_columns
         row_height = style.row_height
         col_width = style.col_width
-        head_font = Font(name=style.font_family, sz=style.font_size, bold=style.head_row_font_bold)
-        body_font = Font(name=style.font_family, sz=style.font_size, bold=False)
-        kwargs = {}
-        if style.head_row_fill_pattern:
-            kwargs['patternType'] = style.head_row_fill_pattern
-        if style.head_row_fill_fgcolor:
-            kwargs['fgColor'] = style.head_row_fill_fgcolor
-        head_fill = PatternFill(**kwargs)
 
-        if data:
-            for i_col in range(1, n_cols + 1):
-                col = xls_worksheet.column_dimensions[get_column_letter(i_col)]
-                if not isnan(col_width):
-                    col.width = col_width
-                col.font = body_font
+        if isnan(row_height):
+            default_row_height = None
+        else:
+            default_row_height = row_height
+        hide_unused_rows = not isinf(style.extra_rows)
+        xls_worksheet.set_default_row(default_row_height, True)
+
+        if not isnan(col_width):
+            result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
+            assert result != -1
 
         for i_row, row in enumerate(data):
-            xls_row = xls_worksheet.row_dimensions[i_row + 1]
-            if i_row < frozen_rows or i_col < frozen_columns:
-                xls_row.font = head_font
-            else:
-                xls_row.font = body_font
+            for i_col, value in enumerate(row):
+                if i_row < frozen_rows or i_col < frozen_columns:
+                    format = head_format
+                else:
+                    format = body_format
 
-            for i_col, cell in enumerate(row):
-                xls_cell = xls_worksheet.cell(row=i_row + 1, column=i_col + 1)
-
-                value = cell
                 if value is None:
-                    pass
+                    result = xls_worksheet.write_blank(i_row, i_col, value, format)
                 elif isinstance(value, string_types):
-                    data_type = Cell.TYPE_STRING
+                    result = xls_worksheet.write_string(i_row, i_col, value, format)
                 elif isinstance(value, bool):
-                    data_type = Cell.TYPE_BOOL
+                    result = xls_worksheet.write_boolean(i_row, i_col, value, format)
                 elif isinstance(value, integer_types):
-                    value = float(value)
-                    data_type = Cell.TYPE_NUMERIC
+                    result = xls_worksheet.write_number(i_row, i_col, float(value), format)
                 elif isinstance(value, float):
-                    data_type = Cell.TYPE_NUMERIC
+                    result = xls_worksheet.write_number(i_row, i_col, value, format)
                 else:
                     raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
                         value.__class__.__name__,
                         self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
-
-                if value is not None:
-                    xls_cell.set_explicit_value(value=value, data_type=data_type)
-
-                xls_cell.alignment = alignment
-
-                if i_row < frozen_rows or i_col < frozen_columns:
-                    if head_font:
-                        xls_cell.font = head_font
-                    if head_fill:
-                        xls_cell.fill = head_fill
-                else:
-                    xls_cell.font = body_font
+                assert result != -1
 
             if not isnan(row_height):
-                xls_row.height = row_height
-            xls_row.font = head_font
+                result = xls_worksheet.set_row(i_row, options={'hidden': False})
+                assert result != -1
 
-        xls_worksheet.freeze_panes = xls_worksheet.cell(row=frozen_rows + 1, column=frozen_columns + 1)
+        if not isinf(style.extra_rows):
+            for i_row in range(len(data), len(data) + style.extra_rows):
+                result = xls_worksheet.set_row(i_row, options={'hidden': False})
+                assert result != -1
+
+        if not isinf(style.extra_columns):
+            result = xls_worksheet.set_column(n_cols + style.extra_columns, 2**14 - 1,
+                                              options={'hidden': True})
+            assert result != -1
+
+        xls_worksheet.freeze_panes(frozen_rows, frozen_columns)
 
         if style.auto_filter and len(data) > 0 and len(data[0]) > 0 and frozen_rows > 0:
-            xls_worksheet.auto_filter.ref = '{}{}:{}{}'.format(
-                get_column_letter(1), frozen_rows,
-                get_column_letter(n_cols), len(data))
+            xls_worksheet.autofilter(frozen_rows - 1, 0, len(data) - 1, n_cols - 1)
 
     def finalize_workbook(self):
         """ Finalize workbook """
-        self.xls_workbook.save(self.path)
+        self.xls_workbook.close()
 
 
 class ExcelReader(Reader):
@@ -341,7 +355,7 @@ class ExcelReader(Reader):
             :obj:`Worksheet`: data
 
         Raises:
-            :obj:`ValueError`: 
+            :obj:`ValueError`:
         """
         xls_worksheet = self.xls_workbook[sheet_name]
         worksheet = Worksheet()
@@ -682,6 +696,8 @@ class WorksheetStyle(object):
         head_row_font_bold (:obj:`bool`): head row bold
         head_row_fill_pattern (:obj:`str`): head row fill pattern
         head_row_fill_fgcolor (:obj:`str`): head row background color
+        extra_rows (:obj:`float`): number of additional rows to show
+        extra_columns (:obj:`float`): number of additional columns to show
         font_family (:obj:`str`): font family
         font_size (:obj:`float`): font size
         row_height (:obj:`float`): row height
@@ -691,6 +707,7 @@ class WorksheetStyle(object):
 
     def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
                  head_row_fill_pattern='solid', head_row_fill_fgcolor='',
+                 extra_rows=float('inf'), extra_columns=float('inf'),
                  font_family='Arial', font_size=11.,
                  row_height=15., col_width=15.,
                  auto_filter=True):
@@ -701,6 +718,8 @@ class WorksheetStyle(object):
             head_row_font_bold (:obj:`bool`, optional): head row bold
             head_row_fill_pattern (:obj:`str`, optional): head row fill pattern
             head_row_fill_fgcolor (:obj:`str`, optional): head row background color
+            extra_rows (:obj:`float`, optional): number of additional rows to show
+            extra_columns (:obj:`float`, optional): number of additional columns to show
             font_family (:obj:`str`, optional): font family
             font_size (:obj:`float`, optional): font size
             row_height (:obj:`float`, optional): row height
@@ -712,6 +731,8 @@ class WorksheetStyle(object):
         self.head_row_font_bold = head_row_font_bold
         self.head_row_fill_pattern = head_row_fill_pattern
         self.head_row_fill_fgcolor = head_row_fill_fgcolor
+        self.extra_rows = extra_rows
+        self.extra_columns = extra_columns
         self.font_family = font_family
         self.font_size = font_size
         self.row_height = row_height

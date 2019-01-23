@@ -43,6 +43,11 @@ class TestIo(unittest.TestCase):
         ws2.append(Row(['b2', 3, 4.]))
         ws2.append(Row(['c2', 5, 6.]))
 
+        style = self.style = io.WorkbookStyle()
+        style['Ws-0'] = io.WorksheetStyle(extra_rows=2, extra_columns=2)
+        style['Ws-1'] = io.WorksheetStyle(extra_rows=2, extra_columns=2)
+        style['Ws-2'] = io.WorksheetStyle(extra_rows=2, extra_columns=2)
+
         # create temp directory
         self.tempdir = mkdtemp()
 
@@ -67,20 +72,22 @@ class TestIo(unittest.TestCase):
         wk = deepcopy(self.wk)
         wk['Ws-0'][0][1] = []
         with self.assertRaisesRegex(ValueError, '^Unsupported type '):
-            io.ExcelWriter(filename).run(wk)
+            io.ExcelWriter(filename).run(wk, style=self.style)
 
     def test_read_write_excel(self):
         # write to file
         filename = path.join(self.tempdir, 'test.xlsx')
-        io.ExcelWriter(filename).run(self.wk)
+        io.ExcelWriter(filename).run(self.wk, style=self.style)
         self.assertTrue(path.isfile(filename))
 
         # write to file with style
-        style = io.WorkbookStyle()
+        style = self.style
         style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
                                           head_row_font_bold=True,
                                           head_row_fill_fgcolor='CCCCCC',
-                                          row_height=15)
+                                          row_height=15,
+                                          extra_columns=2,
+                                          extra_rows=2)
         io.ExcelWriter(filename).run(self.wk, style=style)
         self.assertTrue(path.isfile(filename))
 
@@ -100,7 +107,7 @@ class TestIo(unittest.TestCase):
 
     def test_write_excel_hidden_rows_cols(self):
         filename = path.join(self.tempdir, 'test.xlsx')
-        style = io.WorkbookStyle()
+        style = self.style
         style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
                                           head_row_fill_pattern='solid',
                                           head_row_fill_fgcolor='CCCCCC',
@@ -109,6 +116,121 @@ class TestIo(unittest.TestCase):
                                           extra_rows=2, extra_columns=2)
         io.ExcelWriter(filename).run(self.wk, style=style)
         self.assertTrue(path.isfile(filename))
+
+    def test_write_excel_show_inf_rows_cols(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
+                                          head_row_fill_pattern='solid',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=float('nan'),
+                                          col_width=10.,
+                                          extra_rows=float('inf'), extra_columns=float('inf'))
+        io.ExcelWriter(filename).run(self.wk, style=style)
+        self.assertTrue(path.isfile(filename))
+
+    def test_write_excel_no_data(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=0, head_columns=0,
+                                          head_row_fill_pattern='solid',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=float('nan'),
+                                          col_width=10.,
+                                          extra_rows=float('inf'), extra_columns=float('inf'))
+        self.wk['Ws-0'] = Workbook()
+        io.ExcelWriter(filename).run(self.wk, style=style)
+        self.assertTrue(path.isfile(filename))
+
+    def test_write_excel_pattern_error(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=0, head_columns=0,
+                                          head_row_fill_pattern='UNDEFINED_PATTERN',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=float('nan'),
+                                          col_width=10.,
+                                          extra_rows=float('inf'), extra_columns=float('inf'))
+        with self.assertRaisesRegex(ValueError, 'Unsupported pattern'):
+            io.ExcelWriter(filename).run(self.wk, style=style)
+
+    def test_write_excel_row_validation(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=0,
+                                          head_row_fill_pattern='solid',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=15.01,
+                                          col_width=10.,
+                                          extra_rows=2, extra_columns=2)
+        validation = io.WorkbookValidation()
+        validation['Ws-0'] = io.WorksheetValidation(fields=[
+            io.FieldValidation(input_title='Enter a identifier', input_message='A unique string',
+                               type=io.FieldValidationType.length,
+                               criterion=io.FieldValidationCriterion['<='],
+                               allowed_scalar_value=255),
+            None,
+            io.FieldValidation(input_title='Enter a second value', input_message='A float',
+                               type=io.FieldValidationType.decimal, criterion=io.FieldValidationCriterion['>='],
+                               minimum_scalar_value=-1000.),
+            io.FieldValidation(input_title='Enter a third value', input_message='A float',
+                               type=io.FieldValidationType.any),
+        ])
+
+        io.ExcelWriter(filename).run(self.wk, style=style, validation=validation)
+        self.assertTrue(path.isfile(filename))
+
+    def test_write_excel_col_validation(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=0, head_columns=1,
+                                          head_row_fill_pattern='solid',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=15.01,
+                                          col_width=10.,
+                                          extra_rows=2, extra_columns=2)
+        validation = io.WorkbookValidation()
+        validation['Ws-0'] = io.WorksheetValidation(orientation=io.WorksheetValidationOrientation.column, fields=[
+            None,
+            io.FieldValidation(input_title='Enter a identifier', input_message='A unique string',
+                               type=io.FieldValidationType.length,
+                               criterion=io.FieldValidationCriterion['<='],
+                               allowed_scalar_value=255,),
+            io.FieldValidation(input_title='Enter a second value', input_message='A float',
+                               type=io.FieldValidationType.decimal, criterion=io.FieldValidationCriterion['>='],
+                               minimum_scalar_value=-1000.),
+            io.FieldValidation(input_title='Enter a third value', input_message='A float',
+                               type=io.FieldValidationType.any),
+        ])
+
+        io.ExcelWriter(filename).run(self.wk, style=style, validation=validation)
+        self.assertTrue(path.isfile(filename))
+
+    def test_FieldValidation_get_options(self):
+        fv = io.FieldValidation(input_title='input_title', input_message='input_message', show_input=True,
+                                type=io.FieldValidationType.any, criterion=io.FieldValidationCriterion[
+                                    '<='], allowed_scalar_value='allowed_scalar_value',
+                                minimum_scalar_value=-2., maximum_scalar_value=2., allowed_list_values=['a', 'b', 'c'],
+                                show_dropdown=True, ignore_blank=True,
+                                error_type=io.FieldValidationErrorType.stop, error_title='error_title', error_message='error_message',
+                                show_error=True)
+        self.assertEqual(fv.get_options(), {
+            'input_title': 'input_title',
+            'input_message': 'input_message',
+            'show_input': True,
+            'validate': 'any',
+            'criteria': '<=',
+            'value': 'allowed_scalar_value',
+            'minimum': -2.,
+            'maximum': 2.,
+            'source': ['a', 'b', 'c'],
+            'dropdown': True,
+            'ignore_blank': True,
+            'error_type': 'stop',
+            'error_title': 'error_title',
+            'error_message': 'error_message',
+            'show_error': True,
+        })
 
     def test_excel_read_valid_types(self):
         wb = openpyxl.Workbook()
@@ -404,7 +526,7 @@ class TestIo(unittest.TestCase):
 
     def test_write_read(self):
         file = path.join(self.tempdir, 'test.xlsx')
-        io.write(file, self.wk)
+        io.write(file, self.wk, style=self.style)
         wk = io.read(file)
         self.assertEqual(wk, self.wk)
 
@@ -415,7 +537,7 @@ class TestIo(unittest.TestCase):
 
     def test_convert(self):
         source = path.join(self.tempdir, 'test.xlsx')
-        io.ExcelWriter(source).run(self.wk)
+        io.ExcelWriter(source).run(self.wk, style=self.style)
 
         # copy excel->sv
         dest = path.join(self.tempdir, 'test-*.csv')
@@ -426,14 +548,14 @@ class TestIo(unittest.TestCase):
         # copy sv->excel
         source = path.join(self.tempdir, 'test-*.csv')
         dest = path.join(self.tempdir, 'test2.xlsx')
-        io.convert(source, dest)
+        io.convert(source, dest, style=self.style)
         wk = io.ExcelReader(dest).run()
         self.assertEqual(wk, self.wk)
 
         # copy same format - excel
         source = path.join(self.tempdir, 'test.xlsx')
         dest = path.join(self.tempdir, 'test3.xlsx')
-        io.convert(source, dest)
+        io.convert(source, dest, style=self.style)
         wk = io.ExcelReader(dest).run()
         self.assertEqual(wk, self.wk)
 
@@ -459,7 +581,7 @@ class TestIo(unittest.TestCase):
 
     def test_convert_excel_to_csv(self):
         filename_excel = path.join(self.tempdir, 'test.xlsx')
-        io.ExcelWriter(filename_excel).run(self.wk)
+        io.ExcelWriter(filename_excel).run(self.wk, style=self.style)
 
         filename_pattern_separated_values = path.join(self.tempdir, 'test-*.csv')
         io.convert(filename_excel, filename_pattern_separated_values)
@@ -478,7 +600,8 @@ class TestIo(unittest.TestCase):
         io.SeparatedValuesWriter(filename_pattern_separated_values).run(self.wk)
 
         filename_excel = path.join(self.tempdir, 'test.xlsx')
-        io.convert(filename_pattern_separated_values, filename_excel)
+        io.convert(filename_pattern_separated_values, filename_excel,
+                   style=self.style)
         self.assertTrue(path.isfile(filename_excel))
 
         # read from files
@@ -489,11 +612,13 @@ class TestIo(unittest.TestCase):
 
     def test_convert_with_worksheet_order(self):
         source = path.join(self.tempdir, 'test.xlsx')
-        io.ExcelWriter(source).run(self.wk)
+        io.ExcelWriter(source).run(self.wk, style=self.style)
 
         dest = path.join(self.tempdir, 'test-2.xlsx')
 
-        io.convert(source, dest, worksheet_order=['Ws-3'], ignore_extra_sheets=True)
+        io.convert(source, dest, worksheet_order=['Ws-3'], ignore_extra_sheets=True,
+                   style=self.style
+                   )
         wk = io.ExcelReader(dest).run()
         self.assertEqual(set(wk.keys()), set(['Ws-0', 'Ws-1', 'Ws-2']))
 
@@ -502,7 +627,7 @@ class TestIo(unittest.TestCase):
 
     def test_convert_exceptions(self):
         source = path.join(self.tempdir, 'test.xlsx')
-        io.ExcelWriter(source).run(self.wk)
+        io.ExcelWriter(source).run(self.wk, style=self.style)
 
         # copy excel->sv
         dest = path.join(self.tempdir, 'test-*.csv')

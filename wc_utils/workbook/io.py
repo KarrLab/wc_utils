@@ -22,7 +22,7 @@ from os.path import basename, dirname, splitext
 from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
 from wc_utils.workbook.core import Workbook, Worksheet, Row
-
+import enum
 import pyexcel
 import xlsxwriter
 
@@ -53,7 +53,7 @@ class Writer(with_metaclass(ABCMeta, object)):
         self.language = language
         self.creator = creator
 
-    def run(self, data, style=None):
+    def run(self, data, style=None, validation=None):
         """ Write workbook to file(s)
 
         Args:
@@ -63,9 +63,11 @@ class Writer(with_metaclass(ABCMeta, object)):
         self.initialize_workbook()
 
         style = style or WorkbookStyle()
-        for sheet_name, data_worksheet in data.items():
-            style_worksheet = style.get(sheet_name, None)
-            self.write_worksheet(sheet_name, data_worksheet, style=style_worksheet)
+        validation = validation or WorkbookValidation()
+        for ws_name, ws_data in data.items():
+            ws_style = style.get(ws_name, None)
+            ws_validation = validation.get(ws_name, None)
+            self.write_worksheet(ws_name, ws_data, style=ws_style, validation=ws_validation)
 
         self.finalize_workbook()
 
@@ -75,13 +77,14 @@ class Writer(with_metaclass(ABCMeta, object)):
         pass  # pragma: no cover
 
     @abstractmethod
-    def write_worksheet(self, sheet_name, data, style=None):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None):
         """ Write worksheet to file
 
         Args:
             sheet_name (:obj:`str`): sheet name
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
+            validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
         pass  # pragma: no cover
 
@@ -156,7 +159,7 @@ class ExcelWriter(Writer):
     """ Write data to Excel file
 
     Attributes:
-        xls_workbook (:obj:`XlsWorkbook`): Excel workbook
+        xls_workbook (:obj:`xlsxwriter.Workbook`): Excel workbook
     """
 
     def __init__(self, path, title=None, description=None, keywords=None, version=None, language=None,
@@ -187,7 +190,11 @@ class ExcelWriter(Writer):
     def initialize_workbook(self):
         """ Initialize workbook """
         # Initialize workbook
-        self.xls_workbook = wb = xlsxwriter.Workbook(self.path)
+        self.xls_workbook = wb = xlsxwriter.Workbook(self.path, {
+            'strings_to_numbers': False,
+            'strings_to_formulas': False,
+            'strings_to_urls': False,
+        })
 
         # set metadata
         wb.set_properties({
@@ -196,22 +203,47 @@ class ExcelWriter(Writer):
         })
 
         now = datetime.now()
-        wb.set_custom_property('description', self.description)
-        wb.set_custom_property('version', self.version)
-        wb.set_custom_property('language', self.language)
-        wb.set_custom_property('creator', self.creator)
+        wb.set_custom_property('description', self.description or '')
+        wb.set_custom_property('version', self.version or '')
+        wb.set_custom_property('language', self.language or '')
+        wb.set_custom_property('creator', self.creator or '')
         wb.set_custom_property('created', now)
         wb.set_custom_property('modified', now)
 
-    def write_worksheet(self, sheet_name, data, style=None):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None):
         """ Write worksheet to file
 
         Args:
             sheet_name (:obj:`str`): sheet name
-            data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            data (:obj:`xlsxwriter.Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
+            validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
         xls_worksheet = self.xls_workbook.add_worksheet(sheet_name)
+
+        # data and formatting
+        xls_worksheet.protect('', {
+            'insert_columns': False,
+            'delete_columns': False,
+
+            'insert_rows': True,
+            'delete_rows': True,
+
+            'insert_hyperlinks': False,
+            'objects': False,
+            'scenarios': False,
+            'pivot_tables': False,
+
+            'format_cells': False,
+            'format_columns': False,
+            'format_rows': False,
+
+            'sort': True,
+            'autofilter': True,
+
+            'select_locked_cells': True,
+            'select_unlocked_cells': True,
+        })
 
         style = style or WorksheetStyle()
 
@@ -226,9 +258,26 @@ class ExcelWriter(Writer):
             if style.head_row_fill_pattern == 'solid':
                 head_format.set_pattern(1)
             else:
-                raise ValueError('Unsupport pattern {}'.format(style.head_row_fill_pattern))
+                raise ValueError('Unsupported pattern {}'.format(style.head_row_fill_pattern))
         if style.head_row_fill_fgcolor:
             head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
+        head_format.set_locked(True)
+
+        extra_head_format = self.xls_workbook.add_format()
+        extra_head_format.set_align('left')
+        extra_head_format.set_align('top')
+        extra_head_format.set_text_wrap(True)
+        extra_head_format.set_font_name(style.font_family)
+        extra_head_format.set_font_size(style.font_size)
+        extra_head_format.set_bold(True)
+        if style.head_row_fill_pattern:
+            if style.head_row_fill_pattern == 'solid':
+                extra_head_format.set_pattern(1)
+            else:  # pragma: no cover # unreachable because error already checked above
+                raise ValueError('Unsupported pattern {}'.format(style.head_row_fill_pattern))
+        if style.head_row_fill_fgcolor:
+            extra_head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
+        extra_head_format.set_locked(False)
 
         body_format = self.xls_workbook.add_format()
         body_format.set_align('left')
@@ -237,7 +286,9 @@ class ExcelWriter(Writer):
         body_format.set_font_name(style.font_family)
         body_format.set_font_size(style.font_size)
         body_format.set_bold(False)
+        body_format.set_locked(False)
 
+        n_rows = len(data)
         if data:
             n_cols = max(len(row) for row in data)
         else:
@@ -252,9 +303,9 @@ class ExcelWriter(Writer):
         else:
             default_row_height = row_height
         hide_unused_rows = not isinf(style.extra_rows)
-        xls_worksheet.set_default_row(default_row_height, True)
+        xls_worksheet.set_default_row(default_row_height, hide_unused_rows)
 
-        if not isnan(col_width) and n_cols >= 1:
+        if not isnan(col_width) and n_cols >= 1 and not isinf(style.extra_columns):
             result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
             assert result != -1
 
@@ -281,24 +332,55 @@ class ExcelWriter(Writer):
                         self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
                 assert result != -1
 
-            if not isnan(row_height):
+            if not isnan(row_height) and not isinf(style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
                 assert result != -1
 
-        if not isinf(style.extra_rows):
-            for i_row in range(len(data), len(data) + style.extra_rows):
-                result = xls_worksheet.set_row(i_row, options={'hidden': False})
-                assert result != -1
-
-        if not isinf(style.extra_columns):
+        if isinf(style.extra_columns):
+            extra_columns = 2**14 - n_cols
+        else:
+            extra_columns = style.extra_columns
             result = xls_worksheet.set_column(n_cols + style.extra_columns, 2**14 - 1,
                                               options={'hidden': True})
             assert result != -1
 
+        for i_row in range(n_rows):
+            for i_col in range(n_cols, n_cols + extra_columns):
+                if i_row < frozen_rows or i_col < frozen_columns:
+                    format = extra_head_format
+                else:
+                    format = body_format
+                result = xls_worksheet.write_blank(i_row, i_col, None, format)
+                assert result != -1
+
+        if isinf(style.extra_rows):
+            extra_rows = 2**20 - n_rows
+        else:
+            extra_rows = style.extra_rows
+            for i_row in range(n_rows, n_rows + style.extra_rows):
+                result = xls_worksheet.set_row(i_row, options={'hidden': False})
+                assert result != -1
+
+                for i_col in range(n_cols + extra_columns):
+                    if i_row < frozen_rows or i_col < frozen_columns:
+                        format = extra_head_format
+                    else:
+                        format = body_format
+                    result = xls_worksheet.write_blank(i_row, i_col, None, format)
+                    assert result != -1
+
+        # validation
+        if validation:
+            validation.apply(xls_worksheet,
+                             frozen_rows, frozen_columns,
+                             n_rows + extra_rows - 1, n_cols + extra_columns - 1)
+
+        # freeze panes
         xls_worksheet.freeze_panes(frozen_rows, frozen_columns)
 
-        if style.auto_filter and len(data) > 0 and len(data[0]) > 0 and frozen_rows > 0:
-            xls_worksheet.autofilter(frozen_rows - 1, 0, len(data) - 1, n_cols - 1)
+        # auto filter
+        if style.auto_filter and n_cols > 0 and n_cols > 0 and frozen_rows > 0:
+            xls_worksheet.autofilter(frozen_rows - 1, 0, n_rows - 1, n_cols - 1)
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -309,7 +391,7 @@ class ExcelReader(Reader):
     """ Read data from Excel file
 
     Attributes:
-        xls_workbook (:obj:`XlsWorkbook`): Excel workbook
+        xls_workbook (:obj:`Workbook`): Excel workbook
     """
 
     def __init__(self, path):
@@ -436,13 +518,14 @@ class SeparatedValuesWriter(Writer):
         """ Initialize workbook """
         pass
 
-    def write_worksheet(self, sheet_name, data, style=None):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None):
         """ Write worksheet to file
 
         Args:
             sheet_name (:obj:`str`): sheet name
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
+            validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
         pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
 
@@ -738,3 +821,223 @@ class WorksheetStyle(object):
         self.row_height = row_height
         self.col_width = col_width
         self.auto_filter = auto_filter
+
+
+class WorkbookValidation(dict):
+    """ Workbook validation: dictionary of worksheet validations """
+    pass
+
+
+class WorksheetValidationOrientation(int, enum.Enum):
+    """ Worksheet validation orientation """
+    row = 1
+    column = 2
+
+
+class WorksheetValidation(object):
+    """ List of field validations
+
+    Attributes:
+        orientation (:obj:`str`): row or col
+        fields (:obj:`list` of :obj:`FieldValidation`): field validations
+    """
+
+    def __init__(self, orientation=WorksheetValidationOrientation.row, fields=None):
+        """
+        Args:
+            orientation (:obj:`str`, optional): row or col
+            fields (:obj:`list` of :obj:`FieldValidation`, optional): field validations
+        """
+        self.orientation = orientation
+        self.fields = fields
+
+    def apply(self, ws, first_row, first_col, last_row, last_col):
+        """ Apply validation to worksheet
+
+        Args:
+            ws (:obj:`xlsxwriter.Worksheet`): worksheet
+            first_row (:obj:`int`): first row
+            first_col (:obj:`int`): first column
+            last_row (:obj:`int`): last row
+            last_col (:obj:`int`): last column
+        """
+        for i_field, field in enumerate(self.fields):
+            if field:
+                if self.orientation == WorksheetValidationOrientation.row:
+                    field.apply_help_comment(ws, first_row - 1, first_col + i_field)
+                    field.apply_validation(ws, first_row, first_col + i_field, last_row, first_col + i_field)
+                else:
+                    field.apply_help_comment(ws, first_row + i_field, first_col - 1)
+                    field.apply_validation(ws, first_row + i_field, first_col, first_row + i_field, last_col)
+
+
+class FieldValidationType(int, enum.Enum):
+    """ Field validation type """
+    integer = 1
+    decimal = 2
+    list = 3
+    date = 4
+    time = 5
+    length = 6
+    custom = 7
+    any = 8
+
+
+FieldValidationCriterion = enum.Enum('FieldValidationCriterion', type=str, names=[
+    ('between', 'between'),
+    ('not between', 'not between'),
+    ('equal to', '=='),
+    ('not equal to', '!='),
+    ('greater than', '>'),
+    ('less than', '<'),
+    ('greater than or equal to', '>='),
+    ('less than or equal to', '<='),
+    ('==', '=='),
+    ('!=', '!='),
+    ('>', '>'),
+    ('<', '<'),
+    ('>=', '>='),
+    ('<=', '<='),
+])
+
+
+class FieldValidationErrorType(int, enum.Enum):
+    """ Type of error dialog to display """
+    stop = 1
+    warning = 2
+    information = 3
+
+
+class FieldValidation(object):
+    """ Validation for row- or column-oriented field
+
+    Attributes:
+        input_title (:obj:`str`): title of input dialog box
+        input_message (:obj:`str`): message in input dialog box
+        show_input (:obj:`bool`): if :obj:`True`, show input dialog box
+        type (:obj:`FieldValidationType`): type of validation
+        criterion (:obj:`FieldValidationCriterion`): validation criterion
+        allowed_scalar_value (:obj:`bool`, :obj:`int`, :obj:`float`, or :obj:`str`): allowable scalar value
+        minimum_scalar_value (:obj:`int` or :obj:`float`): minimum allowable value
+        maximum_scalar_value (:obj:`int` or :obj:`float`): maximum allowable value
+        allowed_list_values (:obj:`str` or :obj:`list` of :obj:`str`): allowable list values
+        show_dropdown (:obj:`bool`): if :obj:`True`, show dropdown menu for list validations
+        ignore_blank (:obj:`bool`): if :obj:`True`, don't validate blank cells
+        error_type (:obj:`FieldErrorType`): type of error dialog to display
+        error_title (:obj:`str`): title of error dialog box
+        error_message (:obj:`str`): message in error dialog box
+        show_error (:obj:`bool`): if :obj:`True`, show error dialog box
+    """
+
+    def __init__(self, input_title='', input_message='', show_input=True,
+                 type=FieldValidationType.any, criterion=None, allowed_scalar_value=None,
+                 minimum_scalar_value=None, maximum_scalar_value=None, allowed_list_values=None,
+                 show_dropdown=True, ignore_blank=True,
+                 error_type=FieldValidationErrorType.warning, error_title='', error_message='',  show_error=True):
+        """
+        Args:
+            input_title (:obj:`str`, optional): title of input dialog box
+            input_message (:obj:`str`, optional): message in input dialog box
+            show_input (:obj:`bool`, optional): if :obj:`True`, show input dialog box
+            type (:obj:`FieldValidationType`, optional: type of validation
+            criterion (:obj:`FieldValidationCriterion`, optional): validation criterion
+            allowed_scalar_value (:obj:`bool`, :obj:`int`, :obj:`float`, or :obj:`str`, optional): allowable scalar value
+            minimum_scalar_value (:obj:`int` or :obj:`float`, optional): minimum allowable value
+            maximum_scalar_value (:obj:`int` or :obj:`float`, optional): maximum allowable value
+            allowed_list_values (:obj:`str` or :obj:`list`, optional): allowable list values
+            show_dropdown (:obj:`bool`, optional): if :obj:`True`, show dropdown menu for list validations
+            ignore_blank (:obj:`bool`, optional): if :obj:`True`, don't validate blank cells
+            error_type (:obj:`FieldErrorType`, optional): type of error dialog to display
+            error_title (:obj:`str`, optional): title of error dialog box
+            error_message (:obj:`str`, optional): message in error dialog box
+            show_error (:obj:`bool`, optional): if :obj:`True`, show error dialog box
+        """
+        self.input_title = input_title
+        self.input_message = input_message
+        self.show_input = show_input
+        self.type = type
+        self.criterion = criterion
+        self.allowed_scalar_value = allowed_scalar_value
+        self.minimum_scalar_value = minimum_scalar_value
+        self.maximum_scalar_value = maximum_scalar_value
+        self.allowed_list_values = allowed_list_values
+        self.show_dropdown = show_dropdown
+        self.ignore_blank = ignore_blank
+        self.error_type = error_type
+        self.error_title = error_title
+        self.error_message = error_message
+        self.show_error = show_error
+
+    def apply_help_comment(self, ws, i_row, i_col):
+        """ Apply help comment to cell 
+
+        Args:
+            ws (:obj:`xlsxwriter.Worksheet`): worksheet
+            i_row (:obj:`int`): row        
+            i_col (:obj:`int`): column
+        """
+        print(i_row, i_col)
+        ws.write_comment(i_row, i_col, self.input_message, {
+            'author': None,
+            'visible': False,
+            'font_name': 'Arial',
+            'font_size': 10,
+        })
+
+    def apply_validation(self, ws, first_row, first_col, last_row, last_col):
+        """ Apply validation to cells
+
+        Args:
+            ws (:obj:`xlsxwriter.Worksheet`): worksheet
+            first_row (:obj:`int`): first row
+            first_col (:obj:`int`): first column
+            last_row (:obj:`int`): last row
+            last_col (:obj:`int`): last column
+        """
+        ws.data_validation(first_row, first_col, last_row, last_col, self.get_options())
+
+    def get_options(self):
+        """ Get options for :obj:`xlsxwriter.Worksheet.data_validation`
+
+        Returns
+            :obj:`dict`: dictonary of options for :obj:`xlsxwriter.Worksheet.data_validation`
+        """
+        options = {}
+
+        # input dialog
+        if self.input_title:
+            options['input_title'] = self.input_title
+        if self.input_message:
+            options['input_message'] = self.input_message
+        options['show_input'] = self.show_input
+
+        # validation
+        options['validate'] = self.type.name
+
+        if self.criterion:
+            options['criteria'] = self.criterion.value
+
+        if self.allowed_scalar_value:
+            options['value'] = self.allowed_scalar_value
+
+        if self.minimum_scalar_value:
+            options['minimum'] = self.minimum_scalar_value
+
+        if self.maximum_scalar_value:
+            options['maximum'] = self.maximum_scalar_value
+
+        if self.allowed_list_values:
+            options['source'] = self.allowed_list_values
+
+        options['dropdown'] = self.show_dropdown
+        options['ignore_blank'] = self.ignore_blank
+
+        # error dialog
+        options['error_type'] = self.error_type.name
+        if self.error_title:
+            options['error_title'] = self.error_title
+        if self.error_message:
+            options['error_message'] = self.error_message
+        options['show_error'] = self.show_error
+
+        return options

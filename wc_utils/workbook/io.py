@@ -864,11 +864,11 @@ class WorksheetValidation(object):
         for i_field, field in enumerate(self.fields):
             if field:
                 if self.orientation == WorksheetValidationOrientation.row:
-                    field.apply_help_comment(ws, first_row - 1, first_col + i_field)
-                    field.apply_validation(ws, first_row, first_col + i_field, last_row, first_col + i_field)
+                    field.apply_help_comment(ws, first_row - 1, i_field)
+                    field.apply_validation(ws, first_row, i_field, last_row, i_field)
                 else:
-                    field.apply_help_comment(ws, first_row + i_field, first_col - 1)
-                    field.apply_validation(ws, first_row + i_field, first_col, first_row + i_field, last_col)
+                    field.apply_help_comment(ws, i_field, first_col - 1)
+                    field.apply_validation(ws, i_field, first_col, i_field, last_col)
 
 
 class FieldValidationType(int, enum.Enum):
@@ -976,7 +976,6 @@ class FieldValidation(object):
             i_row (:obj:`int`): row        
             i_col (:obj:`int`): column
         """
-        print(i_row, i_col)
         ws.write_comment(i_row, i_col, self.input_message, {
             'author': None,
             'visible': False,
@@ -1008,7 +1007,10 @@ class FieldValidation(object):
         if self.input_title:
             options['input_title'] = self.input_title
         if self.input_message:
-            options['input_message'] = self.input_message
+            if len(self.input_message) > 255:
+                options['input_message'] = self.input_message[0:255]
+            else:
+                options['input_message'] = self.input_message
         options['show_input'] = self.show_input
 
         # validation
@@ -1037,7 +1039,10 @@ class FieldValidation(object):
         if self.error_title:
             options['error_title'] = self.error_title
         if self.error_message:
-            options['error_message'] = self.error_message
+            if len(self.error_message) > 255:
+                options['input_message'] = self.error_message[0:255]
+            else:
+                options['error_message'] = self.error_message
         options['show_error'] = self.show_error
 
         return options

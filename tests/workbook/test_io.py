@@ -205,6 +205,33 @@ class TestIo(unittest.TestCase):
         io.ExcelWriter(filename).run(self.wk, style=style, validation=validation)
         self.assertTrue(path.isfile(filename))
 
+    def test_write_excel_long_message_truncation(self):
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=0,
+                                          head_row_fill_pattern='solid',
+                                          head_row_fill_fgcolor='CCCCCC',
+                                          row_height=15.01,
+                                          col_width=10.,
+                                          extra_rows=2, extra_columns=2)
+        validation = io.WorkbookValidation()
+        validation['Ws-0'] = io.WorksheetValidation(fields=[
+            io.FieldValidation(input_title='Enter a identifier' * 100, input_message='A unique string' * 100,
+                               error_title='Enter a identifier' * 100, error_message='A unique string' * 100,
+                               type=io.FieldValidationType.length,
+                               criterion=io.FieldValidationCriterion['<='],
+                               allowed_scalar_value=255),
+            None,
+            io.FieldValidation(input_title='Enter a second value', input_message='A float',
+                               type=io.FieldValidationType.decimal, criterion=io.FieldValidationCriterion['>='],
+                               minimum_scalar_value=-1000.),
+            io.FieldValidation(input_title='Enter a third value', input_message='A float',
+                               type=io.FieldValidationType.any),
+        ])
+
+        io.ExcelWriter(filename).run(self.wk, style=style, validation=validation)
+        self.assertTrue(path.isfile(filename))
+
     def test_FieldValidation_get_options(self):
         fv = io.FieldValidation(input_title='input_title', input_message='input_message', show_input=True,
                                 type=io.FieldValidationType.any, criterion=io.FieldValidationCriterion[

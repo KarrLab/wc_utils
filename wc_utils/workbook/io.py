@@ -1005,10 +1005,13 @@ class FieldValidation(object):
 
         # input dialog
         if self.input_title:
-            options['input_title'] = self.input_title
+            if len(self.input_title) > 32:
+                options['input_title'] = self.input_title[0:32-4] + ' ...'
+            else:
+                options['input_title'] = self.input_title
         if self.input_message:
             if len(self.input_message) > 255:
-                options['input_message'] = self.input_message[0:255]
+                options['input_message'] = self.input_message[0:255-4] + ' ...'
             else:
                 options['input_message'] = self.input_message
         options['show_input'] = self.show_input
@@ -1037,10 +1040,13 @@ class FieldValidation(object):
         # error dialog
         options['error_type'] = self.error_type.name
         if self.error_title:
-            options['error_title'] = self.error_title
+            if len(self.error_title) > 32:
+                options['error_title'] = self.error_title[0:32-4] + ' ...'
+            else:
+                options['error_title'] = self.error_title
         if self.error_message:
             if len(self.error_message) > 255:
-                options['input_message'] = self.error_message[0:255]
+                options['error_message'] = self.error_message[0:255-4] + ' ...'
             else:
                 options['error_message'] = self.error_message
         options['show_error'] = self.show_error

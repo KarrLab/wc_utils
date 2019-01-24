@@ -195,6 +195,7 @@ class ExcelWriter(Writer):
             'strings_to_formulas': False,
             'strings_to_urls': False,
             'nan_inf_to_errors': True,
+            'default_date_format': 'yyyy-mm-dd',
         })
 
         # set metadata

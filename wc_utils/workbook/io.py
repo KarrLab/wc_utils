@@ -981,6 +981,7 @@ class FieldValidation(object):
             'visible': False,
             'font_name': 'Arial',
             'font_size': 10,
+            'width': 300, # pixels
         })
 
     def apply_validation(self, ws, first_row, first_col, last_row, last_col):

@@ -316,7 +316,7 @@ class ExcelWriter(Writer):
                 else:
                     format = body_format
 
-                if value is None:
+                if value is None or value == '':
                     result = xls_worksheet.write_blank(i_row, i_col, value, format)
                 elif isinstance(value, string_types):
                     result = xls_worksheet.write_string(i_row, i_col, value, format)

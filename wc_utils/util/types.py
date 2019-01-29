@@ -8,6 +8,7 @@
 
 import numpy as np
 import six
+from wc_utils.util.list import det_dedupe
 
 
 def cast_to_builtins(obj):
@@ -175,23 +176,27 @@ def is_iterable(obj):
         and not hasattr(obj, '__dict__')
 
 
-def get_subclasses(cls, immediate_only=False):
-    """ Get subclasses of a class. If `immediate_only`, only return direct subclasses.
+def get_subclasses(cls, rev=False, immediate_only=False):
+    """ Reproducibly get subclasses of a class, with duplicates removed
 
     Args:
         cls (:obj:`type`): class
-        immediate_only (:obj:`bool`): if true, only return direct subclasses
+        rev (:obj:`bool`, optional): if true, subclasses of a class are ordered from newer to older;
+            default is older to newer
+        immediate_only (:obj:`bool`, optional): if true, only return direct subclasses
 
     Returns:
-        :obj:`set` of `type`: list of subclasses
+        :obj:`list` of `type`: list of subclasses, with duplicates removed
     """
-    subclasses = cls.__subclasses__()
+    subclasses = list(cls.__subclasses__())
+    if rev:
+        subclasses.reverse()
 
     if not immediate_only:
-        for sub_cls in cls.__subclasses__():
-            subclasses.extend(get_subclasses(sub_cls, immediate_only=immediate_only))
+        for sub_cls in subclasses.copy():
+            subclasses.extend(get_subclasses(sub_cls, rev=rev, immediate_only=False))
 
-    return set(subclasses)
+    return det_dedupe(subclasses)
 
 
 def get_superclasses(cls, immediate_only=False):

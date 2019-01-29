@@ -118,10 +118,14 @@ class TestAssertValueNotEqual(unittest.TestCase):
 class TestGetSubclasses(unittest.TestCase):
 
     def test(self):
-        self.assertEqual(get_subclasses(Parent1), set([Child11, Child12]))
-        self.assertEqual(get_subclasses(GrandParent), set([Parent1, Parent2, Child11, Child12, Child21, Child22]))
-        self.assertEqual(get_subclasses(GrandParent, immediate_only=True), set([Parent1, Parent2]))
-
+        self.assertEqual(get_subclasses(Parent1), [Child11, Child12])
+        self.assertEqual(get_subclasses(GrandParent), [Parent1, Parent2, Child11, Child12, Child21, Child22])
+        self.assertEqual(get_subclasses(GrandParent, immediate_only=True), [Parent1, Parent2])
+        self.assertEqual(get_subclasses(Parent1, rev=True), [Child12, Child11])
+        self.assertEqual(get_subclasses(GrandParent, rev=True), [Parent2, Parent1, Child22, Child21, Child12, Child11])
+        self.assertEqual(get_subclasses(GrandParent, rev=True, immediate_only=True), [Parent2, Parent1])
+        # test de-duplication
+        self.assertEqual(get_subclasses(Root), [Left, Right, Leaf])
 
 class TestGetSuperclasses(unittest.TestCase):
 
@@ -165,3 +169,8 @@ class Child21(Parent2):
 
 class Child22(Parent2):
     pass
+
+class Root(object): pass
+class Left(Root): pass
+class Right(Root): pass
+class Leaf(Left, Right): pass

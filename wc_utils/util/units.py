@@ -58,19 +58,21 @@ def are_units_equivalent(units1, units2, check_same_magnitude=True):
         if units2 is None:
             return False
         else:
-            if not isinstance(units1, pint.unit._Unit):
+            if not isinstance(units1, (pint.unit._Unit, pint.quantity._Quantity)):
                 return False
             registry = units1._REGISTRY
-            if not isinstance(units2, registry.Unit):
+            if not isinstance(units2, (registry.Unit, registry.Quantity)):
                 return False
             if units1 == units2:
                 return True
 
+            units1_expr = registry.parse_expression(str(units1))
+            units2_expr = registry.parse_expression(str(units2))
+
             if check_same_magnitude:
                 try:
-                    return units1.compare(units2, operator.eq)
+                    return units1_expr.compare(units2_expr, operator.eq)
                 except pint.DimensionalityError:
                     return False
-            else:
-                units1_expr = registry.parse_expression(str(units1))
-                return units1_expr.check(units2)
+            else:                
+                return units1_expr.check(units2_expr)

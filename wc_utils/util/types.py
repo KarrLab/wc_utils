@@ -176,25 +176,21 @@ def is_iterable(obj):
         and not hasattr(obj, '__dict__')
 
 
-def get_subclasses(cls, rev=False, immediate_only=False):
+def get_subclasses(cls, immediate_only=False):
     """ Reproducibly get subclasses of a class, with duplicates removed
 
     Args:
         cls (:obj:`type`): class
-        rev (:obj:`bool`, optional): if true, subclasses of a class are ordered from newer to older;
-            default is older to newer
         immediate_only (:obj:`bool`, optional): if true, only return direct subclasses
 
     Returns:
         :obj:`list` of `type`: list of subclasses, with duplicates removed
     """
     subclasses = list(cls.__subclasses__())
-    if rev:
-        subclasses.reverse()
 
     if not immediate_only:
         for sub_cls in subclasses.copy():
-            subclasses.extend(get_subclasses(sub_cls, rev=rev, immediate_only=False))
+            subclasses.extend(get_subclasses(sub_cls, immediate_only=False))
 
     return det_dedupe(subclasses)
 

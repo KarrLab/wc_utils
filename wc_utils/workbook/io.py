@@ -339,7 +339,7 @@ class ExcelWriter(Writer):
                 assert result != -1
 
         if isinf(style.extra_columns):
-            extra_columns = 2**14 - n_cols
+            extra_columns = min(100, 2**14 - n_cols)
         else:
             extra_columns = style.extra_columns
             result = xls_worksheet.set_column(n_cols + style.extra_columns, 2**14 - 1,
@@ -355,8 +355,10 @@ class ExcelWriter(Writer):
                 result = xls_worksheet.write_blank(i_row, i_col, None, format)
                 assert result != -1
 
+        return
+
         if isinf(style.extra_rows):
-            extra_rows = 2**20 - n_rows
+            extra_rows = min(100, 2**20 - n_rows)
         else:
             extra_rows = style.extra_rows
             for i_row in range(n_rows, n_rows + style.extra_rows):
@@ -983,7 +985,7 @@ class FieldValidation(object):
             'visible': False,
             'font_name': 'Arial',
             'font_size': 10,
-            'width': 300, # pixels
+            'width': 300,  # pixels
         })
 
     def apply_validation(self, ws, first_row, first_col, last_row, last_col):

@@ -19,10 +19,13 @@ except:
 import random
 import shutil
 import tempfile
+import time
 import unittest
 import wc_utils.config
 import wc_utils.quilt
 import wc_utils.workbook
+
+QUILT_DELAY = 1.
 
 
 @unittest.skipUnless(quilt_installed, 'Quilt must be installed')
@@ -206,6 +209,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         # build Quilt package and push to servers
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         manager.upload()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         # check package created locally
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
@@ -224,6 +228,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         # build Quilt package and push to servers
         up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         up_manager.upload()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         down_manager.download()
@@ -315,6 +320,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         up_manager.upload()
         self.delete_test_package_locally()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         down_manager.download(system_path='binary/test_binary_1.bin')
@@ -340,6 +346,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         up_manager.upload()
         self.delete_test_package_locally()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         down_manager.download(system_path='binary/test_binary_1.bin', sym_links=True)
@@ -358,6 +365,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         up_manager.upload()
         self.delete_test_package_locally()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         down_manager.download(system_path='binary/')
@@ -384,6 +392,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         up_manager.upload()
         self.delete_test_package_locally()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         down_manager.download(system_path='csv')
@@ -415,6 +424,7 @@ class QuiltManagerTestCase(unittest.TestCase):
         # build Quilt package and push to servers
         up_manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package, owner=self.owner, token=self.token)
         up_manager.upload()
+        time.sleep(QUILT_DELAY)  # to give Quilt time to process package for trying to download it
 
         down_manager = wc_utils.quilt.QuiltManager(self.tempdir_down, self.package, owner=self.owner, token=self.token)
         self.assertEqual(down_manager.get_package_path('binary/test_binary_1.bin'),

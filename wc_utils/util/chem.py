@@ -215,4 +215,6 @@ def get_major_protonation_state(inchi_or_inchis, ph=7.4):
     if isinstance(inchi_or_inchis, str):
         return next(output)
     else:
-        return list(output)
+        output = list(output)
+        assert len(output) == len(inchi_or_inchis)
+        return output

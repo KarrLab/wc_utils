@@ -8,10 +8,11 @@
 
 from wc_utils.util import chem
 import attrdict
+import mock
 import unittest
 
 
-class TestChem(unittest.TestCase):
+class EmpiricalFormulaTestCase(unittest.TestCase):
 
     def test_EmpiricalFormula_constructor(self):
         f = chem.EmpiricalFormula()
@@ -152,3 +153,29 @@ class TestChem(unittest.TestCase):
         self.assertIn('H', f)
         self.assertIn('C', f)
         self.assertNotIn('Ccc', f)
+
+
+class ProtonationTestCase(unittest.TestCase):
+    GLY = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
+
+    def test(self):
+        self.assertEqual(chem.get_major_protonation_state(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
+        self.assertEqual(chem.get_major_protonation_state([self.GLY, self.GLY], ph=13.), [
+            'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
+            'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
+        ])
+
+    def test_errors(self):
+        with self.assertRaises(ValueError):
+            chem.get_major_protonation_state(self.GLY + '\n' + self.GLY, ph=2.)
+
+        with self.assertRaises(ValueError):
+            chem.get_major_protonation_state([self.GLY + '\n' + self.GLY], ph=2.)
+
+        return_value = mock.Mock()
+        return_value.poll = lambda: True
+        return_value.communicate = lambda: (''.encode(), ''.encode())
+        return_value.returncode = 1
+        with mock.patch('subprocess.Popen', return_value=return_value):
+            with self.assertRaises(ValueError):
+                chem.get_major_protonation_state(self.GLY, ph=2.)

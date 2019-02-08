@@ -11,9 +11,25 @@
 This package contains utilities that are useful to multiple whole-cell (WC) software components.
 
 ## Installation
-```
-pip install git+git://github.com/KarrLab/wc_utils#egg=wc_utils
-```
+
+1. Install the third-party dependencies listed below. Detailed installation instructions are available in [An Introduction to Whole-Cell Modeling](http://docs.karrlab.org/intro_to_wc_modeling/master/0.0.1/installation.html).
+        
+    * [ChemAxon Marvin](https://chemaxon.com/products/marvin)
+    * [Git](https://git-scm.com/)
+    * [Pip](https://pip.pypa.io) >= 18.0
+    * [Python](https://www.python.org) >= 3.6
+
+2. Install this package 
+
+    * Install the latest release from PyPI
+      ```
+      pip install wc_utils
+      ```
+
+    * Install the latest revision from GitHub
+      ```
+      pip install git+git://github.com/KarrLab/wc_utils#egg=wc_utils
+      ```
 
 ## Example usage
 

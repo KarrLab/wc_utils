@@ -9,6 +9,8 @@
 import attrdict
 import mendeleev
 import re
+import subprocess
+import time
 
 
 class EmpiricalFormula(attrdict.AttrDefault):
@@ -173,3 +175,44 @@ class EmpiricalFormula(attrdict.AttrDefault):
             result[element] = coefficient / quantity
 
         return result
+
+
+def get_major_protonation_state(inchi_or_inchis, ph=7.4):
+    """ Get the major protonation state of one or more compounds at a specific pH.
+
+    Args:
+        inchi_or_inchis (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
+            list of InChI-encoded chemical structures
+        ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
+
+    Returns:
+        :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
+            list of InChI-encoded protonated chemical structures
+    """
+    if isinstance(inchi_or_inchis, str):
+        if '\n' in inchi_or_inchis:
+            raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a list of strings for single molecles')
+        input = inchi_or_inchis
+    else:
+        for inchi in inchi_or_inchis:
+            if '\n' in inchi:
+                raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a list of strings for single molecles')
+        input = '\n'.join(inchi_or_inchis)
+
+    process = subprocess.Popen(['cxcalc', 'majormicrospecies', input,
+                                '--pH', str(ph),
+                                '--majortautomer', 'false',
+                                '--keephydrogens', 'false',
+                                '--format', 'inchi'], stdout=subprocess.PIPE)
+
+    while process.poll() is None:
+        time.sleep(0.5)
+    out, err = process.communicate()
+    if process.returncode != 0:
+        raise ValueError(err.decode())
+
+    output = filter(lambda line: line.startswith('InChI='), out.decode().split('\n'))
+    if isinstance(inchi_or_inchis, str):
+        return next(output)
+    else:
+        return list(output)

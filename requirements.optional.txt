@@ -1,6 +1,6 @@
 [quilt]
 quilt # to backup data files to Quilt
 
-[protonation] # to calculate major protonation states with ChemAxon Marvin
-capturer
+[protonation]
+capturer # to calculate major protonation states with ChemAxon Marvin
 pyjnius

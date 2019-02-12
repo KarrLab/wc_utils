@@ -8,6 +8,8 @@
 
 import attrdict
 import mendeleev
+import os
+import pkg_resources
 import re
 import subprocess
 import time
@@ -177,44 +179,46 @@ class EmpiricalFormula(attrdict.AttrDefault):
         return result
 
 
-def get_major_protonation_state(inchi_or_inchis, ph=7.4):
-    """ Get the major protonation state of one or more compounds at a specific pH.
+class Protonator(object):
+    _inited = False
 
-    Args:
-        inchi_or_inchis (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
-            list of InChI-encoded chemical structures
-        ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
+    @classmethod
+    def run(cls, inchi_or_inchis, ph=7.4, major_tautomer=False, keep_hydrogens=False):
+        """ Get the major protonation state of one or more compounds at a specific pH.
 
-    Returns:
-        :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
-            list of InChI-encoded protonated chemical structures
-    """
-    if isinstance(inchi_or_inchis, str):
-        if '\n' in inchi_or_inchis:
-            raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a list of strings for single molecles')
-        input = inchi_or_inchis
-    else:
-        for inchi in inchi_or_inchis:
-            if '\n' in inchi:
-                raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a list of strings for single molecles')
-        input = '\n'.join(inchi_or_inchis)
+        Args:
+            inchi_or_inchis (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
+                list of InChI-encoded chemical structures
+            ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
+            major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
+            keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
 
-    process = subprocess.Popen(['cxcalc', 'majormicrospecies', input,
-                                '--pH', str(ph),
-                                '--majortautomer', 'false',
-                                '--keephydrogens', 'false',
-                                '--format', 'inchi'], stdout=subprocess.PIPE)
-
-    while process.poll() is None:
-        time.sleep(0.5)
-    out, err = process.communicate()
-    if process.returncode != 0:
-        raise ValueError(err.decode())
-
-    output = filter(lambda line: line.startswith('InChI='), out.decode().split('\n'))
-    if isinstance(inchi_or_inchis, str):
-        return next(output)
-    else:
-        output = list(output)
-        assert len(output) == len(inchi_or_inchis)
-        return output
+        Returns:
+            :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
+                list of InChI-encoded protonated chemical structures
+        """
+        import capturer
+        if not cls._inited:
+            import jnius_config
+            classpath = os.getenv('CLASSPATH', None)
+            if classpath:
+                classpath = classpath.split(':')
+                jnius_config.set_classpath(*classpath)
+            jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/Protonator.jar'))            
+            cls._inited = True
+        import jnius
+        JavaProtonator = jnius.autoclass('Protonator')
+        
+        if isinstance(inchi_or_inchis, str):
+            if '\n' in inchi_or_inchis:
+                raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
+                                 'list of strings for single molecles')
+            with capturer.CaptureOutput(relay=False):
+                return JavaProtonator.run_one(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
+        else:
+            for inchi in inchi_or_inchis:
+                if '\n' in inchi:
+                    raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
+                                     'list of strings for single molecles')
+            with capturer.CaptureOutput(relay=False):
+                return JavaProtonator.run_multiple(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)

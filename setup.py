@@ -14,8 +14,10 @@ package_data = {
         'VERSION',
         'config/*.cfg',
         'debug_logs/*.cfg',
-        'util/units.txt',
+        'util/chem/*.java',
+        'util/chem/*.jar',
         'util/ontology/WCM.obo',
+        'util/units.txt',
     ],
 }
 

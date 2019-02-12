@@ -14,21 +14,32 @@ This package contains utilities that are useful to multiple whole-cell (WC) soft
 
 1. Install the third-party dependencies listed below. Detailed installation instructions are available in [An Introduction to Whole-Cell Modeling](http://docs.karrlab.org/intro_to_wc_modeling/master/0.0.1/installation.html).
         
-    * [ChemAxon Marvin](https://chemaxon.com/products/marvin)
+    * [ChemAxon Marvin](https://chemaxon.com/products/marvin): optional to calculate major protonation states
+      * [Java](https://www.java.com) >= 1.8
     * [Git](https://git-scm.com/)
     * [Pip](https://pip.pypa.io) >= 18.0
     * [Python](https://www.python.org) >= 3.6
 
-2. Install this package 
+2. Set ``JAVA_HOME`` to the path to your Java virtual machine (JVM)
+   ```
+   export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+   ```
+
+3. To use Marvin to calculate major protonation states, add Marvin to the Java class path
+   ```
+   export CLASSPATH=$CLASSPATH:/opt/chemaxon/marvinsuite/lib/MarvinBeans.jar
+   ```
+
+4. Install this package 
 
     * Install the latest release from PyPI
       ```
-      pip install wc_utils
+      pip install wc_utils[all]
       ```
 
     * Install the latest revision from GitHub
       ```
-      pip install git+git://github.com/KarrLab/wc_utils#egg=wc_utils
+      pip install git+git://github.com/KarrLab/wc_utils#egg=wc_utils[all]
       ```
 
 ## Example usage

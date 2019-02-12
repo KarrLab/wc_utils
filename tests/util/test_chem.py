@@ -155,27 +155,31 @@ class EmpiricalFormulaTestCase(unittest.TestCase):
         self.assertNotIn('Ccc', f)
 
 
-class ProtonationTestCase(unittest.TestCase):
-    GLY = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
+class ProtonatorTestCase(unittest.TestCase):
+    ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
+    GLY = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'    
 
     def test(self):
-        self.assertEqual(chem.get_major_protonation_state(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
-        self.assertEqual(chem.get_major_protonation_state([self.GLY, self.GLY], ph=13.), [
+        self.assertEqual(chem.Protonator.run(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
+        self.assertEqual(chem.Protonator.run(self.GLY, ph=13.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1')
+        self.assertEqual(chem.Protonator.run(self.ALA, ph=13.), 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1')
+        self.assertEqual(chem.Protonator.run([self.ALA, self.GLY], ph=13.), [
+            'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1',
+            'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
+        ])
+        self.assertEqual(chem.Protonator.run([self.GLY, self.GLY], ph=13.), [
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
         ])
+        
 
     def test_errors(self):
         with self.assertRaises(ValueError):
-            chem.get_major_protonation_state(self.GLY + '\n' + self.GLY, ph=2.)
+            chem.Protonator.run(self.GLY + '\n' + self.GLY, ph=2.)
 
         with self.assertRaises(ValueError):
-            chem.get_major_protonation_state([self.GLY + '\n' + self.GLY], ph=2.)
+            chem.Protonator.run([self.GLY + '\n' + self.GLY], ph=2.)
 
-        return_value = mock.Mock()
-        return_value.poll = lambda: True
-        return_value.communicate = lambda: (''.encode(), ''.encode())
-        return_value.returncode = 1
-        with mock.patch('subprocess.Popen', return_value=return_value):
-            with self.assertRaises(ValueError):
-                chem.get_major_protonation_state(self.GLY, ph=2.)
+        import jnius
+        with self.assertRaises(jnius.JavaException):
+            chem.Protonator.run('C2H5NO2', ph=2.)

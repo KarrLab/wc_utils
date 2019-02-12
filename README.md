@@ -22,7 +22,7 @@ This package contains utilities that are useful to multiple whole-cell (WC) soft
 
 2. Set ``JAVA_HOME`` to the path to your Java virtual machine (JVM)
    ```
-   export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+   export JAVA_HOME=/usr/lib/jvm/default-java
    ```
 
 3. To use Marvin to calculate major protonation states, add Marvin to the Java class path

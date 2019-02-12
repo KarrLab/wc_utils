@@ -16,7 +16,7 @@ First, install the third-party packages listed below. Detailed installation inst
 
 To use ChemAxon Marvin to calculate major protonation states, set ``JAVA_HOME`` to the path to your Java virtual machine (JVM) and add Marvin to the Java class path::
 
-   export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+   export JAVA_HOME=/usr/lib/jvm/default-java
    export CLASSPATH=$CLASSPATH:/opt/chemaxon/marvinsuite/lib/MarvinBeans.jar
 
 

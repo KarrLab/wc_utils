@@ -20,7 +20,7 @@ This package contains utilities that are useful to multiple whole-cell (WC) soft
     * [Pip](https://pip.pypa.io) >= 18.0
     * [Python](https://www.python.org) >= 3.6
 
-2. Set ``JAVA_HOME`` to the path to your Java virtual machine (JVM)
+2. To use Marvin to calculate major protonation states, set ``JAVA_HOME`` to the path to your Java virtual machine (JVM)
    ```
    export JAVA_HOME=/usr/lib/jvm/default-java
    ```

@@ -2,5 +2,4 @@
 quilt # to backup data files to Quilt
 
 [protonation]
-capturer # to calculate major protonation states with ChemAxon Marvin
 pyjnius

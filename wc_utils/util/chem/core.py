@@ -197,28 +197,25 @@ class Protonator(object):
             :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
                 list of InChI-encoded protonated chemical structures
         """
-        import capturer
         if not cls._inited:
             import jnius_config
             classpath = os.getenv('CLASSPATH', None)
             if classpath:
                 classpath = classpath.split(':')
                 jnius_config.set_classpath(*classpath)
-            jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/Protonator.jar'))            
+            jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/Protonator.jar'))
             cls._inited = True
         import jnius
         JavaProtonator = jnius.autoclass('Protonator')
-        
+
         if isinstance(inchi_or_inchis, str):
             if '\n' in inchi_or_inchis:
                 raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
                                  'list of strings for single molecles')
-            with capturer.CaptureOutput(relay=False):
-                return JavaProtonator.run_one(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
+            return JavaProtonator.run_one(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
         else:
             for inchi in inchi_or_inchis:
                 if '\n' in inchi:
                     raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
                                      'list of strings for single molecles')
-            with capturer.CaptureOutput(relay=False):
-                return JavaProtonator.run_multiple(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
+            return JavaProtonator.run_multiple(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)

@@ -355,8 +355,6 @@ class ExcelWriter(Writer):
                 result = xls_worksheet.write_blank(i_row, i_col, None, format)
                 assert result != -1
 
-        return
-
         if isinf(style.extra_rows):
             extra_rows = min(100, 2**20 - n_rows)
         else:

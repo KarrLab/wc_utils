@@ -185,12 +185,20 @@ class ProtonatorTestCase(unittest.TestCase):
             chem.Protonator.run('C2H5NO2', ph=2.)
 
 
-class GetOpenbabelMolFormulaTestCase(unittest.TestCase):
-    def test(self):
+class OpenBabelUtilsTestCase(unittest.TestCase):
+    def test_get_formula(self):
         gly_inchi = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
         gly_formula = 'C2H5NO2'
         mol = openbabel.OBMol()
         conversion = openbabel.OBConversion()
         conversion.SetInFormat('inchi')
         conversion.ReadString(mol, gly_inchi)
-        self.assertEqual(chem.get_openbabel_mol_formula(mol), chem.EmpiricalFormula('C2H5NO2'))
+        self.assertEqual(chem.OpenBabelUtils.get_formula(mol), chem.EmpiricalFormula('C2H5NO2'))
+
+    def test_get_inchi(self):
+        gly_inchi = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
+        mol = openbabel.OBMol()
+        conversion = openbabel.OBConversion()
+        conversion.SetInFormat('inchi')
+        conversion.ReadString(mol, gly_inchi)
+        self.assertEqual(chem.OpenBabelUtils.get_inchi(mol), gly_inchi)

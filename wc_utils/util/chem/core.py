@@ -221,30 +221,55 @@ class Protonator(object):
             return JavaProtonator.run_multiple(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
 
 
-def get_openbabel_mol_formula(mol):
-    """ Get the formula of an OpenBabel molecule
+class OpenBabelUtils(object):
+    @staticmethod
+    def get_formula(mol):
+        """ Get the formula of an OpenBabel molecule
 
-    Args:
-        mol (:obj:`openbabel.OBMol`): molecule
+        Args:
+            mol (:obj:`openbabel.OBMol`): molecule
 
-    Returns:
-        :obj:`EmpiricalFormula`: formula
-    """
-    import openbabel
+        Returns:
+            :obj:`EmpiricalFormula`: formula
+        """
+        import openbabel
 
-    el_table = openbabel.OBElementTable()
-    formula = {}
-    mass = 0
-    for i_atom in range(mol.NumAtoms()):
-        atom = mol.GetAtom(i_atom + 1)
-        el = el_table.GetSymbol(atom.GetAtomicNum())
-        if el in formula:
-            formula[el] += 1
-        else:
-            formula[el] = 1
-        mass += el_table.GetMass(atom.GetAtomicNum())
-    formula = EmpiricalFormula(formula)
+        el_table = openbabel.OBElementTable()
+        formula = {}
+        mass = 0
+        for i_atom in range(mol.NumAtoms()):
+            atom = mol.GetAtom(i_atom + 1)
+            el = el_table.GetSymbol(atom.GetAtomicNum())
+            if el in formula:
+                formula[el] += 1
+            else:
+                formula[el] = 1
+            mass += el_table.GetMass(atom.GetAtomicNum())
+        formula = EmpiricalFormula(formula)
 
-    # calc hydrogens because OpenBabel doesn't output this
-    formula['H'] = round((mol.GetMolWt() - mass) / el_table.GetMass(1))
-    return formula
+        # calc hydrogens because OpenBabel doesn't output this
+        formula['H'] = round((mol.GetMolWt() - mass) / el_table.GetMass(1))
+        return formula
+
+    @staticmethod
+    def get_inchi(mol):
+        """ Get the InChI-encoded structure of an OpenBabel molecle
+
+        Args:
+            mol (:obj:`openbabel.OBMol`): molecule
+
+        Returns:
+            :obj:`str`: InChI-encoded structure
+        """
+        import openbabel
+
+        conversion = openbabel.OBConversion()
+        assert conversion.SetOutFormat('inchi'), 'Unable to set format to InChI'
+        conversion.SetOptions('r', conversion.OUTOPTIONS)
+        conversion.SetOptions('F', conversion.OUTOPTIONS)
+        inchi = conversion.WriteString(mol).strip()
+        inchi = inchi.replace('InChI=1/', 'InChI=1S/')
+        i_fixed_h = inchi.find('/f')
+        if i_fixed_h >= 0:
+            inchi = inchi[0:i_fixed_h]
+        return inchi

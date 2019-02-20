@@ -17,6 +17,7 @@ This package contains utilities that are useful to multiple whole-cell (WC) soft
     * [ChemAxon Marvin](https://chemaxon.com/products/marvin): optional to calculate major protonation states
       * [Java](https://www.java.com) >= 1.8
     * [Git](https://git-scm.com/)
+    * [OpenBabel](http://openbabel.org): optional to calculate chemical formulae
     * [Pip](https://pip.pypa.io) >= 18.0
     * [Python](https://www.python.org) >= 3.6
 

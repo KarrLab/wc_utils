@@ -9,6 +9,7 @@
 from wc_utils.util import chem
 import attrdict
 import mock
+import openbabel
 import unittest
 
 
@@ -157,7 +158,7 @@ class EmpiricalFormulaTestCase(unittest.TestCase):
 
 class ProtonatorTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
-    GLY = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'    
+    GLY = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
 
     def test(self):
         self.assertEqual(chem.Protonator.run(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
@@ -171,7 +172,6 @@ class ProtonatorTestCase(unittest.TestCase):
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
         ])
-        
 
     def test_errors(self):
         with self.assertRaises(ValueError):
@@ -183,3 +183,14 @@ class ProtonatorTestCase(unittest.TestCase):
         import jnius
         with self.assertRaises(jnius.JavaException):
             chem.Protonator.run('C2H5NO2', ph=2.)
+
+
+class GetOpenbabelMolFormulaTestCase(unittest.TestCase):
+    def test(self):
+        gly_inchi = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
+        gly_formula = 'C2H5NO2'
+        mol = openbabel.OBMol()
+        conversion = openbabel.OBConversion()
+        conversion.SetInFormat('inchi')
+        conversion.ReadString(mol, gly_inchi)
+        self.assertEqual(chem.get_openbabel_mol_formula(mol), chem.EmpiricalFormula('C2H5NO2'))

@@ -1,5 +1,8 @@
 [quilt]
 quilt # to backup data files to Quilt
 
+[chem]
+openbabel
+
 [protonation]
 pyjnius

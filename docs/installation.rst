@@ -11,6 +11,7 @@ First, install the third-party packages listed below. Detailed installation inst
     * `Java <https://www.java.com>`_ >= 1.8
 
 * `Git <https://git-scm.com/>`_
+* `OpenBabel <http://openbabel.org>`_: optional to calculate chemical formulae
 * `Pip <https://pip.pypa.io>`_ >= 18.0
 * `Python <https://www.python.org>`_ >= 3.6
 

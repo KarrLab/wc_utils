@@ -1,1 +1,1 @@
-from .core import EmpiricalFormula, Protonator
+from .core import EmpiricalFormula, Protonator, get_openbabel_mol_formula

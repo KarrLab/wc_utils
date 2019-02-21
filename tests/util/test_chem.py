@@ -202,3 +202,11 @@ class OpenBabelUtilsTestCase(unittest.TestCase):
         conversion.SetInFormat('inchi')
         conversion.ReadString(mol, gly_inchi)
         self.assertEqual(chem.OpenBabelUtils.get_inchi(mol), gly_inchi)
+
+    def test_get_smiles(self):
+        gly_smiles = 'C([N+])C([O-])=O'
+        mol = openbabel.OBMol()
+        conversion = openbabel.OBConversion()
+        conversion.SetInFormat('can')
+        conversion.ReadString(mol, gly_smiles)
+        self.assertEqual(chem.OpenBabelUtils.get_smiles(mol), '[O-]C(=O)C[N+]')

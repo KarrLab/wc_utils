@@ -14,6 +14,22 @@ import re
 import subprocess
 import time
 
+try:
+    import jnius_config
+    classpath = os.getenv('CLASSPATH', None)
+    if classpath:
+        classpath = classpath.split(':')
+        jnius_config.set_classpath(*classpath)
+    jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/Protonator.jar'))
+    import jnius
+except ModuleNotFoundError:  # pragma: no cover
+    pass  # pragma: no cover
+
+try:
+    import openbabel
+except ModuleNotFoundError:  # pragma: no cover
+    pass  # pragma: no cover
+
 
 class EmpiricalFormula(attrdict.AttrDefault):
     """ An empirical formula """
@@ -180,8 +196,6 @@ class EmpiricalFormula(attrdict.AttrDefault):
 
 
 class Protonator(object):
-    _inited = False
-
     @classmethod
     def run(cls, inchi_or_inchis, ph=7.4, major_tautomer=False, keep_hydrogens=False):
         """ Get the major protonation state of one or more compounds at a specific pH.
@@ -197,27 +211,18 @@ class Protonator(object):
             :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
                 list of InChI-encoded protonated chemical structures
         """
-        if not cls._inited:
-            import jnius_config
-            classpath = os.getenv('CLASSPATH', None)
-            if classpath:
-                classpath = classpath.split(':')
-                jnius_config.set_classpath(*classpath)
-            jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/Protonator.jar'))
-            cls._inited = True
-        import jnius
         JavaProtonator = jnius.autoclass('Protonator')
 
         if isinstance(inchi_or_inchis, str):
             if '\n' in inchi_or_inchis:
                 raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
-                                 'list of strings for single molecles')
+                                 'list of strings for single molecules')
             return JavaProtonator.run_one(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
         else:
             for inchi in inchi_or_inchis:
                 if '\n' in inchi:
                     raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
-                                     'list of strings for single molecles')
+                                     'list of strings for single molecules')
             return JavaProtonator.run_multiple(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
 
 
@@ -232,8 +237,6 @@ class OpenBabelUtils(object):
         Returns:
             :obj:`EmpiricalFormula`: formula
         """
-        import openbabel
-
         el_table = openbabel.OBElementTable()
         formula = {}
         mass = 0
@@ -253,7 +256,7 @@ class OpenBabelUtils(object):
 
     @staticmethod
     def get_inchi(mol):
-        """ Get the InChI-encoded structure of an OpenBabel molecle
+        """ Get the InChI-encoded structure of an OpenBabel molecule
 
         Args:
             mol (:obj:`openbabel.OBMol`): molecule
@@ -261,8 +264,6 @@ class OpenBabelUtils(object):
         Returns:
             :obj:`str`: InChI-encoded structure
         """
-        import openbabel
-
         conversion = openbabel.OBConversion()
         assert conversion.SetOutFormat('inchi'), 'Unable to set format to InChI'
         conversion.SetOptions('r', conversion.OUTOPTIONS)
@@ -273,3 +274,18 @@ class OpenBabelUtils(object):
         if i_fixed_h >= 0:
             inchi = inchi[0:i_fixed_h]
         return inchi
+
+    @staticmethod
+    def get_smiles(mol):
+        """ Get the canonical SMILES-encoded structure of an OpenBabel molecule
+
+        Args:
+            mol (:obj:`openbabel.OBMol`): molecule
+
+        Returns:
+            :obj:`str`: canonical SMILES-encoded structure
+        """
+        conversion = openbabel.OBConversion()
+        assert conversion.SetOutFormat('can'), 'Unable to set format to canonical SMILES'
+        smiles = conversion.WriteString(mol).strip()
+        return smiles

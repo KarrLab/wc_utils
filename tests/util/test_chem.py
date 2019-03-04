@@ -163,6 +163,44 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
     ALA_smiles = 'CC([N+])C([O-])=O'
     GLY_smiles = 'C([N+])C([O-])=O'
 
+    ALA_cml = """<?xml version="1.0" encoding="UTF-8"?>
+                 <cml>
+                     <molecule id="m1">
+                         <atomArray>
+                             <atom id="a1" elementType="C" x2="1.5399999999999987" y2="2.667358243656071"></atom>
+                             <atom id="a2" elementType="C" x2="2.3099999999999996" y2="1.3336791218280357"></atom>
+                             <atom id="a3" elementType="C" x2="1.540000000000000" y2="0.000000000000000"></atom>
+                             <atom id="a4" elementType="N" x2="3.8499999999999996" y2="1.3336791218280368"></atom>
+                             <atom id="a5" elementType="O" x2="2.3100000000000005" y2="-1.3336791218280353"></atom>
+                             <atom id="a6" elementType="O" x2="0.000000000000000" y2="0.000000000000000"></atom>
+                         </atomArray>
+                         <bondArray>
+                             <bond id="b1" atomRefs2="a2 a1" order="1"></bond>
+                             <bond id="b2" atomRefs2="a3 a2" order="1"></bond>
+                             <bond id="b3" atomRefs2="a4 a2" order="1"></bond>
+                             <bond id="b4" atomRefs2="a5 a3" order="2"></bond>
+                             <bond id="b5" atomRefs2="a6 a3" order="1"></bond>
+                         </bondArray>
+                     </molecule>
+                 </cml>"""
+    ALA_cml_2 = """<molecule id="m1">
+                       <atomArray>
+                           <atom id="a1" elementType="C" x2="1.5399999999999987" y2="2.667358243656071"></atom>
+                           <atom id="a2" elementType="C" x2="2.3099999999999996" y2="1.3336791218280357"></atom>
+                           <atom id="a3" elementType="C" x2="1.540000000000000" y2="0.000000000000000"></atom>
+                           <atom id="a4" elementType="N" x2="3.8499999999999996" y2="1.3336791218280368"></atom>
+                           <atom id="a5" elementType="O" x2="2.3100000000000005" y2="-1.3336791218280353"></atom>
+                           <atom id="a6" elementType="O" x2="0.000000000000000" y2="0.000000000000000"></atom>
+                       </atomArray>
+                       <bondArray>
+                           <bond id="b1" atomRefs2="a2 a1" order="1"></bond>
+                           <bond id="b2" atomRefs2="a3 a2" order="1"></bond>
+                           <bond id="b3" atomRefs2="a4 a2" order="1"></bond>
+                           <bond id="b4" atomRefs2="a5 a3" order="2"></bond>
+                           <bond id="b5" atomRefs2="a6 a3" order="1"></bond>
+                       </bondArray>
+                   </molecule>"""
+
     def test_inchi(self):
         self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
         self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY, ph=13.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1')
@@ -192,6 +230,13 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
             '[N+]CC([O-])=O',
             '[N+]CC([O-])=O',
         ])
+
+    def test_cml(self):
+        result = chem.GetMajorMicroSpecies.run(self.ALA_cml, format='cml', ph=2.)
+        self.assertTrue(result.startswith('<?xml'))
+
+        result = chem.GetMajorMicroSpecies.run(self.ALA_cml_2, format='cml', ph=2.)
+        self.assertTrue(result.startswith('<?xml'))
 
     def test_errors(self):
         import jnius
@@ -224,6 +269,7 @@ class OpenBabelUtilsTestCase(unittest.TestCase):
         conversion.SetInFormat('can')
         conversion.ReadString(mol, gly_smiles)
         self.assertEqual(chem.OpenBabelUtils.export(mol, 'smi'), 'C([N+])C(=O)[O-]')
+        self.assertEqual(chem.OpenBabelUtils.export(mol, 'smi', options=('c',)), '[O-]C(=O)C[N+]')
 
         gly_inchi = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
         mol = openbabel.OBMol()
@@ -231,3 +277,5 @@ class OpenBabelUtilsTestCase(unittest.TestCase):
         conversion.SetInFormat('inchi')
         conversion.ReadString(mol, gly_inchi)
         self.assertEqual(chem.OpenBabelUtils.export(mol, 'inchi'), gly_inchi)
+
+        self.assertTrue(chem.OpenBabelUtils.export(mol, 'mol', options='m').endswith('END'))

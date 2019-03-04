@@ -25,6 +25,9 @@ public class GetMajorMicroSpecies {
         MoleculeImporter molImporter = new MoleculeImporter(inStream, inStructureFormat);
         Molecule inMol = molImporter.read();
 
+        // dearomatize
+        inMol.dearomatize();
+
         // protonate
         MajorMicrospeciesPlugin plugin = new MajorMicrospeciesPlugin();
         plugin.setpH(ph);
@@ -39,7 +42,7 @@ public class GetMajorMicroSpecies {
         MolExporter molExporter = new MolExporter(outStream, outStructureFormat);
         molExporter.write(outMol);
         String outStructure = outStream.toString();
-       
+
         // return structure
         return outStructure;
     }

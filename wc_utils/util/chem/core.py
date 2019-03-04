@@ -240,58 +240,64 @@ class OpenBabelUtils(object):
         Returns:
             :obj:`EmpiricalFormula`: formula
         """
-        el_table = openbabel.OBElementTable()
-        formula = {}
-        mass = 0
-        for i_atom in range(mol.NumAtoms()):
-            atom = mol.GetAtom(i_atom + 1)
-            el = el_table.GetSymbol(atom.GetAtomicNum())
-            if el in formula:
-                formula[el] += 1
-            else:
-                formula[el] = 1
-            mass += el_table.GetMass(atom.GetAtomicNum())
-        formula = EmpiricalFormula(formula)
-
-        # calc hydrogens because OpenBabel doesn't output this
-        formula['H'] = round((mol.GetMolWt() - mass) / el_table.GetMass(1))
-        return formula
+        return EmpiricalFormula(mol.GetFormula().strip('-+'))
 
     @classmethod
-    def get_inchi(cls, mol):
+    def get_inchi(cls, mol, options=('r', 'F',)):
         """ Get the InChI-encoded structure of an OpenBabel molecule
 
         Args:
             mol (:obj:`openbabel.OBMol`): molecule
+            options (:obj:`list` of :obj:`str`, optional): export options
 
         Returns:
             :obj:`str`: InChI-encoded structure
         """
         conversion = openbabel.OBConversion()
         assert conversion.SetOutFormat('inchi'), 'Unable to set format to InChI'
-        conversion.SetOptions('r', conversion.OUTOPTIONS)
-        conversion.SetOptions('F', conversion.OUTOPTIONS)
+        for option in options:
+            conversion.SetOptions(option, conversion.OUTOPTIONS)
         inchi = conversion.WriteString(mol).strip()
         inchi = inchi.replace('InChI=1/', 'InChI=1S/')
-        i_fixed_h = inchi.find('/f')
-        if i_fixed_h >= 0:
-            inchi = inchi[0:i_fixed_h]
+        inchi = inchi.partition('/f')[0]
         return inchi
 
     @classmethod
-    def export(cls, mol, format):
+    def get_smiles(cls, mol, options=()):
+        """ Get the SMILES-encoded structure of an OpenBabel molecule
+
+        Args:
+            mol (:obj:`openbabel.OBMol`): molecule
+            options (:obj:`list` of :obj:`str`, optional): export options
+
+        Returns:
+            :obj:`str`: SMILES-encoded structure
+        """
+        conversion = openbabel.OBConversion()
+        assert conversion.SetOutFormat('smiles'), 'Unable to set format to Daylight SMILES'
+        for option in options:
+            conversion.SetOptions(option, conversion.OUTOPTIONS)
+        return conversion.WriteString(mol).partition('\t')[0].strip()
+
+    @classmethod
+    def export(cls, mol, format, options=()):
         """ Export an OpenBabel molecule to format
 
         Args:
             mol (:obj:`openbabel.OBMol`): molecule
             format (:obj:`str`): format
+            options (:obj:`list` of :obj:`str`, optional): export options
 
         Returns:
             :obj:`str`: format representation of molecule
         """
         if format == 'inchi':
-            return cls.get_inchi(mol)
+            return cls.get_inchi(mol, options=options)
+        if format in ['smi', 'smiles']:
+            return cls.get_smiles(mol, options=options)
 
         conversion = openbabel.OBConversion()
         assert conversion.SetOutFormat(format), 'Unable to set format to {}'.format(format)
+        for option in options:
+            conversion.SetOptions(option, conversion.OUTOPTIONS)
         return conversion.WriteString(mol).strip()

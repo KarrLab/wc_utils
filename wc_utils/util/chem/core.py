@@ -197,14 +197,14 @@ class EmpiricalFormula(attrdict.AttrDefault):
 
 class GetMajorMicroSpecies(object):
     @classmethod
-    def run(cls, structure_or_structures, structure_format='inchi',
+    def run(cls, structure_or_structures, format='inchi',
             ph=7.4, major_tautomer=False, keep_hydrogens=False):
         """ Get the major protonation state of one or more compounds at a specific pH.
 
         Args:
             structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
                 list of InChI-encoded chemical structures
-            structure_format (:obj:`str`, optional): format of structure_or_structures (e.g. 'inchi' or 'smiles')
+            format (:obj:`str`, optional): format of :obj:`structure_or_structures` (e.g. 'inchi' or 'smiles')
             ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
             major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
             keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
@@ -219,14 +219,14 @@ class GetMajorMicroSpecies(object):
             if '\n' in structure_or_structures:
                 raise ValueError('`structure_or_structures` must be a string for a single molecule or a '
                                  'list of strings for single molecules')
-            return JavaGetMajorMicroSpecies.run_one(structure_or_structures, structure_format, structure_format,
+            return JavaGetMajorMicroSpecies.run_one(structure_or_structures, format, format,
                                                     ph, major_tautomer, keep_hydrogens)
         else:
             for inchi in structure_or_structures:
                 if '\n' in inchi:
                     raise ValueError('`structure_or_structures` must be a string for a single molecule or a '
                                      'list of strings for single molecules')
-            return JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, structure_format, structure_format,
+            return JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, format, format,
                                                          ph, major_tautomer, keep_hydrogens)
 
 

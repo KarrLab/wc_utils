@@ -177,17 +177,17 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
         ])
 
     def test_smiles(self):
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, structure_format='smiles', ph=2.), 
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, format='smiles', ph=2.), 
             '[N+]CC(O)=O')
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, structure_format='smiles', ph=13.), 
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, format='smiles', ph=13.), 
             '[N+]CC([O-])=O')
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA_smiles, structure_format='smiles', ph=13.), 
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA_smiles, format='smiles', ph=13.), 
             'CC([N+])C([O-])=O')
-        self.assertEqual(chem.GetMajorMicroSpecies.run([self.ALA_smiles, self.GLY_smiles], structure_format='smiles', ph=13.), [
+        self.assertEqual(chem.GetMajorMicroSpecies.run([self.ALA_smiles, self.GLY_smiles], format='smiles', ph=13.), [
             'CC([N+])C([O-])=O',
             '[N+]CC([O-])=O',
         ])
-        self.assertEqual(chem.GetMajorMicroSpecies.run([self.GLY_smiles, self.GLY_smiles], structure_format='smiles', ph=13.), [
+        self.assertEqual(chem.GetMajorMicroSpecies.run([self.GLY_smiles, self.GLY_smiles], format='smiles', ph=13.), [
             '[N+]CC([O-])=O',
             '[N+]CC([O-])=O',
         ])

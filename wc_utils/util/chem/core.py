@@ -257,8 +257,8 @@ class OpenBabelUtils(object):
         formula['H'] = round((mol.GetMolWt() - mass) / el_table.GetMass(1))
         return formula
 
-    @staticmethod
-    def get_inchi(mol):
+    @classmethod
+    def get_inchi(cls, mol):
         """ Get the InChI-encoded structure of an OpenBabel molecule
 
         Args:
@@ -278,17 +278,20 @@ class OpenBabelUtils(object):
             inchi = inchi[0:i_fixed_h]
         return inchi
 
-    @staticmethod
-    def get_smiles(mol):
-        """ Get the Daylight SMILES-encoded structure of an OpenBabel molecule
+    @classmethod
+    def export(cls, mol, format):
+        """ Export an OpenBabel molecule to format
 
         Args:
             mol (:obj:`openbabel.OBMol`): molecule
+            format (:obj:`str`): format
 
         Returns:
-            :obj:`str`: Daylight SMILES-encoded structure
+            :obj:`str`: format representation of molecule
         """
+        if format == 'inchi':
+            return cls.get_inchi(mol)
+
         conversion = openbabel.OBConversion()
-        assert conversion.SetOutFormat('smi'), 'Unable to set format to Daylight SMILES'
-        smiles = conversion.WriteString(mol).strip()
-        return smiles
+        assert conversion.SetOutFormat(format), 'Unable to set format to {}'.format(format)
+        return conversion.WriteString(mol).strip()

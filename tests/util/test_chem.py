@@ -166,7 +166,8 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
     def test_inchi(self):
         self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
         self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY, ph=13.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1')
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA, ph=13.), 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA, ph=13.),
+                         'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1')
         self.assertEqual(chem.GetMajorMicroSpecies.run([self.ALA, self.GLY], ph=13.), [
             'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
@@ -177,12 +178,12 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
         ])
 
     def test_smiles(self):
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, format='smiles', ph=2.), 
-            '[N+]CC(O)=O')
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, format='smiles', ph=13.), 
-            '[N+]CC([O-])=O')
-        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA_smiles, format='smiles', ph=13.), 
-            'CC([N+])C([O-])=O')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, format='smiles', ph=2.),
+                         '[N+]CC(O)=O')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, format='smiles', ph=13.),
+                         '[N+]CC([O-])=O')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA_smiles, format='smiles', ph=13.),
+                         'CC([N+])C([O-])=O')
         self.assertEqual(chem.GetMajorMicroSpecies.run([self.ALA_smiles, self.GLY_smiles], format='smiles', ph=13.), [
             'CC([N+])C([O-])=O',
             '[N+]CC([O-])=O',
@@ -216,10 +217,17 @@ class OpenBabelUtilsTestCase(unittest.TestCase):
         conversion.ReadString(mol, gly_inchi)
         self.assertEqual(chem.OpenBabelUtils.get_inchi(mol), gly_inchi)
 
-    def test_get_smiles(self):
+    def test_export(self):
         gly_smiles = 'C([N+])C([O-])=O'
         mol = openbabel.OBMol()
         conversion = openbabel.OBConversion()
         conversion.SetInFormat('can')
         conversion.ReadString(mol, gly_smiles)
-        self.assertEqual(chem.OpenBabelUtils.get_smiles(mol), 'C([N+])C(=O)[O-]')
+        self.assertEqual(chem.OpenBabelUtils.export(mol, 'smi'), 'C([N+])C(=O)[O-]')
+
+        gly_inchi = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
+        mol = openbabel.OBMol()
+        conversion = openbabel.OBConversion()
+        conversion.SetInFormat('inchi')
+        conversion.ReadString(mol, gly_inchi)
+        self.assertEqual(chem.OpenBabelUtils.export(mol, 'inchi'), gly_inchi)

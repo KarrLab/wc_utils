@@ -216,18 +216,17 @@ class GetMajorMicroSpecies(object):
         JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
 
         if isinstance(structure_or_structures, str):
-            if '\n' in structure_or_structures:
-                raise ValueError('`structure_or_structures` must be a string for a single molecule or a '
-                                 'list of strings for single molecules')
-            return JavaGetMajorMicroSpecies.run_one(structure_or_structures, format, format,
-                                                    ph, major_tautomer, keep_hydrogens)
+            result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, format, format,
+                                                      ph, major_tautomer, keep_hydrogens)
+            if format in ['inchi', 'smiles']:
+                result = result.partition('\n')[0].strip()
         else:
-            for inchi in structure_or_structures:
-                if '\n' in inchi:
-                    raise ValueError('`structure_or_structures` must be a string for a single molecule or a '
-                                     'list of strings for single molecules')
-            return JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, format, format,
-                                                         ph, major_tautomer, keep_hydrogens)
+            result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, format, format,
+                                                           ph, major_tautomer, keep_hydrogens)
+            if format in ['inchi', 'smiles']:
+                result = [r.partition('\n')[0].strip() for r in result]
+
+        return result
 
 
 class OpenBabelUtils(object):

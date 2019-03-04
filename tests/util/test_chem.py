@@ -193,12 +193,6 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
         ])
 
     def test_errors(self):
-        with self.assertRaises(ValueError):
-            chem.GetMajorMicroSpecies.run(self.GLY + '\n' + self.GLY, ph=2.)
-
-        with self.assertRaises(ValueError):
-            chem.GetMajorMicroSpecies.run([self.GLY + '\n' + self.GLY], ph=2.)
-
         import jnius
         with self.assertRaises(jnius.JavaException):
             chem.GetMajorMicroSpecies.run('C2H5NO2', ph=2.)

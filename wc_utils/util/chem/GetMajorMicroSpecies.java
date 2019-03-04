@@ -39,11 +39,6 @@ public class GetMajorMicroSpecies {
         MolExporter molExporter = new MolExporter(outStream, outStructureFormat);
         molExporter.write(outMol);
         String outStructure = outStream.toString();
-
-        // strip extra formatting from string
-        int i_line = outStructure.indexOf("\n");
-        if (i_line > -1)
-           outStructure = outStructure.substring(0, outStructure.indexOf("\n"));
        
         // return structure
         return outStructure;

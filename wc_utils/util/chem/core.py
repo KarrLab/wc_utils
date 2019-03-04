@@ -20,7 +20,7 @@ try:
     if classpath:
         classpath = classpath.split(':')
         jnius_config.set_classpath(*classpath)
-    jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/Protonator.jar'))
+    jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     import jnius
 except ModuleNotFoundError:  # pragma: no cover
     pass  # pragma: no cover
@@ -195,14 +195,16 @@ class EmpiricalFormula(attrdict.AttrDefault):
         return result
 
 
-class Protonator(object):
+class GetMajorMicroSpecies(object):
     @classmethod
-    def run(cls, inchi_or_inchis, ph=7.4, major_tautomer=False, keep_hydrogens=False):
+    def run(cls, structure_or_structures, structure_format='inchi',
+            ph=7.4, major_tautomer=False, keep_hydrogens=False):
         """ Get the major protonation state of one or more compounds at a specific pH.
 
         Args:
-            inchi_or_inchis (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
+            structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
                 list of InChI-encoded chemical structures
+            structure_format (:obj:`str`, optional): format of structure_or_structures (e.g. 'inchi' or 'smiles')
             ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
             major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
             keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
@@ -211,19 +213,21 @@ class Protonator(object):
             :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
                 list of InChI-encoded protonated chemical structures
         """
-        JavaProtonator = jnius.autoclass('Protonator')
+        JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
 
-        if isinstance(inchi_or_inchis, str):
-            if '\n' in inchi_or_inchis:
-                raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
+        if isinstance(structure_or_structures, str):
+            if '\n' in structure_or_structures:
+                raise ValueError('`structure_or_structures` must be a string for a single molecule or a '
                                  'list of strings for single molecules')
-            return JavaProtonator.run_one(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
+            return JavaGetMajorMicroSpecies.run_one(structure_or_structures, structure_format, structure_format,
+                                                    ph, major_tautomer, keep_hydrogens)
         else:
-            for inchi in inchi_or_inchis:
+            for inchi in structure_or_structures:
                 if '\n' in inchi:
-                    raise ValueError('`inchi_or_inchis` must be a string for a single molecule or a '
+                    raise ValueError('`structure_or_structures` must be a string for a single molecule or a '
                                      'list of strings for single molecules')
-            return JavaProtonator.run_multiple(inchi_or_inchis, ph, major_tautomer, keep_hydrogens)
+            return JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, structure_format, structure_format,
+                                                         ph, major_tautomer, keep_hydrogens)
 
 
 class OpenBabelUtils(object):
@@ -277,15 +281,15 @@ class OpenBabelUtils(object):
 
     @staticmethod
     def get_smiles(mol):
-        """ Get the canonical SMILES-encoded structure of an OpenBabel molecule
+        """ Get the Daylight SMILES-encoded structure of an OpenBabel molecule
 
         Args:
             mol (:obj:`openbabel.OBMol`): molecule
 
         Returns:
-            :obj:`str`: canonical SMILES-encoded structure
+            :obj:`str`: Daylight SMILES-encoded structure
         """
         conversion = openbabel.OBConversion()
-        assert conversion.SetOutFormat('can'), 'Unable to set format to canonical SMILES'
+        assert conversion.SetOutFormat('smi'), 'Unable to set format to Daylight SMILES'
         smiles = conversion.WriteString(mol).strip()
         return smiles

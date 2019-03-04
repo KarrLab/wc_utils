@@ -156,33 +156,52 @@ class EmpiricalFormulaTestCase(unittest.TestCase):
         self.assertNotIn('Ccc', f)
 
 
-class ProtonatorTestCase(unittest.TestCase):
+class GetMajorMicroSpeciesTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
     GLY = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'
 
-    def test(self):
-        self.assertEqual(chem.Protonator.run(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
-        self.assertEqual(chem.Protonator.run(self.GLY, ph=13.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1')
-        self.assertEqual(chem.Protonator.run(self.ALA, ph=13.), 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1')
-        self.assertEqual(chem.Protonator.run([self.ALA, self.GLY], ph=13.), [
+    ALA_smiles = 'CC([N+])C([O-])=O'
+    GLY_smiles = 'C([N+])C([O-])=O'
+
+    def test_inchi(self):
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY, ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY, ph=13.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA, ph=13.), 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1')
+        self.assertEqual(chem.GetMajorMicroSpecies.run([self.ALA, self.GLY], ph=13.), [
             'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
         ])
-        self.assertEqual(chem.Protonator.run([self.GLY, self.GLY], ph=13.), [
+        self.assertEqual(chem.GetMajorMicroSpecies.run([self.GLY, self.GLY], ph=13.), [
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
+        ])
+
+    def test_smiles(self):
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, structure_format='smiles', ph=2.), 
+            '[N+]CC(O)=O')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.GLY_smiles, structure_format='smiles', ph=13.), 
+            '[N+]CC([O-])=O')
+        self.assertEqual(chem.GetMajorMicroSpecies.run(self.ALA_smiles, structure_format='smiles', ph=13.), 
+            'CC([N+])C([O-])=O')
+        self.assertEqual(chem.GetMajorMicroSpecies.run([self.ALA_smiles, self.GLY_smiles], structure_format='smiles', ph=13.), [
+            'CC([N+])C([O-])=O',
+            '[N+]CC([O-])=O',
+        ])
+        self.assertEqual(chem.GetMajorMicroSpecies.run([self.GLY_smiles, self.GLY_smiles], structure_format='smiles', ph=13.), [
+            '[N+]CC([O-])=O',
+            '[N+]CC([O-])=O',
         ])
 
     def test_errors(self):
         with self.assertRaises(ValueError):
-            chem.Protonator.run(self.GLY + '\n' + self.GLY, ph=2.)
+            chem.GetMajorMicroSpecies.run(self.GLY + '\n' + self.GLY, ph=2.)
 
         with self.assertRaises(ValueError):
-            chem.Protonator.run([self.GLY + '\n' + self.GLY], ph=2.)
+            chem.GetMajorMicroSpecies.run([self.GLY + '\n' + self.GLY], ph=2.)
 
         import jnius
         with self.assertRaises(jnius.JavaException):
-            chem.Protonator.run('C2H5NO2', ph=2.)
+            chem.GetMajorMicroSpecies.run('C2H5NO2', ph=2.)
 
 
 class OpenBabelUtilsTestCase(unittest.TestCase):
@@ -209,4 +228,4 @@ class OpenBabelUtilsTestCase(unittest.TestCase):
         conversion = openbabel.OBConversion()
         conversion.SetInFormat('can')
         conversion.ReadString(mol, gly_smiles)
-        self.assertEqual(chem.OpenBabelUtils.get_smiles(mol), '[O-]C(=O)C[N+]')
+        self.assertEqual(chem.OpenBabelUtils.get_smiles(mol), 'C([N+])C(=O)[O-]')

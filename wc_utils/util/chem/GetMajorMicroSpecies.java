@@ -8,20 +8,21 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
- * Reads a molecule from InChI, calculate the major protonation state, and
- * writes the molecule to InChI.
+ * Reads a molecule from strings, calculate the major protonation state, and
+ * writes the molecule to strings.
  *
  * @date 2019-02-11
  * @author Jonathan Karr <karr@mssm.edu>
  */
-public class Protonator {
-    /* Reads a molecule from InChI, calculate the major protonation state, and
-     * writes the molecule to InChI.
+public class GetMajorMicroSpecies {
+    /* Reads a molecule from a string (e.g., InChI, SMILES), calculate the major protonation state, and
+     * writes the molecule to a string (e.g., InChI, SMILES).
      */
-    public static String run_one(String inInchi, Float ph, boolean majorTautomer, boolean keepExplicitHydrogens) throws IOException, PluginException {
-        // read from InChI
-        ByteArrayInputStream inStream = new ByteArrayInputStream(inInchi.getBytes());
-        MoleculeImporter molImporter = new MoleculeImporter(inStream, "inchi");
+    public static String run_one(String inStructure, String inStructureFormat, String outStructureFormat,
+        Float ph, boolean majorTautomer, boolean keepExplicitHydrogens) throws IOException, PluginException {
+        // read from string (e.g., "inchi", "smiles")
+        ByteArrayInputStream inStream = new ByteArrayInputStream(inStructure.getBytes());
+        MoleculeImporter molImporter = new MoleculeImporter(inStream, inStructureFormat);
         Molecule inMol = molImporter.read();
 
         // protonate
@@ -33,27 +34,28 @@ public class Protonator {
         plugin.run();
         Molecule outMol = plugin.getMajorMicrospecies();
 
-        // write to InChI
+        // write to string
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        MolExporter molExporter = new MolExporter(outStream, "inchi");
+        MolExporter molExporter = new MolExporter(outStream, outStructureFormat);
         molExporter.write(outMol);
-        String outInchi = outStream.toString();
+        String outStructure = outStream.toString();
 
-        // strip extra formatting from InChI
-        int i_line = outInchi.indexOf("\n");
+        // strip extra formatting from string
+        int i_line = outStructure.indexOf("\n");
         if (i_line > -1)
-           outInchi = outInchi.substring(0, outInchi.indexOf("\n"));
+           outStructure = outStructure.substring(0, outStructure.indexOf("\n"));
        
-        // return InChI
-        return outInchi;
+        // return structure
+        return outStructure;
     }
 
-    public static String[] run_multiple(String[] inInchi, Float ph, boolean majorTautomer, boolean keepExplicitHydrogens) throws IOException, PluginException {
-        // read from InChI
-        String[] outInchi = new String[inInchi.length];
-        for (int i = 0; i < inInchi.length; i++) {
-            outInchi[i] = Protonator.run_one(inInchi[i], ph, majorTautomer, keepExplicitHydrogens);
+    public static String[] run_multiple(String[] inStructures, String inStructureFormat, String outStructureFormat,
+        Float ph, boolean majorTautomer, boolean keepExplicitHydrogens) throws IOException, PluginException {
+        String[] outStructures = new String[inStructures.length];
+        for (int i = 0; i < inStructures.length; i++) {
+            outStructures[i] = GetMajorMicroSpecies.run_one(inStructures[i], inStructureFormat, outStructureFormat,
+                ph, majorTautomer, keepExplicitHydrogens);
         }
-        return outInchi;
+        return outStructures;
     }
 }

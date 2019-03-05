@@ -254,8 +254,9 @@ class DrawMoleculeTestCase(unittest.TestCase):
                                       [0xff0000, 0x00ff00, 0x0000ff],
                                       [[1], [2], [3]],
                                       [0xff0000, 0x00ff00, 0x0000ff])
-
         self.assertTrue(svg.startswith('<?xml'))
+
+        svg = chem.DrawMolecule().run(self.ALA, 'inchi')
 
 
 class OpenBabelUtilsTestCase(unittest.TestCase):

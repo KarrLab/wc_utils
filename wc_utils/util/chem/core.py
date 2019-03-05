@@ -232,9 +232,9 @@ class GetMajorMicroSpecies(object):
 
 class DrawMolecule(object):
     @classmethod
-    def run(cls, structure, format='inchi', 
-        atoms_to_label=None, atom_labels=None, atom_label_colors=None,
-        atom_sets=None, atom_set_colors=None):
+    def run(cls, structure, format='inchi',
+            atoms_to_label=None, atom_labels=None, atom_label_colors=None,
+            atom_sets=None, atom_set_colors=None):
         """ Draw molecule in SVG format
 
         Args:
@@ -249,17 +249,22 @@ class DrawMolecule(object):
         Returns:
             :obj:`str`: SVG image of chemical structure
         """
-        atoms_to_label = atoms_to_label or []
-        atom_labels = atom_labels or []
-        atom_label_colors = atom_label_colors or []
+        if atoms_to_label is None:
+            atoms_to_label = []
+        if atom_labels is None:
+            atom_labels = []
+        if atom_label_colors is None:
+            atom_label_colors = []
 
-        atom_sets = atom_sets or []
-        atom_set_colors = atom_set_colors or []
+        if atom_sets is None:
+            atom_sets = [[0]]
+        if atom_set_colors is None:
+            atom_set_colors = []
 
         JavaDrawMolecule = jnius.autoclass('DrawMolecule')
-        return JavaDrawMolecule.run_one(structure, format, 
-            atoms_to_label, atom_labels, atom_label_colors,
-            atom_sets, atom_set_colors)
+        return JavaDrawMolecule.run_one(structure, format,
+                                        atoms_to_label, atom_labels, atom_label_colors,
+                                        atom_sets, atom_set_colors)
 
 
 class OpenBabelUtils(object):

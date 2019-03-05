@@ -24,10 +24,7 @@ public class DrawMolecule {
         // read from string (e.g., "inchi", "smiles")
         ByteArrayInputStream inStream = new ByteArrayInputStream(inStructure.getBytes());
         MoleculeImporter molImporter = new MoleculeImporter(inStream, inStructureFormat);
-        Molecule inMol = molImporter.read();
-
-        MDocument mdoc = new MDocument(inMol);
-        Color green = new Color(0, 255, 0);
+        Molecule inMol = molImporter.read();        
 
         // set atom labels
         MolAtom atom;
@@ -36,7 +33,9 @@ public class DrawMolecule {
             atom.setExtraLabel(atomLabels[iLabel]);
             atom.setExtraLabelColor(atomLabelColors[iLabel]);
         }
-        for (int iSet = 0; iSet < atomSets.length; iSet++) {
+
+        MDocument mdoc = new MDocument(inMol);
+        for (int iSet = 0; iSet < atomSetColors.length; iSet++) {
             for (int iAtom = 0; iAtom < atomSets[iSet].length; iAtom++) {
                 atom = inMol.getAtom(atomSets[iSet][iAtom] - 1);
                 atom.setSetSeq(iSet + 1);

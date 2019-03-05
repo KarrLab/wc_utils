@@ -21,6 +21,7 @@ try:
         classpath = classpath.split(':')
         jnius_config.set_classpath(*classpath)
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
+    jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
     import jnius
 except ModuleNotFoundError:  # pragma: no cover
     pass  # pragma: no cover
@@ -202,16 +203,16 @@ class GetMajorMicroSpecies(object):
         """ Get the major protonation state of one or more compounds at a specific pH.
 
         Args:
-            structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): InChI-encoded chemical or 
-                list of InChI-encoded chemical structures
+            structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): chemical structure or 
+                list of chemical structures
             format (:obj:`str`, optional): format of :obj:`structure_or_structures` (e.g. 'inchi' or 'smiles')
             ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
             major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
             keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
 
         Returns:
-            :obj:`str` or :obj:`list` of :obj:`str`: InChI-encoded protonated chemical structure or
-                list of InChI-encoded protonated chemical structures
+            :obj:`str` or :obj:`list` of :obj:`str`: protonated chemical structure or
+                list of protonated chemical structures
         """
         JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
 
@@ -227,6 +228,38 @@ class GetMajorMicroSpecies(object):
                 result = [r.partition('\n')[0].strip() for r in result]
 
         return result
+
+
+class DrawMolecule(object):
+    @classmethod
+    def run(cls, structure, format='inchi', 
+        atoms_to_label=None, atom_labels=None, atom_label_colors=None,
+        atom_sets=None, atom_set_colors=None):
+        """ Draw molecule in SVG format
+
+        Args:
+            structure (:obj:`str`): chemical structure
+            format (:obj:`str`, optional): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
+            atoms_to_label (:obj:`list` of :obj:`int`, optional): list of indices of atoms to label
+            atom_labels (:obj:`list` of :obj:`str`, optional): atom labels
+            atom_label_colors (:obj:`list` of :obj:`int`, optional): colors of atom labels
+            atom_sets (:obj:`list` of :obj:`list` of :obj:`int`, optional): list of list of indices of atoms
+            atom_set_colors (:obj:`list` of :obj:`int`, optional): list of colors of atom sets
+
+        Returns:
+            :obj:`str`: SVG image of chemical structure
+        """
+        atoms_to_label = atoms_to_label or []
+        atom_labels = atom_labels or []
+        atom_label_colors = atom_label_colors or []
+
+        atom_sets = atom_sets or []
+        atom_set_colors = atom_set_colors or []
+
+        JavaDrawMolecule = jnius.autoclass('DrawMolecule')
+        return JavaDrawMolecule.run_one(structure, format, 
+            atoms_to_label, atom_labels, atom_label_colors,
+            atom_sets, atom_set_colors)
 
 
 class OpenBabelUtils(object):

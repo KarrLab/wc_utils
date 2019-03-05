@@ -244,6 +244,20 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
             chem.GetMajorMicroSpecies.run('C2H5NO2', ph=2.)
 
 
+class DrawMoleculeTestCase(unittest.TestCase):
+    ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
+
+    def test(self):
+        svg = chem.DrawMolecule().run(self.ALA, 'inchi',
+                                      [1, 2, 3],
+                                      ['A', 'B', 'C'],
+                                      [0xff0000, 0x00ff00, 0x0000ff],
+                                      [[1], [2], [3]],
+                                      [0xff0000, 0x00ff00, 0x0000ff])
+
+        self.assertTrue(svg.startswith('<?xml'))
+
+
 class OpenBabelUtilsTestCase(unittest.TestCase):
     def test_get_formula(self):
         gly_inchi = 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)'

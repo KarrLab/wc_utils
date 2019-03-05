@@ -228,39 +228,41 @@ def get_major_micro_species(structure_or_structures, format,
     return result
 
 
-def draw_molecule(structure, format,
-                  atoms_to_label=None, atom_labels=None, atom_label_colors=None,
-                  atom_sets=None, atom_set_colors=None):
+def draw_molecule(structure, format, atom_labels=None, atom_sets=None):
     """ Draw molecule in SVG format
 
     Args:
         structure (:obj:`str`): chemical structure
         format (:obj:`str`): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
-        atoms_to_label (:obj:`list` of :obj:`int`, optional): list of indices of atoms to label
-        atom_labels (:obj:`list` of :obj:`str`, optional): atom labels
-        atom_label_colors (:obj:`list` of :obj:`int`, optional): colors of atom labels
-        atom_sets (:obj:`list` of :obj:`list` of :obj:`int`, optional): list of list of indices of atoms
-        atom_set_colors (:obj:`list` of :obj:`int`, optional): list of colors of atom sets
+        atom_labels (:obj:`list` of :obj:`dict`): list of atom labels (dictionaries with keys {`position`, `label`, `color`})
+        atom_sets (:obj:`list` of :obj:`dict`): list of atom sets (dictionaries with keys {`positions`, `color`})
 
     Returns:
         :obj:`str`: SVG image of chemical structure
     """
-    if atoms_to_label is None:
-        atoms_to_label = []
-    if atom_labels is None:
-        atom_labels = []
-    if atom_label_colors is None:
-        atom_label_colors = []
+    atom_labels = atom_labels or []
+    atoms_to_label = []
+    atom_label_texts = []
+    atom_label_colors = []
+    for atom_label in atom_labels:
+        atoms_to_label.append(atom_label['position'])
+        atom_label_texts.append(atom_label['label'])
+        atom_label_colors.append(atom_label['color'])
 
-    if atom_sets is None:
-        atom_sets = [[0]]
-    if atom_set_colors is None:
-        atom_set_colors = []
+    atom_sets = atom_sets or []
+    atom_set_positions = []
+    atom_set_colors = []
+    for atom_set in atom_sets:
+        atom_set_positions.append(atom_set['positions'])
+        atom_set_colors.append(atom_set['color'])
+
+    if not atom_set_positions:
+        atom_set_positions = [[0]]
 
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
     return JavaDrawMolecule.run_one(structure, format,
-                                    atoms_to_label, atom_labels, atom_label_colors,
-                                    atom_sets, atom_set_colors)
+                                    atoms_to_label, atom_label_texts, atom_label_colors,
+                                    atom_set_positions, atom_set_colors)
 
 
 class OpenBabelUtils(object):

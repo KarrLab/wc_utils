@@ -248,12 +248,16 @@ class DrawMoleculeTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
 
     def test(self):
-        svg = chem.draw_molecule(self.ALA, 'inchi',
-                                      [1, 2, 3],
-                                      ['A', 'B', 'C'],
-                                      [0xff0000, 0x00ff00, 0x0000ff],
-                                      [[1], [2], [3]],
-                                      [0xff0000, 0x00ff00, 0x0000ff])
+        svg = chem.draw_molecule(self.ALA, 'inchi', [
+            {'position': 1, 'label': 'A', 'color': 0xff0000},
+            {'position': 2, 'label': 'B', 'color': 0x00ff00},
+            {'position': 3, 'label': 'C', 'color': 0x0000ff},
+        ],
+            [
+            {'positions': [1], 'color': 0xff0000},
+            {'positions': [2], 'color': 0x00ff00},
+            {'positions': [3], 'color': 0x0000ff},
+        ])
         self.assertTrue(svg.startswith('<?xml'))
 
         svg = chem.draw_molecule(self.ALA, 'inchi')

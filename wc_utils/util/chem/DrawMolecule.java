@@ -3,11 +3,9 @@ import chemaxon.marvin.io.formats.MoleculeImporter;
 import chemaxon.struc.MDocument;
 import chemaxon.struc.MolAtom;
 import chemaxon.struc.Molecule;
-import java.awt.Color;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import chemaxon.marvin.io.formats.vectgraphics.SvgExporter;
 
 /**
  * Draw a molecule.
@@ -20,7 +18,7 @@ public class DrawMolecule {
      */
      public static String run_one(String inStructure, String inStructureFormat,
         int[] atomsToLabel, String[] atomLabels, int[] atomLabelColors,
-        int[][] atomSets, int[] atomSetColors) throws IOException {
+        int[][] atomSets, int[] atomSetColors, boolean includeXmlHeader) throws IOException {
         // read from string (e.g., "inchi", "smiles")
         ByteArrayInputStream inStream = new ByteArrayInputStream(inStructure.getBytes());
         MoleculeImporter molImporter = new MoleculeImporter(inStream, inStructureFormat);
@@ -47,7 +45,11 @@ public class DrawMolecule {
 
         // write to string
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        String image = (String)MolExporter.exportToObject(inMol, "svg:mono,anum");
+        String format = "svg:mono,anum";
+        if (!includeXmlHeader) {
+            format += ",headless";
+        }
+        String image = (String)MolExporter.exportToObject(inMol, format);
 
         // return image
         return image;

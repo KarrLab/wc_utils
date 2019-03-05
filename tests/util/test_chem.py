@@ -260,6 +260,18 @@ class DrawMoleculeTestCase(unittest.TestCase):
         ])
         self.assertTrue(svg.startswith('<?xml'))
 
+        svg = chem.draw_molecule(self.ALA, 'inchi', [
+            {'position': 1, 'label': 'A', 'color': 0xff0000},
+            {'position': 2, 'label': 'B', 'color': 0x00ff00},
+            {'position': 3, 'label': 'C', 'color': 0x0000ff},
+        ],
+            [
+            {'positions': [1], 'color': 0xff0000},
+            {'positions': [2], 'color': 0x00ff00},
+            {'positions': [3], 'color': 0x0000ff},
+        ], include_xml_header=False)
+        self.assertTrue(svg.startswith('<svg'))
+
         svg = chem.draw_molecule(self.ALA, 'inchi')
 
 

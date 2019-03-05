@@ -228,14 +228,15 @@ def get_major_micro_species(structure_or_structures, format,
     return result
 
 
-def draw_molecule(structure, format, atom_labels=None, atom_sets=None):
+def draw_molecule(structure, format, atom_labels=None, atom_sets=None, include_xml_header=True):
     """ Draw molecule in SVG format
 
     Args:
         structure (:obj:`str`): chemical structure
         format (:obj:`str`): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
-        atom_labels (:obj:`list` of :obj:`dict`): list of atom labels (dictionaries with keys {`position`, `label`, `color`})
-        atom_sets (:obj:`list` of :obj:`dict`): list of atom sets (dictionaries with keys {`positions`, `color`})
+        atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys {`position`, `label`, `color`})
+        atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys {`positions`, `color`})
+        include_xml_header (:obj:`bool`, optional): if :obj:`True`, include XML header
 
     Returns:
         :obj:`str`: SVG image of chemical structure
@@ -262,7 +263,7 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None):
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
     return JavaDrawMolecule.run_one(structure, format,
                                     atoms_to_label, atom_label_texts, atom_label_colors,
-                                    atom_set_positions, atom_set_colors)
+                                    atom_set_positions, atom_set_colors, include_xml_header)
 
 
 class OpenBabelUtils(object):

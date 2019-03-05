@@ -234,8 +234,10 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, include_x
     Args:
         structure (:obj:`str`): chemical structure
         format (:obj:`str`): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
-        atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys {`position`, `label`, `color`})
-        atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys {`positions`, `color`})
+        atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys 
+            {`position`, `element`, `label`, `color`})
+        atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
+            {`positions`, `elements`, `color`})
         include_xml_header (:obj:`bool`, optional): if :obj:`True`, include XML header
 
     Returns:
@@ -243,27 +245,33 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, include_x
     """
     atom_labels = atom_labels or []
     atoms_to_label = []
+    atom_label_elements = []
     atom_label_texts = []
     atom_label_colors = []
     for atom_label in atom_labels:
         atoms_to_label.append(atom_label['position'])
+        atom_label_elements.append(atom_label['element'])
         atom_label_texts.append(atom_label['label'])
         atom_label_colors.append(atom_label['color'])
 
     atom_sets = atom_sets or []
     atom_set_positions = []
+    atom_set_elements = []
     atom_set_colors = []
     for atom_set in atom_sets:
         atom_set_positions.append(atom_set['positions'])
+        atom_set_elements.append(atom_set['elements'])
         atom_set_colors.append(atom_set['color'])
 
     if not atom_set_positions:
         atom_set_positions = [[0]]
+        atom_set_elements = [['']]
 
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
     return JavaDrawMolecule.run_one(structure, format,
-                                    atoms_to_label, atom_label_texts, atom_label_colors,
-                                    atom_set_positions, atom_set_colors, include_xml_header)
+                                    atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
+                                    atom_set_positions, atom_set_elements, atom_set_colors,
+                                    include_xml_header)
 
 
 class OpenBabelUtils(object):

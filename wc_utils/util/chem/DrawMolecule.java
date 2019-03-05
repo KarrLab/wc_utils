@@ -17,26 +17,35 @@ public class DrawMolecule {
     /* Draw a molecule.
      */
      public static String run_one(String inStructure, String inStructureFormat,
-        int[] atomsToLabel, String[] atomLabels, int[] atomLabelColors,
-        int[][] atomSets, int[] atomSetColors, boolean includeXmlHeader) throws IOException {
+        int[] atomsToLabel, String[] atomElements, String[] atomLabels, int[] atomLabelColors,
+        int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, boolean includeXmlHeader)
+        throws IOException {
         // read from string (e.g., "inchi", "smiles")
         ByteArrayInputStream inStream = new ByteArrayInputStream(inStructure.getBytes());
         MoleculeImporter molImporter = new MoleculeImporter(inStream, inStructureFormat);
-        Molecule inMol = molImporter.read();        
+        Molecule inMol = molImporter.read();
 
         // set atom labels
         MolAtom atom;
         for (int iLabel = 0; iLabel < atomsToLabel.length; iLabel++) {
-            atom = inMol.getAtom(atomsToLabel[iLabel] - 1);
-            atom.setExtraLabel(atomLabels[iLabel]);
-            atom.setExtraLabelColor(atomLabelColors[iLabel]);
+            if (atomsToLabel[iLabel] <= inMol.getAtomCount()) {
+                atom = inMol.getAtom(atomsToLabel[iLabel] - 1);
+                if (atom.getSymbol().equals(atomElements[iLabel])) {
+                    atom.setExtraLabel(atomLabels[iLabel]);
+                    atom.setExtraLabelColor(atomLabelColors[iLabel]);
+                }
+            }
         }
 
         MDocument mdoc = new MDocument(inMol);
         for (int iSet = 0; iSet < atomSetColors.length; iSet++) {
             for (int iAtom = 0; iAtom < atomSets[iSet].length; iAtom++) {
-                atom = inMol.getAtom(atomSets[iSet][iAtom] - 1);
-                atom.setSetSeq(iSet + 1);
+                if (atomSets[iSet][iAtom] <= inMol.getAtomCount()) {
+                    atom = inMol.getAtom(atomSets[iSet][iAtom] - 1);
+                    if (atom.getSymbol().equals(atomSetElements[iSet][iAtom])) {
+                        atom.setSetSeq(iSet + 1);
+                    }
+                }
             }
 
             mdoc.setAtomSetColorMode(iSet + 1, MDocument.SETCOLOR_SPECIFIED);

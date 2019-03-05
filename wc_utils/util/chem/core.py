@@ -196,75 +196,71 @@ class EmpiricalFormula(attrdict.AttrDefault):
         return result
 
 
-class GetMajorMicroSpecies(object):
-    @classmethod
-    def run(cls, structure_or_structures, format='inchi',
-            ph=7.4, major_tautomer=False, keep_hydrogens=False):
-        """ Get the major protonation state of one or more compounds at a specific pH.
+def get_major_micro_species(structure_or_structures, format,
+                            ph=7.4, major_tautomer=False, keep_hydrogens=False):
+    """ Get the major protonation state of one or more compounds at a specific pH.
 
-        Args:
-            structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): chemical structure or 
-                list of chemical structures
-            format (:obj:`str`, optional): format of :obj:`structure_or_structures` (e.g. 'inchi' or 'smiles')
-            ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
-            major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
-            keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
+    Args:
+        structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): chemical structure or 
+            list of chemical structures
+        format (:obj:`str`): format of :obj:`structure_or_structures` (e.g. 'inchi' or 'smiles')
+        ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
+        major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
+        keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
 
-        Returns:
-            :obj:`str` or :obj:`list` of :obj:`str`: protonated chemical structure or
-                list of protonated chemical structures
-        """
-        JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
+    Returns:
+        :obj:`str` or :obj:`list` of :obj:`str`: protonated chemical structure or
+            list of protonated chemical structures
+    """
+    JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
 
-        if isinstance(structure_or_structures, str):
-            result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, format, format,
-                                                      ph, major_tautomer, keep_hydrogens)
-            if format in ['inchi', 'smiles']:
-                result = result.partition('\n')[0].strip()
-        else:
-            result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, format, format,
-                                                           ph, major_tautomer, keep_hydrogens)
-            if format in ['inchi', 'smiles']:
-                result = [r.partition('\n')[0].strip() for r in result]
+    if isinstance(structure_or_structures, str):
+        result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, format, format,
+                                                  ph, major_tautomer, keep_hydrogens)
+        if format in ['inchi', 'smiles']:
+            result = result.partition('\n')[0].strip()
+    else:
+        result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, format, format,
+                                                       ph, major_tautomer, keep_hydrogens)
+        if format in ['inchi', 'smiles']:
+            result = [r.partition('\n')[0].strip() for r in result]
 
-        return result
+    return result
 
 
-class DrawMolecule(object):
-    @classmethod
-    def run(cls, structure, format='inchi',
-            atoms_to_label=None, atom_labels=None, atom_label_colors=None,
-            atom_sets=None, atom_set_colors=None):
-        """ Draw molecule in SVG format
+def draw_molecule(structure, format,
+                  atoms_to_label=None, atom_labels=None, atom_label_colors=None,
+                  atom_sets=None, atom_set_colors=None):
+    """ Draw molecule in SVG format
 
-        Args:
-            structure (:obj:`str`): chemical structure
-            format (:obj:`str`, optional): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
-            atoms_to_label (:obj:`list` of :obj:`int`, optional): list of indices of atoms to label
-            atom_labels (:obj:`list` of :obj:`str`, optional): atom labels
-            atom_label_colors (:obj:`list` of :obj:`int`, optional): colors of atom labels
-            atom_sets (:obj:`list` of :obj:`list` of :obj:`int`, optional): list of list of indices of atoms
-            atom_set_colors (:obj:`list` of :obj:`int`, optional): list of colors of atom sets
+    Args:
+        structure (:obj:`str`): chemical structure
+        format (:obj:`str`): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
+        atoms_to_label (:obj:`list` of :obj:`int`, optional): list of indices of atoms to label
+        atom_labels (:obj:`list` of :obj:`str`, optional): atom labels
+        atom_label_colors (:obj:`list` of :obj:`int`, optional): colors of atom labels
+        atom_sets (:obj:`list` of :obj:`list` of :obj:`int`, optional): list of list of indices of atoms
+        atom_set_colors (:obj:`list` of :obj:`int`, optional): list of colors of atom sets
 
-        Returns:
-            :obj:`str`: SVG image of chemical structure
-        """
-        if atoms_to_label is None:
-            atoms_to_label = []
-        if atom_labels is None:
-            atom_labels = []
-        if atom_label_colors is None:
-            atom_label_colors = []
+    Returns:
+        :obj:`str`: SVG image of chemical structure
+    """
+    if atoms_to_label is None:
+        atoms_to_label = []
+    if atom_labels is None:
+        atom_labels = []
+    if atom_label_colors is None:
+        atom_label_colors = []
 
-        if atom_sets is None:
-            atom_sets = [[0]]
-        if atom_set_colors is None:
-            atom_set_colors = []
+    if atom_sets is None:
+        atom_sets = [[0]]
+    if atom_set_colors is None:
+        atom_set_colors = []
 
-        JavaDrawMolecule = jnius.autoclass('DrawMolecule')
-        return JavaDrawMolecule.run_one(structure, format,
-                                        atoms_to_label, atom_labels, atom_label_colors,
-                                        atom_sets, atom_set_colors)
+    JavaDrawMolecule = jnius.autoclass('DrawMolecule')
+    return JavaDrawMolecule.run_one(structure, format,
+                                    atoms_to_label, atom_labels, atom_label_colors,
+                                    atom_sets, atom_set_colors)
 
 
 class OpenBabelUtils(object):

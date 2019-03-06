@@ -9,6 +9,7 @@
 
 import os
 import shutil
+import errno
 
 
 def copytree_to_existing_destination(src, dst):
@@ -82,3 +83,21 @@ def normalize_filenames(filenames, absolute_file=None):
     if absolute_file:
         dir = os.path.dirname(absolute_file)
     return [normalize_filename(filename, dir=dir) for filename in filenames]
+
+
+def remove_silently(filename):
+    """ Delete file `filename` if it exist, but report no error if it doesn't
+
+    Args:
+        filename (:obj:`str`): a filename
+
+    Raises:
+        :obj:`Exception`: if an error occurs that is not 'no such file or directory'
+    """
+    try:
+        os.remove(filename)
+    except OSError as e:
+        # errno.ENOENT: no such file or directory
+        if e.errno != errno.ENOENT:
+            # re-raise exception if a different error occurred
+            raise   # pragma: no cover; unclear how to execute this line

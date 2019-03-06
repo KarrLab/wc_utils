@@ -13,6 +13,7 @@ import shutil
 import tempfile
 import unittest
 import getpass
+from pathlib import Path
 
 
 class FileUtilsTestCase(unittest.TestCase):
@@ -85,3 +86,14 @@ class FileUtilsTestCase(unittest.TestCase):
         expected_abs_file_in_dir = os.path.join(self.dirname, file_in_dir)
         self.assertEqual(files.normalize_filenames([tmp_path, file_in_dir], absolute_file=tmp_path),
             [tmp_path, expected_abs_file_in_dir])
+
+    def test_remove_silently(self):
+        test_file = os.path.join(self.dirname, 'test_file')
+        Path(test_file).touch()
+        self.assertEqual(files.remove_silently(test_file), None)
+
+        no_such_file = os.path.join(self.dirname, 'no_such_file')
+        self.assertEqual(files.remove_silently(no_such_file), None)
+
+        with self.assertRaises(TypeError):
+            files.remove_silently(12)

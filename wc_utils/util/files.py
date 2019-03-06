@@ -1,6 +1,7 @@
 """ File utils
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2018-05-11
 :Copyright: 2018, Karr Lab
 :License: MIT
@@ -35,3 +36,33 @@ def copytree_to_existing_destination(src, dst):
                 shutil.copy2(s, d)
     else:
         shutil.copy2(src, dst)
+
+
+def normalize_filename(filename, dir=None):
+    """ Normalize a filename to its fully expanded, real, absolute path
+
+    Expand `filename` by interpreting a user’s home directory, environment variables, and
+    normalizing its path. If `filename` is not an absolute path and `dir` is provided then
+    return a full path of `filename` in `dir`.
+
+    Args:
+        filename (:obj:`str`): a filename
+        dir (:obj:`str`, optional): a directory that contains `filename`
+
+    Returns:
+        :obj:`str`: `filename`'s fully expanded, absolute path
+
+    Raises:
+        :obj:`ValueError`: if neither `filename` after expansion nor `dir` are absolute
+    """
+    filename = os.path.expanduser(filename)
+    filename = os.path.expandvars(filename)
+    if os.path.isabs(filename):
+        return os.path.normpath(filename)
+    elif dir:
+        # raise exception if dir isn't absolute
+        if not os.path.isabs(dir):
+            raise ValueError("directory '{}' isn't absolute".format(dir))
+        return os.path.normpath(os.path.join(dir, filename))
+    else:
+        return os.path.abspath(filename)

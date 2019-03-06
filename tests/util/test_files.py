@@ -1,6 +1,7 @@
 """ Tests of the file utilities
 
 :Author: Jonathan Karr <jonrkarr@gmail.com>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2018-05-11
 :Copyright: 2018, Karr Lab
 :License: MIT
@@ -11,9 +12,11 @@ import os
 import shutil
 import tempfile
 import unittest
+import getpass
 
 
 class FileUtilsTestCase(unittest.TestCase):
+
     def setUp(self):
         self.dirname = tempfile.mkdtemp()
 
@@ -60,3 +63,18 @@ class FileUtilsTestCase(unittest.TestCase):
         files.copytree_to_existing_destination(os.path.join(base, 'a', 'b', 'c'), os.path.join(base, 'D'))
         with open(os.path.join(base, 'D'), 'r') as file:
             self.assertEqual(file.read(), '3')
+
+
+    def test_normalize_filename(self):
+        normalize_filename = files.normalize_filename
+
+        self.assertEqual(normalize_filename('~'), normalize_filename('~' + getpass.getuser()))
+        self.assertEqual(normalize_filename('~'), normalize_filename('$HOME'))
+        cur_dir = os.path.dirname(__file__)
+        self.assertEqual(cur_dir,
+            normalize_filename(os.path.join(cur_dir, '..', os.path.basename(cur_dir))))
+        test_filename = os.path.join(cur_dir, 'test_filename')
+        self.assertEqual(test_filename, normalize_filename('test_filename', dir=os.path.dirname(test_filename)))
+        self.assertEqual(os.path.join(os.getcwd(), 'test_filename'), normalize_filename('test_filename'))
+        with self.assertRaisesRegex(ValueError, r"directory '.+' isn't absolute"):
+            normalize_filename('test_filename', dir='~')

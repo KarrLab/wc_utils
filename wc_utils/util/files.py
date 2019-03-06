@@ -66,3 +66,19 @@ def normalize_filename(filename, dir=None):
         return os.path.normpath(os.path.join(dir, filename))
     else:
         return os.path.abspath(filename)
+
+
+def normalize_filenames(filenames, absolute_file=None):
+    """ Normalize filenames relative to directory containing existing file
+
+    Args:
+        filenames (:obj:`list` of :obj:`str`): list of filenames
+        absolute_file (:obj:`str`, optional): file whose directory contains files in `filenames`
+
+    Returns:
+        :obj:`list` of :obj:`str`: absolute paths for files in `filenames`
+    """
+    dir = None
+    if absolute_file:
+        dir = os.path.dirname(absolute_file)
+    return [normalize_filename(filename, dir=dir) for filename in filenames]

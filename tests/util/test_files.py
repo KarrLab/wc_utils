@@ -64,7 +64,6 @@ class FileUtilsTestCase(unittest.TestCase):
         with open(os.path.join(base, 'D'), 'r') as file:
             self.assertEqual(file.read(), '3')
 
-
     def test_normalize_filename(self):
         normalize_filename = files.normalize_filename
 
@@ -78,3 +77,11 @@ class FileUtilsTestCase(unittest.TestCase):
         self.assertEqual(os.path.join(os.getcwd(), 'test_filename'), normalize_filename('test_filename'))
         with self.assertRaisesRegex(ValueError, r"directory '.+' isn't absolute"):
             normalize_filename('test_filename', dir='~')
+
+    def test_normalize_filenames(self):
+        tmp_path = os.path.join(self.dirname, 'foo')
+        self.assertEqual(files.normalize_filenames([tmp_path]), [tmp_path])
+        file_in_dir = os.path.join('dir_name', 'bar')
+        expected_abs_file_in_dir = os.path.join(self.dirname, file_in_dir)
+        self.assertEqual(files.normalize_filenames([tmp_path, file_in_dir], absolute_file=tmp_path),
+            [tmp_path, expected_abs_file_in_dir])

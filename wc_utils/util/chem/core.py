@@ -228,7 +228,7 @@ def get_major_micro_species(structure_or_structures, format,
     return result
 
 
-def draw_molecule(structure, format, atom_labels=None, atom_sets=None, include_xml_header=True):
+def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200, height=200, include_xml_header=True):
     """ Draw molecule in SVG format
 
     Args:
@@ -238,6 +238,8 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, include_x
             {`position`, `element`, `label`, `color`})
         atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
             {`positions`, `elements`, `color`})
+        width (:obj:`int`, optional): width in pixels
+        height (:obj:`int`, optional): height in pixels
         include_xml_header (:obj:`bool`, optional): if :obj:`True`, include XML header
 
     Returns:
@@ -271,7 +273,7 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, include_x
     return JavaDrawMolecule.run_one(structure, format,
                                     atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
                                     atom_set_positions, atom_set_elements, atom_set_colors,
-                                    include_xml_header)
+                                    width, height, include_xml_header)
 
 
 class OpenBabelUtils(object):

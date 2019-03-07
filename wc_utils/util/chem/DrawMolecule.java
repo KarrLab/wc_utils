@@ -18,7 +18,8 @@ public class DrawMolecule {
      */
      public static String run_one(String inStructure, String inStructureFormat,
         int[] atomsToLabel, String[] atomElements, String[] atomLabels, int[] atomLabelColors,
-        int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, boolean includeXmlHeader)
+        int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, 
+        int width, int height, boolean includeXmlHeader)
         throws IOException {
         // read from string (e.g., "inchi", "smiles")
         ByteArrayInputStream inStream = new ByteArrayInputStream(inStructure.getBytes());
@@ -55,6 +56,8 @@ public class DrawMolecule {
         // write to string
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         String format = "svg:mono,anum";
+        format += 'w' + Integer.toString(width);
+        format += 'h' + Integer.toString(height);
         if (!includeXmlHeader) {
             format += ",headless";
         }

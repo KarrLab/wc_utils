@@ -53,6 +53,7 @@ The build utilities are released under the [MIT license](LICENSE).
 
 ## Development team
 This package was developed by the [Karr Lab](http://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
+
 * Arthur Goldberg
 * Jonathan Karr
 

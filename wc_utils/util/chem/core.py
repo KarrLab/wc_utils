@@ -196,14 +196,15 @@ class EmpiricalFormula(attrdict.AttrDefault):
         return result
 
 
-def get_major_micro_species(structure_or_structures, format,
+def get_major_micro_species(structure_or_structures, in_format, out_format,
                             ph=7.4, major_tautomer=False, keep_hydrogens=False):
     """ Get the major protonation state of one or more compounds at a specific pH.
 
     Args:
         structure_or_structures (:obj:`str` or :obj:`list` of :obj:`str`): chemical structure or 
             list of chemical structures
-        format (:obj:`str`): format of :obj:`structure_or_structures` (e.g. 'inchi' or 'smiles')
+        in_format (:obj:`str`): format of :obj:`structure_or_structures` (e.g. 'inchi' or 'smiles')
+        out_format (:obj:`str`): format of output (e.g. 'inchi' or 'smiles')
         ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
         major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
         keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
@@ -215,14 +216,14 @@ def get_major_micro_species(structure_or_structures, format,
     JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
 
     if isinstance(structure_or_structures, str):
-        result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, format, format,
+        result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, in_format, out_format,
                                                   ph, major_tautomer, keep_hydrogens)
-        if format in ['inchi', 'smiles']:
+        if out_format in ['inchi', 'smiles']:
             result = result.partition('\n')[0].strip()
     else:
-        result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, format, format,
+        result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, in_format, out_format,
                                                        ph, major_tautomer, keep_hydrogens)
-        if format in ['inchi', 'smiles']:
+        if out_format in ['inchi', 'smiles']:
             result = [r.partition('\n')[0].strip() for r in result]
 
     return result

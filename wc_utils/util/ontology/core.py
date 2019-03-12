@@ -13,3 +13,16 @@ import pronto
 wcm_ontology = pronto.Ontology(pkg_resources.resource_filename(
     'wc_utils', os.path.join('util', 'ontology', 'WCM.obo')))
 # :obj:`pronto.Ontology`: whole-cell modeling ontology
+
+
+def are_terms_equivalent(term1, term2):
+    """ Determine if two terms are semantically equivalent
+
+    Args:
+        term1 (:obj:`pronto.Term`): term
+        term2 (:obj:`pronto.Term`): other term
+
+    Returns:
+        :obj:`bool`: :obj:`True` if the terms are semantically equivalent
+    """
+    return term1.__class__ == term2.__class__ and term1.id == term2.id

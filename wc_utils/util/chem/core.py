@@ -214,6 +214,7 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
             list of protonated chemical structures
     """
     JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
+    ph = float(ph)
 
     if isinstance(structure_or_structures, str):
         result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, in_format, out_format,

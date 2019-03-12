@@ -1,0 +1,7 @@
+# forks of third-party packages
+git+https://github.com/KarrLab/log.git
+git+https://github.com/KarrLab/sphinxcontrib-googleanalytics.git
+
+# Karr Lab packages
+git+https://github.com/KarrLab/pkg_utils.git
+git+https://github.com/KarrLab/wc_utils.git

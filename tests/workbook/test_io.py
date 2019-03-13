@@ -263,31 +263,31 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
         cell.value = 'A1'
 
         cell = ws.cell(row=2, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NUMERIC
+        cell.data_type = openpyxl.cell.cell.TYPE_NUMERIC
         cell.value = 2.5
 
         cell = ws.cell(row=3, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NUMERIC
+        cell.data_type = openpyxl.cell.cell.TYPE_NUMERIC
         cell.value = None
 
         cell = ws.cell(row=4, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
+        cell.data_type = openpyxl.cell.cell.TYPE_BOOL
         cell.value = True
 
         cell = ws.cell(row=5, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_BOOL
+        cell.data_type = openpyxl.cell.cell.TYPE_BOOL
         cell.value = False
 
         cell = ws.cell(row=6, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
         cell.value = None
 
         cell = ws.cell(row=7, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_INLINE
+        cell.data_type = openpyxl.cell.cell.TYPE_INLINE
         cell.value = '<b>A7</b>'
 
         filename = path.join(self.tempdir, 'test.xlsx')
@@ -307,52 +307,52 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_STRING)
+        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_STRING)
 
         cell = ws.cell(row=1, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_STRING)
+        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_STRING)
 
         cell = ws.cell(row=2, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_INLINE)
+        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_INLINE)
 
         cell = ws.cell(row=2, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_INLINE)
+        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_INLINE)
 
         cell = ws.cell(row=3, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_NUMERIC)
+        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_NUMERIC)
 
         cell = ws.cell(row=3, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_NUMERIC)
+        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_NUMERIC)
 
         cell = ws.cell(row=4, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_BOOL)
+        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_BOOL)
 
         cell = ws.cell(row=4, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_BOOL)
+        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_BOOL)
 
         cell = ws.cell(row=5, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.Cell.TYPE_NULL)
+        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_NULL)
 
         cell = ws.cell(row=5, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.Cell.TYPE_NULL)
+        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_NULL)
 
         cell = ws.cell(row=6, column=2)
-        cell.set_explicit_value('end', openpyxl.cell.cell.Cell.TYPE_STRING)  # to force max row and column
+        cell.set_explicit_value('end', openpyxl.cell.cell.TYPE_STRING)  # to force max row and column
 
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
 
         wb2 = openpyxl.load_workbook(filename)
-        self.assertEqual(wb2['Sheet-1'].cell(row=1, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=1, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=2, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=2, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=3, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=3, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=4, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=4, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=5, column=1).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
-        self.assertEqual(wb2['Sheet-1'].cell(row=5, column=2).data_type, openpyxl.cell.cell.Cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=1, column=1).data_type, openpyxl.cell.cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=1, column=2).data_type, openpyxl.cell.cell.TYPE_INLINE)
+        self.assertEqual(wb2['Sheet-1'].cell(row=2, column=1).data_type, openpyxl.cell.cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=2, column=2).data_type, openpyxl.cell.cell.TYPE_INLINE)
+        self.assertEqual(wb2['Sheet-1'].cell(row=3, column=1).data_type, openpyxl.cell.cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=3, column=2).data_type, openpyxl.cell.cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=4, column=1).data_type, openpyxl.cell.cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=4, column=2).data_type, openpyxl.cell.cell.TYPE_BOOL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=5, column=1).data_type, openpyxl.cell.cell.TYPE_NULL)
+        self.assertEqual(wb2['Sheet-1'].cell(row=5, column=2).data_type, openpyxl.cell.cell.TYPE_NULL)
 
         wb2 = io.ExcelReader(filename).run()
         self.assertEqual(wb2['Sheet-1'][0][0], None)
@@ -373,19 +373,19 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.data_type = openpyxl.cell.cell.TYPE_FORMULA
         cell.value = '=TRUE()'
 
         cell = ws.cell(row=1, column=2)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.data_type = openpyxl.cell.cell.TYPE_FORMULA
         cell.value = '=TRUE'
 
         cell = ws.cell(row=2, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.data_type = openpyxl.cell.cell.TYPE_FORMULA
         cell.value = '=FALSE()'
 
         cell = ws.cell(row=2, column=2)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.data_type = openpyxl.cell.cell.TYPE_FORMULA
         cell.value = '=FALSE'
 
         filename = path.join(self.tempdir, 'test.xlsx')
@@ -402,7 +402,7 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA
+        cell.data_type = openpyxl.cell.cell.TYPE_FORMULA
         cell.value = '=1+2'
 
         filename = path.join(self.tempdir, 'test.xlsx')
@@ -416,7 +416,7 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_FORMULA_CACHE_STRING
+        cell.data_type = openpyxl.cell.cell.TYPE_FORMULA_CACHE_STRING
         cell.value = '=1+2'
 
         filename = path.join(self.tempdir, 'test.xlsx')
@@ -430,7 +430,7 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_ERROR
+        cell.data_type = openpyxl.cell.cell.TYPE_ERROR
         cell.value = '#NAME?'
 
         filename = path.join(self.tempdir, 'test.xlsx')
@@ -444,39 +444,39 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
         cell.value = 'A1'
 
         cell = ws.cell(row=1, column=2)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
         cell.value = 'A2'
 
         cell = ws.cell(row=1, column=3)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
         cell.value = None
 
         cell = ws.cell(row=2, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
         cell.value = 'B1'
 
         cell = ws.cell(row=2, column=2)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_STRING
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
         cell.value = 'B2'
 
         cell = ws.cell(row=2, column=3)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
         cell.value = None
 
         cell = ws.cell(row=3, column=1)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
         cell.value = None
 
         cell = ws.cell(row=3, column=2)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
         cell.value = None
 
         cell = ws.cell(row=3, column=3)
-        cell.data_type = openpyxl.cell.cell.Cell.TYPE_NULL
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
         cell.value = None
 
         filename = path.join(self.tempdir, 'test.xlsx')

@@ -7,7 +7,7 @@ gitpython
 log >= 2016.10.12
 mendeleev
 numpy
-openpyxl
+openpyxl >= 2.6.1
 pint >= 0.9
 pronto
 pyexcel >= 0.5.9.1

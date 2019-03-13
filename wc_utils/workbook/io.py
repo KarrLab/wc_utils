@@ -23,6 +23,7 @@ from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
 from wc_utils.workbook.core import Workbook, Worksheet, Row
 import enum
+import openpyxl.cell.cell
 import pyexcel
 import xlsxwriter
 
@@ -453,12 +454,15 @@ class ExcelReader(Reader):
             for i_col in range(1, max_col + 1):
                 cell = xls_worksheet.cell(row=i_row, column=i_col)
 
-                if cell.data_type in (Cell.TYPE_STRING, Cell.TYPE_INLINE, Cell.TYPE_NUMERIC, Cell.TYPE_NULL, Cell.TYPE_BOOL):
+                if cell.data_type in (openpyxl.cell.cell.TYPE_STRING, openpyxl.cell.cell.TYPE_INLINE,
+                                      openpyxl.cell.cell.TYPE_NUMERIC, openpyxl.cell.cell.TYPE_NULL,
+                                      openpyxl.cell.cell.TYPE_BOOL):
                     value = cell.value
-                elif cell.data_type == Cell.TYPE_ERROR:
+                elif cell.data_type == openpyxl.cell.cell.TYPE_ERROR:
                     raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name,
                                                                                    get_column_letter(i_col), i_row))
-                elif cell.data_type in (Cell.TYPE_FORMULA, Cell.TYPE_FORMULA_CACHE_STRING):
+                elif cell.data_type in (openpyxl.cell.cell.TYPE_FORMULA,
+                                        openpyxl.cell.cell.TYPE_FORMULA_CACHE_STRING):
                     if cell.value in ['=FALSE()', '=FALSE']:
                         value = False
                     elif cell.value in ['=TRUE()', '=TRUE']:

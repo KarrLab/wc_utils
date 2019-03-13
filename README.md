@@ -40,7 +40,9 @@ This package contains utilities that are useful to multiple whole-cell (WC) soft
 
     * Install the latest revision from GitHub
       ```
-      pip install git+git://github.com/KarrLab/wc_utils#egg=wc_utils[all]
+      pip install git+https://github.com/KarrLab/log.git#egg=wc_utils[all]
+      pip install git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils[all]
+      pip install git+https://github.com/KarrLab/wc_utils.git#egg=wc_utils[all]
       ```
 
 ## Example usage

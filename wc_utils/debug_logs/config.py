@@ -46,7 +46,7 @@ class LoggerConfigurator(object):
         """
 
         with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+            config = yaml.load(file, Loader=yaml.SafeLoader)
 
         return LoggerConfigurator.from_dict(config)
 

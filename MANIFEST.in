@@ -16,8 +16,5 @@ recursive-include wc_utils *.cfg
 # unit system definition
 include wc_utils/util/units.txt
 
-# ontology
-include wc_utils/util/ontology/WCM.obo
-
 # Java file for chemistry calculations
 recursive-include wc_utils *.java *.jar

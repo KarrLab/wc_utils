@@ -6,13 +6,7 @@
 :License: MIT
 """
 
-import os.path
-import pkg_resources
 import pronto
-
-wcm_ontology = pronto.Ontology(pkg_resources.resource_filename(
-    'wc_utils', os.path.join('util', 'ontology', 'WCM.obo')))
-# :obj:`pronto.Ontology`: whole-cell modeling ontology
 
 
 def are_terms_equivalent(term1, term2):

@@ -16,7 +16,6 @@ package_data = {
         'debug_logs/*.cfg',
         'util/chem/*.java',
         'util/chem/*.jar',
-        'util/ontology/WCM.obo',
         'util/units.txt',
     ],
 }

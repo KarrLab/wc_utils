@@ -1,1 +1,1 @@
-from .core import wcm_ontology, are_terms_equivalent
+from .core import are_terms_equivalent

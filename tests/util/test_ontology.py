@@ -20,6 +20,6 @@ class OntologyTestCase(unittest.TestCase):
         onto2 = pronto.Ontology(pkg_resources.resource_filename(
             'wc_onto', os.path.join('onto.obo')))
 
-        wc_utils.util.ontology.are_terms_equivalent(onto1['WCM:representation'], onto1['WCM:representation'])
-        wc_utils.util.ontology.are_terms_equivalent(onto1['WCM:representation'], onto2['WCM:representation'])
-        wc_utils.util.ontology.are_terms_equivalent(onto2['WCM:representation'], onto1['WCM:representation'])
+        wc_utils.util.ontology.are_terms_equivalent(onto1['WC:representation'], onto1['WC:representation'])
+        wc_utils.util.ontology.are_terms_equivalent(onto1['WC:representation'], onto2['WC:representation'])
+        wc_utils.util.ontology.are_terms_equivalent(onto2['WC:representation'], onto1['WC:representation'])

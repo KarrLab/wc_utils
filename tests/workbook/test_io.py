@@ -501,7 +501,10 @@ class TestIo(unittest.TestCase):
         ws0.append(Row(['c0', 5, 6., None]))
 
         style = self.style = io.WorkbookStyle()
-        style['Ws-0'] = io.WorksheetStyle(merge_ranges=[(0, 0, 0, 0), (0, 1, 0, 3), (1, 1, 2, 2)])
+        style['Ws-0'] = io.WorksheetStyle(head_rows=4,
+                                          merge_ranges=[(0, 0, 0, 0), (0, 1, 0, 3), (1, 1, 2, 2)],
+                                          blank_head_fill_fgcolor='EEEEEE',
+                                          merged_head_fill_fgcolor='AAAAAA')
 
         filename = path.join(self.tempdir, 'test.xlsx')
         io.ExcelWriter(filename).run(wb, style=style)

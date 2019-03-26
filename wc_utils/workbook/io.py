@@ -266,6 +266,22 @@ class ExcelWriter(Writer):
             head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
         head_format.set_locked(True)
 
+        blank_head_format = self.xls_workbook.add_format()
+        blank_head_format.set_align('left')
+        blank_head_format.set_align('top')
+        blank_head_format.set_text_wrap(True)
+        blank_head_format.set_font_name(style.font_family)
+        blank_head_format.set_font_size(style.font_size)
+        blank_head_format.set_bold(True)
+        if style.head_row_fill_pattern:
+            if style.head_row_fill_pattern == 'solid':
+                blank_head_format.set_pattern(1)
+            else: # pragma: no cover # unreachable because error already checked above
+                raise ValueError('Unsupported pattern {}'.format(style.head_row_fill_pattern))
+        if style.blank_head_fill_fgcolor:
+            blank_head_format.set_fg_color('#' + style.blank_head_fill_fgcolor)
+        blank_head_format.set_locked(True)
+
         extra_head_format = self.xls_workbook.add_format()
         extra_head_format.set_align('left')
         extra_head_format.set_align('top')
@@ -282,21 +298,21 @@ class ExcelWriter(Writer):
             extra_head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
         extra_head_format.set_locked(False)
 
-        merge_head_format = self.xls_workbook.add_format()
-        merge_head_format.set_align('center')
-        merge_head_format.set_align('top')
-        merge_head_format.set_text_wrap(True)
-        merge_head_format.set_font_name(style.font_family)
-        merge_head_format.set_font_size(style.font_size)
-        merge_head_format.set_bold(True)
+        merged_head_format = self.xls_workbook.add_format()
+        merged_head_format.set_align('center')
+        merged_head_format.set_align('top')
+        merged_head_format.set_text_wrap(True)
+        merged_head_format.set_font_name(style.font_family)
+        merged_head_format.set_font_size(style.font_size)
+        merged_head_format.set_bold(True)
         if style.head_row_fill_pattern:
             if style.head_row_fill_pattern == 'solid':
-                merge_head_format.set_pattern(1)
+                merged_head_format.set_pattern(1)
             else:  # pragma: no cover # unreachable because error already checked above
                 raise ValueError('Unsupported pattern {}'.format(style.head_row_fill_pattern))
-        if style.head_row_fill_fgcolor:
-            merge_head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
-        merge_head_format.set_locked(True)
+        if style.merged_head_fill_fgcolor:
+            merged_head_format.set_fg_color('#' + style.merged_head_fill_fgcolor)
+        merged_head_format.set_locked(True)
 
         body_format = self.xls_workbook.add_format()
         body_format.set_align('left')
@@ -343,7 +359,10 @@ class ExcelWriter(Writer):
         for i_row, row in enumerate(data):
             for i_col, value in enumerate(row):
                 if i_row < frozen_rows or i_col < frozen_columns:
-                    format = head_format
+                    if value is None or value == '':
+                        format = blank_head_format
+                    else:
+                        format = head_format                        
                 else:
                     format = body_format
 
@@ -407,7 +426,7 @@ class ExcelWriter(Writer):
                     '", "'.join(str(v) for v in value)))
 
             if row_start <= frozen_rows or col_start <= frozen_columns:
-                format = merge_head_format
+                format = merged_head_format
             else:
                 format = merge_body_format
             xls_worksheet.merge_range(row_start, col_start, row_end, col_end, None)
@@ -853,6 +872,8 @@ class WorksheetStyle(object):
         head_row_font_bold (:obj:`bool`): head row bold
         head_row_fill_pattern (:obj:`str`): head row fill pattern
         head_row_fill_fgcolor (:obj:`str`): head row background color
+        blank_head_fill_fgcolor (:obj:`str`): background color of blank header cells
+        merged_head_fill_fgcolor (:obj:`str`): background color of merged header cells
         extra_rows (:obj:`float`): number of additional rows to show
         extra_columns (:obj:`float`): number of additional columns to show
         font_family (:obj:`str`): font family
@@ -865,7 +886,7 @@ class WorksheetStyle(object):
     """
 
     def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
-                 head_row_fill_pattern='solid', head_row_fill_fgcolor='',
+                 head_row_fill_pattern='solid', head_row_fill_fgcolor='', blank_head_fill_fgcolor='', merged_head_fill_fgcolor='',
                  extra_rows=float('inf'), extra_columns=float('inf'),
                  font_family='Arial', font_size=11.,
                  row_height=15., col_width=15.,
@@ -877,6 +898,8 @@ class WorksheetStyle(object):
             head_row_font_bold (:obj:`bool`, optional): head row bold
             head_row_fill_pattern (:obj:`str`, optional): head row fill pattern
             head_row_fill_fgcolor (:obj:`str`, optional): head row background color
+            blank_head_fill_fgcolor (:obj:`str`, optional): background color of blank header cells
+            merged_head_fill_fgcolor (:obj:`str`, optional): background color of merged header cells
             extra_rows (:obj:`float`, optional): number of additional rows to show
             extra_columns (:obj:`float`, optional): number of additional columns to show
             font_family (:obj:`str`, optional): font family
@@ -892,6 +915,8 @@ class WorksheetStyle(object):
         self.head_row_font_bold = head_row_font_bold
         self.head_row_fill_pattern = head_row_fill_pattern
         self.head_row_fill_fgcolor = head_row_fill_fgcolor
+        self.blank_head_fill_fgcolor = blank_head_fill_fgcolor
+        self.merged_head_fill_fgcolor = merged_head_fill_fgcolor
         self.extra_rows = extra_rows
         self.extra_columns = extra_columns
         self.font_family = font_family

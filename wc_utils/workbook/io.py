@@ -276,7 +276,7 @@ class ExcelWriter(Writer):
         if style.head_row_fill_pattern:
             if style.head_row_fill_pattern == 'solid':
                 blank_head_format.set_pattern(1)
-            else: # pragma: no cover # unreachable because error already checked above
+            else:  # pragma: no cover # unreachable because error already checked above
                 raise ValueError('Unsupported pattern {}'.format(style.head_row_fill_pattern))
         if style.blank_head_fill_fgcolor:
             blank_head_format.set_fg_color('#' + style.blank_head_fill_fgcolor)
@@ -362,7 +362,7 @@ class ExcelWriter(Writer):
                     if value is None or value == '':
                         format = blank_head_format
                     else:
-                        format = head_format                        
+                        format = head_format
                 else:
                     format = body_format
 
@@ -420,7 +420,7 @@ class ExcelWriter(Writer):
             elif len(value) == 1:
                 value = value[0]
             else:
-                raise ValueError('Merge range {}{}:{}{} with values {{" {} "}} can have at most 1 value'.format(
+                raise ValueError('Merge range {}{}:{}{} with values {{"{}"}} can have at most 1 value'.format(
                     get_column_letter(col_start + 1), row_start + 1,
                     get_column_letter(col_end + 1), row_end + 1,
                     '", "'.join(str(v) for v in value)))

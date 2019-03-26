@@ -1,2 +1,2 @@
-from .core import Workbook, Worksheet, Row, WorkbookDifference, WorksheetDifference, RowDifference, CellDifference
+from .core import Workbook, Worksheet, Row, Hyperlink, WorkbookDifference, WorksheetDifference, RowDifference, CellDifference
 from . import io

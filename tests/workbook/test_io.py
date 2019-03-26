@@ -13,7 +13,7 @@ from shutil import rmtree
 from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
-from wc_utils.workbook.core import Workbook, Worksheet, Row
+from wc_utils.workbook.core import Workbook, Worksheet, Row, Hyperlink
 import math
 import openpyxl
 import unittest
@@ -489,7 +489,7 @@ class TestIo(unittest.TestCase):
         self.assertEqual(list(wb['Sheet-1'][1]), ['B1', 'B2'])
 
     def test_excel_merge_cells(self):
-        wb = self.wk = Workbook()
+        wb = Workbook()
 
         ws0 = wb['Ws-0'] = Worksheet()
         ws0.append(Row([None, 'Vals', None, None]))
@@ -500,7 +500,7 @@ class TestIo(unittest.TestCase):
         ws0.append(Row([u'b0\u20ac', 3, 4., False]))
         ws0.append(Row(['c0', 5, 6., None]))
 
-        style = self.style = io.WorkbookStyle()
+        style = io.WorkbookStyle()
         style['Ws-0'] = io.WorksheetStyle(head_rows=4,
                                           merge_ranges=[(0, 0, 0, 0), (0, 1, 0, 3), (1, 1, 2, 2)],
                                           blank_head_fill_fgcolor='EEEEEE',
@@ -513,7 +513,7 @@ class TestIo(unittest.TestCase):
         self.assertEqual(wb_2, wb)
 
     def test_excel_merge_cells_error(self):
-        wb = self.wk = Workbook()
+        wb = Workbook()
 
         ws0 = wb['Ws-0'] = Worksheet()
         ws0.append(Row([None, 'Vals', None, None]))
@@ -524,12 +524,31 @@ class TestIo(unittest.TestCase):
         ws0.append(Row([u'b0\u20ac', 3, 4., False]))
         ws0.append(Row(['c0', 5, 6., None]))
 
-        style = self.style = io.WorkbookStyle()
+        style = io.WorkbookStyle()
         style['Ws-0'] = io.WorksheetStyle(merge_ranges=[(0, 0, 0, 0), (0, 1, 0, 3), (1, 1, 2, 2), (3, 0, 3, 3)])
 
         filename = path.join(self.tempdir, 'test.xlsx')
         with self.assertRaisesRegex(ValueError, 'can have at most 1 value'):
             io.ExcelWriter(filename).run(wb, style=style)
+
+    def test_hyperlink(self):
+        wb = Workbook()
+        ws0 = wb['Ws'] = Worksheet()
+        ws0.append(Row(['abc', Hyperlink('https://google.com', string='def', tip='Click to view def'), 'ghi']))
+
+        wb_1 = Workbook()
+        ws0 = wb_1['Ws'] = Worksheet()
+        ws0.append(Row(['abc', 'def', 'ghi']))
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        io.ExcelWriter(filename).run(wb)
+        wb_2 = io.ExcelReader(filename).run()
+        self.assertEqual(wb_2, wb_1)
+
+        filename = path.join(self.tempdir, 'test*.csv')
+        io.SeparatedValuesWriter(filename).run(wb)
+        wb_2 = io.SeparatedValuesReader(filename).run()
+        self.assertEqual(wb_2, wb_1)
 
     def test_exceptions_csv(self):
         for method in [io.SeparatedValuesWriter, io.SeparatedValuesReader]:

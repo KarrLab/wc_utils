@@ -276,6 +276,27 @@ class Row(list):
             return CellDifference('{} != {}'.format(cell_self, cell_other))
 
 
+class Hyperlink(object):
+    """ Hyperlink from a cell
+
+    Attributes:
+        url (:obj:`str`): URL
+        string (:obj:`str`): text of URL
+        tip (:obj:`str`): text of tooltip
+    """
+
+    def __init__(self, url, string=None, tip=None):
+        """
+        Args:
+            url (:obj:`str`): URL
+            string (:obj:`str`, optional): text of URL
+            tip (:obj:`str`, optional): text of tooltip
+        """
+        self.url = url
+        self.string = string
+        self.tip = tip
+
+
 class WorkbookDifference(dict):
     """ Difference between values of workbook """
 

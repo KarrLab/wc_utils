@@ -21,7 +21,8 @@ from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
-from wc_utils.workbook.core import Workbook, Worksheet, Row
+from wc_utils.workbook.core import Workbook, Worksheet, Row, Hyperlink
+import copy
 import enum
 import openpyxl.cell.cell
 import pyexcel
@@ -353,7 +354,7 @@ class ExcelWriter(Writer):
         # format columns
         if not isnan(col_width) and n_cols >= 1 and not isinf(style.extra_columns):
             result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
-            assert result != -1
+            assert result == 0, result
 
         # write data
         for i_row, row in enumerate(data):
@@ -370,7 +371,7 @@ class ExcelWriter(Writer):
 
             if not isnan(row_height) and not isinf(style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
-                assert result != -1
+                assert result in [0, None], result
 
         # format extra columns
         if isinf(style.extra_columns):
@@ -379,7 +380,7 @@ class ExcelWriter(Writer):
             extra_columns = style.extra_columns
             result = xls_worksheet.set_column(n_cols + style.extra_columns, 2**14 - 1,
                                               options={'hidden': True})
-            assert result != -1
+            assert result == 0, result
 
         for i_row in range(n_rows):
             for i_col in range(n_cols, n_cols + extra_columns):
@@ -388,7 +389,7 @@ class ExcelWriter(Writer):
                 else:
                     format = body_format
                 result = xls_worksheet.write_blank(i_row, i_col, None, format)
-                assert result != -1
+                assert result == 0, result
 
         # format extra rows
         if isinf(style.extra_rows):
@@ -397,7 +398,7 @@ class ExcelWriter(Writer):
             extra_rows = style.extra_rows
             for i_row in range(n_rows, n_rows + style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
-                assert result != -1
+                assert result in [0, None], result
 
                 for i_col in range(n_cols + extra_columns):
                     if i_row < frozen_rows or i_col < frozen_columns:
@@ -405,7 +406,7 @@ class ExcelWriter(Writer):
                     else:
                         format = body_format
                     result = xls_worksheet.write_blank(i_row, i_col, None, format)
-                    assert result != -1
+                    assert result == 0, result
 
         # merge ranges
         for row_start, col_start, row_end, col_end in style.merge_ranges:
@@ -456,7 +457,9 @@ class ExcelWriter(Writer):
             value (:obj:`object`): value to write
             format (:obj:`xlsxwriter.Format`): format for the cell
         """
-        if value is None or value == '':
+        if isinstance(value, Hyperlink):
+            result = xls_worksheet.write_url(i_row, i_col, value.url, string=value.string, tip=value.tip)
+        elif value is None or value == '':
             result = xls_worksheet.write_blank(i_row, i_col, value, format)
         elif isinstance(value, string_types):
             result = xls_worksheet.write_string(i_row, i_col, value, format)
@@ -470,7 +473,7 @@ class ExcelWriter(Writer):
             raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
                 value.__class__.__name__,
                 self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
-        assert result != -1
+        assert result == 0, result
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -620,7 +623,17 @@ class SeparatedValuesWriter(Writer):
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
-        pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
+        array = []
+        for row in data:
+            array_row = []
+            array.append(array_row)
+            for cell in row:
+                if isinstance(cell, Hyperlink):
+                    array_row.append(cell.string)
+                else:
+                    array_row.append(cell)
+
+        pyexcel.save_as(array=array, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
 
     def finalize_workbook(self):
         """ Finalize workbook """

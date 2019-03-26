@@ -13,7 +13,7 @@ from shutil import rmtree
 from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
-from wc_utils.workbook.core import Workbook, Worksheet, Row, Hyperlink
+from wc_utils.workbook.core import Workbook, Worksheet, Row
 import math
 import openpyxl
 import unittest
@@ -534,19 +534,22 @@ class TestIo(unittest.TestCase):
     def test_hyperlink(self):
         wb = Workbook()
         ws0 = wb['Ws'] = Worksheet()
-        ws0.append(Row(['abc', Hyperlink('https://google.com', string='def', tip='Click to view def'), 'ghi']))
+        ws0.append(Row(['abc', 'def', 'ghi']))
 
         wb_1 = Workbook()
         ws0 = wb_1['Ws'] = Worksheet()
         ws0.append(Row(['abc', 'def', 'ghi']))
 
+        style = io.WorkbookStyle()
+        style['Ws'] = io.WorksheetStyle(hyperlinks=[io.Hyperlink(0, 1, 'https://google.com', tip='Click to view def')])
+
         filename = path.join(self.tempdir, 'test.xlsx')
-        io.ExcelWriter(filename).run(wb)
+        io.ExcelWriter(filename).run(wb, style=style)
         wb_2 = io.ExcelReader(filename).run()
         self.assertEqual(wb_2, wb_1)
 
         filename = path.join(self.tempdir, 'test*.csv')
-        io.SeparatedValuesWriter(filename).run(wb)
+        io.SeparatedValuesWriter(filename).run(wb, style=style)
         wb_2 = io.SeparatedValuesReader(filename).run()
         self.assertEqual(wb_2, wb_1)
 

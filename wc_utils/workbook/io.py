@@ -21,7 +21,7 @@ from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
-from wc_utils.workbook.core import Workbook, Worksheet, Row, Hyperlink
+from wc_utils.workbook.core import Workbook, Worksheet, Row
 import copy
 import enum
 import openpyxl.cell.cell
@@ -356,6 +356,11 @@ class ExcelWriter(Writer):
             result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
             assert result == 0, result
 
+        # hyperlinks
+        for hyperlink in style.hyperlinks:
+            result = xls_worksheet.write_url(hyperlink.i_row, hyperlink.i_col, hyperlink.url, tip=hyperlink.tip)
+            assert result == 0
+
         # write data
         for i_row, row in enumerate(data):
             for i_col, value in enumerate(row):
@@ -457,9 +462,7 @@ class ExcelWriter(Writer):
             value (:obj:`object`): value to write
             format (:obj:`xlsxwriter.Format`): format for the cell
         """
-        if isinstance(value, Hyperlink):
-            result = xls_worksheet.write_url(i_row, i_col, value.url, string=value.string, tip=value.tip)
-        elif value is None or value == '':
+        if value is None or value == '':
             result = xls_worksheet.write_blank(i_row, i_col, value, format)
         elif isinstance(value, string_types):
             result = xls_worksheet.write_string(i_row, i_col, value, format)
@@ -623,17 +626,7 @@ class SeparatedValuesWriter(Writer):
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
-        array = []
-        for row in data:
-            array_row = []
-            array.append(array_row)
-            for cell in row:
-                if isinstance(cell, Hyperlink):
-                    array_row.append(cell.string)
-                else:
-                    array_row.append(cell)
-
-        pyexcel.save_as(array=array, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
+        pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -896,6 +889,7 @@ class WorksheetStyle(object):
         auto_filter (:obj:`bool`): whether or not to activate auto filters for row
         merge_ranges (:obj:`list` of :obj:`tuple` of :obj:`int`): list of tuples of the start row, start column, end row, and end column (0-based) 
             of each range to merge
+        hyperlinks (:obj:`list` of :obj:`Hyperlink`): list of hyperlinks
     """
 
     def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
@@ -903,7 +897,7 @@ class WorksheetStyle(object):
                  extra_rows=float('inf'), extra_columns=float('inf'),
                  font_family='Arial', font_size=11.,
                  row_height=15., col_width=15.,
-                 auto_filter=True, merge_ranges=None):
+                 auto_filter=True, merge_ranges=None, hyperlinks=None):
         """
         Args:
             head_rows (:obj:`int`, optional): number of head rows
@@ -922,6 +916,7 @@ class WorksheetStyle(object):
             auto_filter (:obj:`bool`, optional): whether or not to activate auto filters for row
             merge_ranges (:obj:`list` of :obj:`tuple` of :obj:`int`, optional): list of tuples of the start row, start column, end row,
                 and end column (0-based) of each range to merge
+            hyperlinks (:obj:`list` of :obj:`Hyperlink`, optional): list of hyperlinks
         """
         self.head_rows = head_rows
         self.head_columns = head_columns
@@ -938,6 +933,31 @@ class WorksheetStyle(object):
         self.col_width = col_width
         self.auto_filter = auto_filter
         self.merge_ranges = merge_ranges or []
+        self.hyperlinks = hyperlinks or []
+
+
+class Hyperlink(object):
+    """ Hyperlink from a cell
+
+    Attributes:
+        i_row (:obj:`int`): row
+        i_row (:obj:`col`): column
+        url (:obj:`str`): URL
+        tip (:obj:`str`): text of tooltip
+    """
+
+    def __init__(self, i_row, i_col, url, tip=None):
+        """
+        Args:
+            i_row (:obj:`int`): row
+            i_row (:obj:`col`): column
+            url (:obj:`str`): URL
+            tip (:obj:`str`, optional): text of tooltip
+        """
+        self.i_row = i_row
+        self.i_col = i_col
+        self.url = url
+        self.tip = tip
 
 
 class WorkbookValidation(dict):

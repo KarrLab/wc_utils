@@ -53,7 +53,8 @@ class TestIo(unittest.TestCase):
 
     def tearDown(self):
         # remove temp directory
-        rmtree(self.tempdir)
+        # rmtree(self.tempdir)
+        print(self.tempdir)
 
     def test_exceptions_excel(self):
         filename = path.join(self.tempdir, 'test.foo')
@@ -487,6 +488,46 @@ class TestIo(unittest.TestCase):
         self.assertEqual(len(wb['Sheet-1']), 2)
         self.assertEqual(list(wb['Sheet-1'][0]), ['A1', 'A2'])
         self.assertEqual(list(wb['Sheet-1'][1]), ['B1', 'B2'])
+
+    def test_excel_merge_cells(self):
+        wb = self.wk = Workbook()
+
+        ws0 = wb['Ws-0'] = Worksheet()
+        ws0.append(Row([None, 'Vals', None, None]))
+        ws0.append(Row([None, 'Vals 1-2', None, None]))
+        ws0.append(Row([None, None, None, None]))
+        ws0.append(Row(['Id', 'Val-1', 'Val-2', 'Val-3']))
+        ws0.append(Row(['a0\taa0\naaa0', 1, 2., True]))
+        ws0.append(Row([u'b0\u20ac', 3, 4., False]))
+        ws0.append(Row(['c0', 5, 6., None]))
+
+        style = self.style = io.WorkbookStyle()
+        style['Ws-0'] = io.WorksheetStyle(merge_ranges=[(0, 0, 0, 0), (0, 1, 0, 3), (1, 1, 2, 2)])
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        io.ExcelWriter(filename).run(wb, style=style)
+        wb_2 = io.ExcelReader(filename).run()
+
+        self.assertEqual(wb_2, wb)
+
+    def test_excel_merge_cells_error(self):
+        wb = self.wk = Workbook()
+
+        ws0 = wb['Ws-0'] = Worksheet()
+        ws0.append(Row([None, 'Vals', None, None]))
+        ws0.append(Row([None, 'Vals 1-2', None, None]))
+        ws0.append(Row([None, None, None, None]))
+        ws0.append(Row(['Id', 'Val-1', 'Val-2', 'Val-3']))
+        ws0.append(Row(['a0\taa0\naaa0', 1, 2., True]))
+        ws0.append(Row([u'b0\u20ac', 3, 4., False]))
+        ws0.append(Row(['c0', 5, 6., None]))
+
+        style = self.style = io.WorkbookStyle()
+        style['Ws-0'] = io.WorksheetStyle(merge_ranges=[(0, 0, 0, 0), (0, 1, 0, 3), (1, 1, 2, 2), (3, 0, 3, 3)])
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        with self.assertRaisesRegex(ValueError, 'can have at most 1 value'):
+            io.ExcelWriter(filename).run(wb, style=style)
 
     def test_exceptions_csv(self):
         for method in [io.SeparatedValuesWriter, io.SeparatedValuesReader]:

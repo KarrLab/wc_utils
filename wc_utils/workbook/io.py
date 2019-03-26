@@ -218,7 +218,7 @@ class ExcelWriter(Writer):
 
         Args:
             sheet_name (:obj:`str`): sheet name
-            data (:obj:`xlsxwriter.Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
@@ -282,6 +282,22 @@ class ExcelWriter(Writer):
             extra_head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
         extra_head_format.set_locked(False)
 
+        merge_head_format = self.xls_workbook.add_format()
+        merge_head_format.set_align('center')
+        merge_head_format.set_align('top')
+        merge_head_format.set_text_wrap(True)
+        merge_head_format.set_font_name(style.font_family)
+        merge_head_format.set_font_size(style.font_size)
+        merge_head_format.set_bold(True)
+        if style.head_row_fill_pattern:
+            if style.head_row_fill_pattern == 'solid':
+                merge_head_format.set_pattern(1)
+            else:  # pragma: no cover # unreachable because error already checked above
+                raise ValueError('Unsupported pattern {}'.format(style.head_row_fill_pattern))
+        if style.head_row_fill_fgcolor:
+            merge_head_format.set_fg_color('#' + style.head_row_fill_fgcolor)
+        merge_head_format.set_locked(True)
+
         body_format = self.xls_workbook.add_format()
         body_format.set_align('left')
         body_format.set_align('top')
@@ -290,6 +306,15 @@ class ExcelWriter(Writer):
         body_format.set_font_size(style.font_size)
         body_format.set_bold(False)
         body_format.set_locked(False)
+
+        merge_body_format = self.xls_workbook.add_format()
+        merge_body_format.set_align('center')
+        merge_body_format.set_align('vcenter')
+        merge_body_format.set_text_wrap(True)
+        merge_body_format.set_font_name(style.font_family)
+        merge_body_format.set_font_size(style.font_size)
+        merge_body_format.set_bold(False)
+        merge_body_format.set_locked(False)
 
         n_rows = len(data)
         if data:
@@ -301,6 +326,7 @@ class ExcelWriter(Writer):
         row_height = style.row_height
         col_width = style.col_width
 
+        # format rows
         if isnan(row_height):
             default_row_height = None
         else:
@@ -308,10 +334,12 @@ class ExcelWriter(Writer):
         hide_unused_rows = not isinf(style.extra_rows)
         xls_worksheet.set_default_row(default_row_height, hide_unused_rows)
 
+        # format columns
         if not isnan(col_width) and n_cols >= 1 and not isinf(style.extra_columns):
             result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
             assert result != -1
 
+        # write data
         for i_row, row in enumerate(data):
             for i_col, value in enumerate(row):
                 if i_row < frozen_rows or i_col < frozen_columns:
@@ -319,26 +347,13 @@ class ExcelWriter(Writer):
                 else:
                     format = body_format
 
-                if value is None or value == '':
-                    result = xls_worksheet.write_blank(i_row, i_col, value, format)
-                elif isinstance(value, string_types):
-                    result = xls_worksheet.write_string(i_row, i_col, value, format)
-                elif isinstance(value, bool):
-                    result = xls_worksheet.write_boolean(i_row, i_col, value, format)
-                elif isinstance(value, integer_types):
-                    result = xls_worksheet.write_number(i_row, i_col, float(value), format)
-                elif isinstance(value, float):
-                    result = xls_worksheet.write_number(i_row, i_col, value, format)
-                else:
-                    raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
-                        value.__class__.__name__,
-                        self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
-                assert result != -1
+                self.write_cell(xls_worksheet, sheet_name, i_row, i_col, value, format)
 
             if not isnan(row_height) and not isinf(style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
                 assert result != -1
 
+        # format extra columns
         if isinf(style.extra_columns):
             extra_columns = min(100, 2**14 - n_cols)
         else:
@@ -356,6 +371,7 @@ class ExcelWriter(Writer):
                 result = xls_worksheet.write_blank(i_row, i_col, None, format)
                 assert result != -1
 
+        # format extra rows
         if isinf(style.extra_rows):
             extra_rows = min(100, 2**20 - n_rows)
         else:
@@ -372,6 +388,31 @@ class ExcelWriter(Writer):
                     result = xls_worksheet.write_blank(i_row, i_col, None, format)
                     assert result != -1
 
+        # merge ranges
+        for row_start, col_start, row_end, col_end in style.merge_ranges:
+            # get data
+            value = []
+            for i_row in range(row_start, row_end + 1):
+                for i_col in range(col_start, col_end + 1):
+                    if data[i_row][i_col] is not None:
+                        value.append(data[i_row][i_col])
+            if len(value) == 0:
+                value = None
+            elif len(value) == 1:
+                value = value[0]
+            else:
+                raise ValueError('Merge range {}{}:{}{} with values {{" {} "}} can have at most 1 value'.format(
+                    get_column_letter(col_start + 1), row_start + 1,
+                    get_column_letter(col_end + 1), row_end + 1,
+                    '", "'.join(str(v) for v in value)))
+
+            if row_start <= frozen_rows or col_start <= frozen_columns:
+                format = merge_head_format
+            else:
+                format = merge_body_format
+            xls_worksheet.merge_range(row_start, col_start, row_end, col_end, None)
+            self.write_cell(xls_worksheet, sheet_name, row_start, col_start, value, format)
+
         # validation
         if validation:
             validation.apply(xls_worksheet,
@@ -384,6 +425,33 @@ class ExcelWriter(Writer):
         # auto filter
         if style.auto_filter and n_cols > 0 and n_cols > 0 and frozen_rows > 0:
             xls_worksheet.autofilter(frozen_rows - 1, 0, n_rows - 1, n_cols - 1)
+
+    def write_cell(self, xls_worksheet, sheet_name, i_row, i_col, value, format):
+        """ Write a value to a cell
+
+        Args:
+            xls_worksheet (:obj:`xlsxwriter.Worksheet`): Excel worksheet
+            sheet_name (:obj:`str`): sheet name
+            i_row (:obj:`int`): row of cell to write
+            i_col (:obj:`int`): column of cell to write
+            value (:obj:`object`): value to write
+            format (:obj:`xlsxwriter.Format`): format for the cell
+        """
+        if value is None or value == '':
+            result = xls_worksheet.write_blank(i_row, i_col, value, format)
+        elif isinstance(value, string_types):
+            result = xls_worksheet.write_string(i_row, i_col, value, format)
+        elif isinstance(value, bool):
+            result = xls_worksheet.write_boolean(i_row, i_col, value, format)
+        elif isinstance(value, integer_types):
+            result = xls_worksheet.write_number(i_row, i_col, float(value), format)
+        elif isinstance(value, float):
+            result = xls_worksheet.write_number(i_row, i_col, value, format)
+        else:
+            raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
+                value.__class__.__name__,
+                self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
+        assert result != -1
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -792,6 +860,8 @@ class WorksheetStyle(object):
         row_height (:obj:`float`): row height
         col_width (:obj:`float`): column width
         auto_filter (:obj:`bool`): whether or not to activate auto filters for row
+        merge_ranges (:obj:`list` of :obj:`tuple` of :obj:`int`): list of tuples of the start row, start column, end row, and end column (0-based) 
+            of each range to merge
     """
 
     def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
@@ -799,7 +869,7 @@ class WorksheetStyle(object):
                  extra_rows=float('inf'), extra_columns=float('inf'),
                  font_family='Arial', font_size=11.,
                  row_height=15., col_width=15.,
-                 auto_filter=True):
+                 auto_filter=True, merge_ranges=None):
         """
         Args:
             head_rows (:obj:`int`, optional): number of head rows
@@ -814,6 +884,8 @@ class WorksheetStyle(object):
             row_height (:obj:`float`, optional): row height
             col_width (:obj:`float`, optional): column width
             auto_filter (:obj:`bool`, optional): whether or not to activate auto filters for row
+            merge_ranges (:obj:`list` of :obj:`tuple` of :obj:`int`, optional): list of tuples of the start row, start column, end row,
+                and end column (0-based) of each range to merge
         """
         self.head_rows = head_rows
         self.head_columns = head_columns
@@ -827,6 +899,7 @@ class WorksheetStyle(object):
         self.row_height = row_height
         self.col_width = col_width
         self.auto_filter = auto_filter
+        self.merge_ranges = merge_ranges or []
 
 
 class WorkbookValidation(dict):

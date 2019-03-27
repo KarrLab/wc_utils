@@ -6,8 +6,6 @@
 :License: MIT
 """
 
-import os
-import pkg_resources
 import pronto
 import unittest
 import wc_utils.util.ontology
@@ -15,11 +13,11 @@ import wc_utils.util.ontology
 
 class OntologyTestCase(unittest.TestCase):
     def test_are_terms_equivalent(self):
-        onto1 = pronto.Ontology(pkg_resources.resource_filename(
-            'wc_onto', os.path.join('onto.obo')))
-        onto2 = pronto.Ontology(pkg_resources.resource_filename(
-            'wc_onto', os.path.join('onto.obo')))
-
-        wc_utils.util.ontology.are_terms_equivalent(onto1['WC:representation'], onto1['WC:representation'])
-        wc_utils.util.ontology.are_terms_equivalent(onto1['WC:representation'], onto2['WC:representation'])
-        wc_utils.util.ontology.are_terms_equivalent(onto2['WC:representation'], onto1['WC:representation'])
+        term1_a = pronto.Term(id='term1')
+        term1_b = pronto.Term(id='term1')
+        term2 = pronto.Term(id='term2')
+        self.assertFalse(term1_a == term1_b)
+        self.assertTrue(wc_utils.util.ontology.are_terms_equivalent(term1_a, term1_b))
+        self.assertTrue(wc_utils.util.ontology.are_terms_equivalent(term1_b, term1_a))
+        self.assertFalse(wc_utils.util.ontology.are_terms_equivalent(term1_a, term2))
+        self.assertFalse(wc_utils.util.ontology.are_terms_equivalent(term2, term1_a))

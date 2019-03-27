@@ -1,5 +1,2 @@
 # forks of third-party packages
 git+https://github.com/KarrLab/log.git#egg=log
-
-# Karr Lab
-git+https://github.com/KarrLab/wc_onto.git#egg=wc_onto

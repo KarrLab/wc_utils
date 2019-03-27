@@ -4,4 +4,3 @@ matplotlib
 mock
 numpy
 scipy
-wc_onto

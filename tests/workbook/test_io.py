@@ -492,9 +492,9 @@ class TestIo(unittest.TestCase):
         wb = Workbook()
 
         ws0 = wb['Ws-0'] = Worksheet()
-        ws0.append(Row([None, 'Vals', None, None]))
-        ws0.append(Row([None, 'Vals 1-2', None, None]))
-        ws0.append(Row([None, None, None, None]))
+        ws0.append(Row([None, 'Vals', 'Vals', 'Vals']))
+        ws0.append(Row([None, 'Vals 1-2', 'Vals 1-2', None]))
+        ws0.append(Row([None, 'Vals 1-2', 'Vals 1-2', None]))
         ws0.append(Row(['Id', 'Val-1', 'Val-2', 'Val-3']))
         ws0.append(Row(['a0\taa0\naaa0', 1, 2., True]))
         ws0.append(Row([u'b0\u20ac', 3, 4., False]))
@@ -509,7 +509,11 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         io.ExcelWriter(filename).run(wb, style=style)
         wb_2 = io.ExcelReader(filename).run()
+        self.assertEqual(wb_2, wb)
 
+        filename = path.join(self.tempdir, 'test-*.csv')
+        io.SeparatedValuesWriter(filename).run(wb, style=style)
+        wb_2 = io.SeparatedValuesReader(filename).run()
         self.assertEqual(wb_2, wb)
 
     def test_excel_merge_cells_error(self):

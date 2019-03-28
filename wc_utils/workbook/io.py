@@ -416,15 +416,15 @@ class ExcelWriter(Writer):
         # merge ranges
         for row_start, col_start, row_end, col_end in style.merge_ranges:
             # get data
-            value = []
+            value = set()
             for i_row in range(row_start, row_end + 1):
                 for i_col in range(col_start, col_end + 1):
                     if data[i_row][i_col] is not None:
-                        value.append(data[i_row][i_col])
+                        value.add(data[i_row][i_col])
             if len(value) == 0:
                 value = None
             elif len(value) == 1:
-                value = value[0]
+                value = list(value)[0]
             else:
                 raise ValueError('Merge range {}{}:{}{} with values {{"{}"}} can have at most 1 value'.format(
                     get_column_letter(col_start + 1), row_start + 1,
@@ -568,6 +568,12 @@ class ExcelReader(Reader):
                         cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
 
                 row.append(value)
+
+        for cell in xls_worksheet.merged_cells.ranges:
+            value = worksheet[cell.min_row-1][cell.min_col-1]
+            for i_row in range(cell.min_row-1, cell.max_row):
+                for i_col in range(cell.min_col-1, cell.max_col):
+                    worksheet[i_row][i_col] = value
 
         if ignore_empty_final_rows:
             worksheet.remove_empty_final_rows()

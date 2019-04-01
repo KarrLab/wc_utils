@@ -195,6 +195,14 @@ class EmpiricalFormula(attrdict.AttrDefault):
 
         return result
 
+    def __hash__(self):
+        """ Generate a hash
+
+        Returns:
+            :obj:`int`: hash
+        """
+        return hash(str(self))
+
 
 def get_major_micro_species(structure_or_structures, in_format, out_format,
                             ph=7.4, major_tautomer=False, keep_hydrogens=False):

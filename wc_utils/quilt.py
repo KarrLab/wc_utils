@@ -192,7 +192,7 @@ class QuiltManager(object):
                 }
 
                 basename, ext = os.path.splitext(filename)
-                if ext in ['.csv', '.ssv', '.tsv']:
+                if ext in ['.csv', '.ssv', '.tsv','.json']:
                     dir_contents[node_name]['transform'] = ext[1:]
                 elif ext != '.md':
                     dir_contents[node_name]['transform'] = 'id'

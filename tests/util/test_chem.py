@@ -155,6 +155,19 @@ class EmpiricalFormulaTestCase(unittest.TestCase):
         self.assertIn('C', f)
         self.assertNotIn('Ccc', f)
 
+    def test_EmpiricalFormula___hash__(self):
+        f = chem.EmpiricalFormula('H2O')
+        g = chem.EmpiricalFormula('H2O')
+        h = chem.EmpiricalFormula('H')
+
+        self.assertIn(f, [g])
+        self.assertIn(f, set([g]))
+        self.assertIn(f, {g: True})
+
+        self.assertNotIn(f, [h])
+        self.assertNotIn(f, set([h]))
+        self.assertNotIn(f, {h: True})
+        
 
 class GetMajorMicroSpeciesTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'

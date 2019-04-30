@@ -9,7 +9,7 @@
 import six
 import unittest
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
-    isclass_by_name, obj_to_str, as_dict, DFSMAcceptor)
+    isclass_by_name, obj_to_str, as_dict, internet_connected, DFSMAcceptor)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -165,6 +165,9 @@ class TestMisc(unittest.TestCase):
         c = C()
         with self.assertRaises(ValueError) as context:
             as_dict(c)
+
+    def test_internet_connected(self):
+        self.assertEqual(internet_connected(), internet_connected())
 
 
 class TestDFSMAcceptor(unittest.TestCase):

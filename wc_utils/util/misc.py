@@ -9,7 +9,7 @@
 
 import six
 import sys
-
+import socket
 
 def isclass(cls, cls_info):
     """Compares a class with classes in `cls_info`.
@@ -151,6 +151,21 @@ def as_dict(obj):
         else:
             d[attr] = getattr(obj, attr)
     return d
+
+
+def internet_connected():
+    """ Determine whether the Internet is connected
+
+    Returns:
+        :obj:`bool`: return `True` if the internet (actually www.google.com) is accessible, `False` otherwise
+    """
+    try:
+        # connect to the host -- tells us if the host is actually reachable
+        socket.create_connection(("www.google.com", 80))
+        return True
+    except OSError:
+        pass
+    return False
 
 
 class OrderableNoneType(object):

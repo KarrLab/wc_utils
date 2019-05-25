@@ -476,7 +476,8 @@ class ExcelWriter(Writer):
             raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
                 value.__class__.__name__,
                 self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
-        assert result == 0, result
+        assert result == 0, 'Error code {} when writing "{}" to worksheet "{}"'.format(
+            result, value, sheet_name)
 
     def finalize_workbook(self):
         """ Finalize workbook """

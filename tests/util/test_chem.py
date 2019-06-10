@@ -283,7 +283,7 @@ class DrawMoleculeTestCase(unittest.TestCase):
             {'positions': [1], 'elements': ['C'], 'color': 0xff0000},
             {'positions': [2], 'elements': ['C'], 'color': 0x00ff00},
             {'positions': [3], 'elements': ['C'], 'color': 0x0000ff},
-        ], include_xml_header=False)
+        ], show_atom_nums=True, include_xml_header=False)
         self.assertTrue(svg.startswith('<svg'))
 
         svg = chem.draw_molecule(self.ALA, 'inchi')

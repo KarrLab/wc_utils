@@ -238,7 +238,7 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
     return result
 
 
-def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200, height=200, include_xml_header=True):
+def draw_molecule(structure, format, atom_labels=None, atom_sets=None, show_atom_nums=False, width=200, height=200, include_xml_header=True):
     """ Draw molecule in SVG format
 
     Args:
@@ -248,6 +248,7 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200
             {`position`, `element`, `label`, `color`})
         atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
             {`positions`, `elements`, `color`})
+        show_atom_nums (:obj:`bool`, optional): if :obj:`True`, show the numbers of the atoms
         width (:obj:`int`, optional): width in pixels
         height (:obj:`int`, optional): height in pixels
         include_xml_header (:obj:`bool`, optional): if :obj:`True`, include XML header
@@ -261,10 +262,11 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200
     atom_label_texts = []
     atom_label_colors = []
     for atom_label in atom_labels:
-        atoms_to_label.append(atom_label['position'])
-        atom_label_elements.append(atom_label['element'])
-        atom_label_texts.append(atom_label['label'])
-        atom_label_colors.append(atom_label['color'])
+        if atom_label['label']:
+            atoms_to_label.append(atom_label['position'])
+            atom_label_elements.append(atom_label['element'])
+            atom_label_texts.append(atom_label['label'])
+            atom_label_colors.append(atom_label['color'])
 
     atom_sets = atom_sets or []
     atom_set_positions = []
@@ -282,7 +284,7 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
     return JavaDrawMolecule.run_one(structure, format,
                                     atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
-                                    atom_set_positions, atom_set_elements, atom_set_colors,
+                                    atom_set_positions, atom_set_elements, atom_set_colors, show_atom_nums,
                                     width, height, include_xml_header)
 
 

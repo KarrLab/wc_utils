@@ -59,8 +59,8 @@ public class DrawMolecule {
         if (showAtomNums) {
             format += ",anum";
         }
-        format += 'w' + Integer.toString(width);
-        format += 'h' + Integer.toString(height);
+        format += ",w" + Integer.toString(width);
+        format += ",h" + Integer.toString(height);
         if (!includeXmlHeader) {
             format += ",headless";
         }

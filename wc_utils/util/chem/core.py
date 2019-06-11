@@ -238,7 +238,8 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
     return result
 
 
-def draw_molecule(structure, format, atom_labels=None, atom_sets=None, show_atom_nums=False, width=200, height=200, include_xml_header=True):
+def draw_molecule(structure, format, atom_labels=None, atom_sets=None, show_atom_nums=False,
+                  width=200, height=200, include_xml_header=True):
     """ Draw molecule in SVG format
 
     Args:

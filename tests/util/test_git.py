@@ -93,4 +93,4 @@ class TestGit(unittest.TestCase):
             'ssh://git@github.com/KarrLab/wc_utils.git',
             'git@github.com:KarrLab/wc_utils.git',
         ])
-        self.assertEqual(md.branch, 'master')
+        self.assertEqual(md.branch, 'correct_git_versions')

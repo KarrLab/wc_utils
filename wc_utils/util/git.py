@@ -55,6 +55,11 @@ class RepoMetadataCollectionType(Enum):
 def repo_status(repo, repo_type, data_file=None):
     """ Get status of a repo
 
+    Determine whether `repo` is in a state that allows it to be used to collect metadata for
+    a data file. It cannot be ahead of the remote, because versions must have been committed to
+    the server so they can be later retrieved. And it cannot have local changes, except for
+    changes to a data file that we expect will be later committed and pushed.
+
     Args:
         repo (:obj:`git.Repo`): a `GitPython` repository
         repo_type (:obj:`RepoMetadataCollectionType`): repo type that's being tested

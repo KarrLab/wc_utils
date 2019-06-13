@@ -22,7 +22,7 @@ try:
         jnius_config.set_classpath(*classpath)
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
-    import jnius
+    import jnius    
 except ModuleNotFoundError:  # pragma: no cover
     pass  # pragma: no cover
 
@@ -205,7 +205,7 @@ class EmpiricalFormula(attrdict.AttrDefault):
 
 
 def get_major_micro_species(structure_or_structures, in_format, out_format,
-                            ph=7.4, major_tautomer=False, keep_hydrogens=False):
+                            ph=7.4, major_tautomer=False, keep_hydrogens=False, dearomatize=False):
     """ Get the major protonation state of one or more compounds at a specific pH.
 
     Args:
@@ -216,6 +216,7 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
         ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
         major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
         keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
+        dearomatize (:obj:`bool`, optional): if :obj:`True`, dearomatize molecule
 
     Returns:
         :obj:`str` or :obj:`list` of :obj:`str`: protonated chemical structure or
@@ -226,34 +227,37 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
 
     if isinstance(structure_or_structures, str):
         result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, in_format, out_format,
-                                                  ph, major_tautomer, keep_hydrogens)
+                                                  ph, major_tautomer, keep_hydrogens, dearomatize)
         if out_format in ['inchi', 'smiles']:
             result = result.partition('\n')[0].strip()
     else:
         result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, in_format, out_format,
-                                                       ph, major_tautomer, keep_hydrogens)
+                                                       ph, major_tautomer, keep_hydrogens, dearomatize)
         if out_format in ['inchi', 'smiles']:
             result = [r.partition('\n')[0].strip() for r in result]
 
     return result
 
 
-def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200, height=200, include_xml_header=True):
-    """ Draw molecule in SVG format
+def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_sets=None, show_atom_nums=False,
+                  width=200, height=200, include_xml_header=True):
+    """ Draw an image of a molecule
 
     Args:
         structure (:obj:`str`): chemical structure
         format (:obj:`str`): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
+        image_format (:obj:`str`, optional): format of generated image {emf, eps, jpeg, msbmp, pdf, png, or svg}
         atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys 
             {`position`, `element`, `label`, `color`})
         atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
             {`positions`, `elements`, `color`})
+        show_atom_nums (:obj:`bool`, optional): if :obj:`True`, show the numbers of the atoms
         width (:obj:`int`, optional): width in pixels
         height (:obj:`int`, optional): height in pixels
         include_xml_header (:obj:`bool`, optional): if :obj:`True`, include XML header
 
     Returns:
-        :obj:`str`: SVG image of chemical structure
+        :obj:`str`: image of chemical structure
     """
     atom_labels = atom_labels or []
     atoms_to_label = []
@@ -261,10 +265,11 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200
     atom_label_texts = []
     atom_label_colors = []
     for atom_label in atom_labels:
-        atoms_to_label.append(atom_label['position'])
-        atom_label_elements.append(atom_label['element'])
-        atom_label_texts.append(atom_label['label'])
-        atom_label_colors.append(atom_label['color'])
+        if atom_label['label']:
+            atoms_to_label.append(atom_label['position'])
+            atom_label_elements.append(atom_label['element'])
+            atom_label_texts.append(atom_label['label'])
+            atom_label_colors.append(atom_label['color'])
 
     atom_sets = atom_sets or []
     atom_set_positions = []
@@ -280,10 +285,13 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, width=200
         atom_set_elements = [['']]
 
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
-    return JavaDrawMolecule.run_one(structure, format,
+    image = JavaDrawMolecule.run_one(structure, format, image_format,
                                     atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
-                                    atom_set_positions, atom_set_elements, atom_set_colors,
+                                    atom_set_positions, atom_set_elements, atom_set_colors, show_atom_nums,
                                     width, height, include_xml_header)
+    if isinstance(image, jnius.jnius.ByteArray):
+        image = image.tostring()
+    return image
 
 
 class OpenBabelUtils(object):

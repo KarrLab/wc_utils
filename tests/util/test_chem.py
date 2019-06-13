@@ -8,8 +8,11 @@
 
 from wc_utils.util import chem
 import attrdict
+import imghdr
 import mock
 import openbabel
+import os
+import tempfile
 import unittest
 
 
@@ -167,7 +170,7 @@ class EmpiricalFormulaTestCase(unittest.TestCase):
         self.assertNotIn(f, [h])
         self.assertNotIn(f, set([h]))
         self.assertNotIn(f, {h: True})
-        
+
 
 class GetMajorMicroSpeciesTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
@@ -262,31 +265,38 @@ class DrawMoleculeTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
 
     def test(self):
-        svg = chem.draw_molecule(self.ALA, 'inchi', [
+        svg = chem.draw_molecule(self.ALA, 'inchi', atom_labels=[
             {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},
             {'position': 2, 'element': 'C', 'label': 'B', 'color': 0x00ff00},
             {'position': 3, 'element': 'C', 'label': 'C', 'color': 0x0000ff},
         ],
-            [
+            atom_sets=[
             {'positions': [1], 'elements': ['C'], 'color': 0xff0000},
             {'positions': [2], 'elements': ['C'], 'color': 0x00ff00},
             {'positions': [3], 'elements': ['C'], 'color': 0x0000ff},
         ])
         self.assertTrue(svg.startswith('<?xml'))
 
-        svg = chem.draw_molecule(self.ALA, 'inchi', [
+        svg = chem.draw_molecule(self.ALA, 'inchi', atom_labels=[
             {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},
             {'position': 2, 'element': 'C', 'label': 'B', 'color': 0x00ff00},
             {'position': 3, 'element': 'C', 'label': 'C', 'color': 0x0000ff},
         ],
-            [
+            atom_sets=[
             {'positions': [1], 'elements': ['C'], 'color': 0xff0000},
             {'positions': [2], 'elements': ['C'], 'color': 0x00ff00},
             {'positions': [3], 'elements': ['C'], 'color': 0x0000ff},
-        ], include_xml_header=False)
+        ], show_atom_nums=True, include_xml_header=False)
         self.assertTrue(svg.startswith('<svg'))
 
         svg = chem.draw_molecule(self.ALA, 'inchi')
+
+        file, filename = tempfile.mkstemp()
+        os.close(file)
+        with open(filename, 'wb') as file:
+            file.write(chem.draw_molecule(self.ALA, 'inchi', image_format='png'))
+        self.assertEqual(imghdr.what(filename), 'png')
+        os.remove(filename)
 
 
 class OpenBabelUtilsTestCase(unittest.TestCase):

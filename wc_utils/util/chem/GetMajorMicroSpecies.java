@@ -19,14 +19,16 @@ public class GetMajorMicroSpecies {
      * writes the molecule to a string (e.g., InChI, SMILES).
      */
     public static String run_one(String inStructure, String inStructureFormat, String outStructureFormat,
-        Float ph, boolean majorTautomer, boolean keepExplicitHydrogens) throws IOException, PluginException {
+        Float ph, boolean majorTautomer, boolean keepExplicitHydrogens, boolean dearomatize) throws IOException, PluginException {
         // read from string (e.g., "inchi", "smiles")
         ByteArrayInputStream inStream = new ByteArrayInputStream(inStructure.getBytes());
         MoleculeImporter molImporter = new MoleculeImporter(inStream, inStructureFormat);
         Molecule inMol = molImporter.read();
 
         // dearomatize
-        inMol.dearomatize();
+        if (dearomatize) {
+            inMol.dearomatize();
+        }
 
         // protonate
         MajorMicrospeciesPlugin plugin = new MajorMicrospeciesPlugin();
@@ -48,11 +50,11 @@ public class GetMajorMicroSpecies {
     }
 
     public static String[] run_multiple(String[] inStructures, String inStructureFormat, String outStructureFormat,
-        Float ph, boolean majorTautomer, boolean keepExplicitHydrogens) throws IOException, PluginException {
+        Float ph, boolean majorTautomer, boolean keepExplicitHydrogens, boolean dearomatize) throws IOException, PluginException {
         String[] outStructures = new String[inStructures.length];
         for (int i = 0; i < inStructures.length; i++) {
             outStructures[i] = GetMajorMicroSpecies.run_one(inStructures[i], inStructureFormat, outStructureFormat,
-                ph, majorTautomer, keepExplicitHydrogens);
+                ph, majorTautomer, keepExplicitHydrogens, dearomatize);
         }
         return outStructures;
     }

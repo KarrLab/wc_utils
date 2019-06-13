@@ -16,9 +16,9 @@ import java.io.IOException;
 public class DrawMolecule {
     /* Draw a molecule.
      */
-     public static String run_one(String inStructure, String inStructureFormat,
+     public static java.lang.Object run_one(String inStructure, String inStructureFormat, String outImageFormat,
         int[] atomsToLabel, String[] atomElements, String[] atomLabels, int[] atomLabelColors,
-        int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, 
+        int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, boolean showAtomNums,
         int width, int height, boolean includeXmlHeader)
         throws IOException {
         // read from string (e.g., "inchi", "smiles")
@@ -55,13 +55,16 @@ public class DrawMolecule {
 
         // write to string
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        String format = "svg:mono,anum";
-        format += 'w' + Integer.toString(width);
-        format += 'h' + Integer.toString(height);
-        if (!includeXmlHeader) {
+        String format = outImageFormat + ":mono,#00ffffff,transbg,maxscale1000,marginSize0";
+        if (showAtomNums) {
+            format += ",anum";
+        }
+        format += ",w" + Integer.toString(width);
+        format += ",h" + Integer.toString(height);
+        if (!includeXmlHeader && outImageFormat.equals("svg")) {
             format += ",headless";
         }
-        String image = (String)MolExporter.exportToObject(inMol, format);
+        java.lang.Object image = (java.lang.Object)MolExporter.exportToObject(inMol, format);
 
         // return image
         return image;

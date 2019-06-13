@@ -18,8 +18,10 @@ import github
 from github.GithubException import UnknownObjectException
 # from .config import core
 
-
 # todo: put API token in config file
+# todo: get push working on CircleCI
+RUNNING_ON_CIRCLE = True
+
 
 # functions for managing test repos
 def get_github_api_token():
@@ -112,24 +114,26 @@ class TestGit(unittest.TestCase):
         self.assertFalse(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
             data_file=test_file))
 
-        # push changes
-        origin = repo.remotes.origin
-        rv = origin.push()
+        if not RUNNING_ON_CIRCLE:
 
-        # create an untracked file
-        untracked_file = Path(tempdir) / 'test_dir' / 'untracked_file.txt'
-        untracked_filename = str(untracked_file)
-        open(untracked_filename, 'wb').close()
-        # schema_repo should return False
-        self.assertFalse(repo_status(repo, RepoMetadataCollectionType.SCHEMA_REPO))
-        # data_repo with data_file=untracked_filename should return True
-        self.assertTrue(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
-            data_file=untracked_filename))
-        # data_repo with data_file=other_test_file should return False
-        self.assertFalse(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
-            data_file=other_test_file))
-        # delete untracked_file
-        untracked_file.unlink()
+            # push changes
+            origin = repo.remotes.origin
+            rv = origin.push()
+
+            # create an untracked file
+            untracked_file = Path(tempdir) / 'test_dir' / 'untracked_file.txt'
+            untracked_filename = str(untracked_file)
+            open(untracked_filename, 'wb').close()
+            # schema_repo should return False
+            self.assertFalse(repo_status(repo, RepoMetadataCollectionType.SCHEMA_REPO))
+            # data_repo with data_file=untracked_filename should return True
+            self.assertTrue(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
+                data_file=untracked_filename))
+            # data_repo with data_file=other_test_file should return False
+            self.assertFalse(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
+                data_file=other_test_file))
+            # delete untracked_file
+            untracked_file.unlink()
 
         # data_repo with file not in repo should raise exception
         with self.assertRaisesRegex(ValueError, r"data_file '.+' must be in the repo that's in '.+'"):

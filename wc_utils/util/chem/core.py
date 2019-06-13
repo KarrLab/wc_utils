@@ -205,7 +205,7 @@ class EmpiricalFormula(attrdict.AttrDefault):
 
 
 def get_major_micro_species(structure_or_structures, in_format, out_format,
-                            ph=7.4, major_tautomer=False, keep_hydrogens=False):
+                            ph=7.4, major_tautomer=False, keep_hydrogens=False, dearomatize=False):
     """ Get the major protonation state of one or more compounds at a specific pH.
 
     Args:
@@ -216,6 +216,7 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
         ph (:obj:`float`, optional): pH at which to calculate major protonation microspecies
         major_tautomer (:obj:`bool`, optional): if :obj:`True`, use the major tautomeric in the calculation
         keep_hydrogens (:obj:`bool`, optional): if :obj:`True`, keep explicity defined hydrogens
+        dearomatize (:obj:`bool`, optional): if :obj:`True`, dearomatize molecule
 
     Returns:
         :obj:`str` or :obj:`list` of :obj:`str`: protonated chemical structure or
@@ -226,12 +227,12 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
 
     if isinstance(structure_or_structures, str):
         result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, in_format, out_format,
-                                                  ph, major_tautomer, keep_hydrogens)
+                                                  ph, major_tautomer, keep_hydrogens, dearomatize)
         if out_format in ['inchi', 'smiles']:
             result = result.partition('\n')[0].strip()
     else:
         result = JavaGetMajorMicroSpecies.run_multiple(structure_or_structures, in_format, out_format,
-                                                       ph, major_tautomer, keep_hydrogens)
+                                                       ph, major_tautomer, keep_hydrogens, dearomatize)
         if out_format in ['inchi', 'smiles']:
             result = [r.partition('\n')[0].strip() for r in result]
 

@@ -256,7 +256,7 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         include_xml_header (:obj:`bool`, optional): if :obj:`True`, include XML header
 
     Returns:
-        :obj:`str`: SVG image of chemical structure
+        :obj:`str`: image of chemical structure
     """
     atom_labels = atom_labels or []
     atoms_to_label = []
@@ -284,10 +284,13 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         atom_set_elements = [['']]
 
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
-    return JavaDrawMolecule.run_one(structure, format, image_format,
+    image = JavaDrawMolecule.run_one(structure, format, image_format,
                                     atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
                                     atom_set_positions, atom_set_elements, atom_set_colors, show_atom_nums,
                                     width, height, include_xml_header)
+    if isinstance(image, jnius.jnius.ByteArray):
+        image = image.tostring()
+    return image
 
 
 class OpenBabelUtils(object):

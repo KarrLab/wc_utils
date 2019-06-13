@@ -157,8 +157,8 @@ class TestGit(unittest.TestCase):
             'ssh://git@github.com/KarrLab/wc_utils.git',
             'git@github.com:KarrLab/wc_utils.git',
         ])
-        self.assertEqual(md.branch, 'correct_git_versions')
-        self.assertIn('branch: correct_git_versions', str(md))
+        self.assertEqual(md.branch, 'master')
+        self.assertIn('branch: master', str(md))
 
         md = get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
         self.assertIn('KarrLab/test_wc_utils_git.git', md.url)

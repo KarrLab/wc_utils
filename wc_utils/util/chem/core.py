@@ -22,7 +22,7 @@ try:
         jnius_config.set_classpath(*classpath)
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
-    import jnius
+    import jnius    
 except ModuleNotFoundError:  # pragma: no cover
     pass  # pragma: no cover
 
@@ -238,13 +238,14 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
     return result
 
 
-def draw_molecule(structure, format, atom_labels=None, atom_sets=None, show_atom_nums=False,
+def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_sets=None, show_atom_nums=False,
                   width=200, height=200, include_xml_header=True):
-    """ Draw molecule in SVG format
+    """ Draw an image of a molecule
 
     Args:
         structure (:obj:`str`): chemical structure
         format (:obj:`str`): format of :obj:`structure` (e.g. 'inchi' or 'smiles')
+        image_format (:obj:`str`, optional): format of generated image {emf, eps, jpeg, msbmp, pdf, png, or svg}
         atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys 
             {`position`, `element`, `label`, `color`})
         atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
@@ -283,7 +284,7 @@ def draw_molecule(structure, format, atom_labels=None, atom_sets=None, show_atom
         atom_set_elements = [['']]
 
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
-    return JavaDrawMolecule.run_one(structure, format,
+    return JavaDrawMolecule.run_one(structure, format, image_format,
                                     atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
                                     atom_set_positions, atom_set_elements, atom_set_colors, show_atom_nums,
                                     width, height, include_xml_header)

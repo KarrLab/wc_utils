@@ -16,7 +16,7 @@ import java.io.IOException;
 public class DrawMolecule {
     /* Draw a molecule.
      */
-     public static String run_one(String inStructure, String inStructureFormat,
+     public static String run_one(String inStructure, String inStructureFormat, String outImageFormat,
         int[] atomsToLabel, String[] atomElements, String[] atomLabels, int[] atomLabelColors,
         int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, boolean showAtomNums,
         int width, int height, boolean includeXmlHeader)
@@ -55,13 +55,13 @@ public class DrawMolecule {
 
         // write to string
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        String format = "svg:mono";
+        String format = outImageFormat + ":mono";
         if (showAtomNums) {
             format += ",anum";
         }
         format += ",w" + Integer.toString(width);
         format += ",h" + Integer.toString(height);
-        if (!includeXmlHeader) {
+        if (!includeXmlHeader && outImageFormat.equals("svg")) {
             format += ",headless";
         }
         String image = (String)MolExporter.exportToObject(inMol, format);

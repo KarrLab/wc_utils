@@ -13,8 +13,6 @@ import os
 from pathlib import Path
 from enum import Enum, auto
 
-# todo: have repo_status return unsuitable_changes, so reason(s) can be passed to users
-
 
 def get_repo(dirname='.', search_parent_directories=True):
     """ Get a Git repository
@@ -68,8 +66,9 @@ def repo_status(repo, repo_type, data_file=None):
             `repo_type` is `RepoMetadataCollectionType.DATA_REPO`
 
     Returns:
-        :obj:`bool`: whether the repo is in a state that's suitable for collecting metadata for the
-            `repo_type`
+        :obj:`list` of :obj:`str`: list of reasons, if any, that the repo is in a state that's not
+            suitable for collecting metadata; an empty list indicates that the repo can be used to
+            collect metadata
     """
     unsuitable_changes = []
     commits_ahead = list(repo.iter_commits('origin/master..master'))
@@ -119,7 +118,7 @@ def repo_status(repo, repo_type, data_file=None):
     else:   # pragma: no cover
         raise ValueError("Invalid RepoMetadataCollectionType: '{}'".format(repo_type.name))
 
-    return not unsuitable_changes
+    return unsuitable_changes
 
 
 def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=None, data_file=None):
@@ -142,8 +141,8 @@ def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=Non
     """
     repo = get_repo(dirname=dirname, search_parent_directories=search_parent_directories)
     if repo_type:
-        suitable_repo = repo_status(repo, repo_type, data_file=data_file)
-        if not suitable_repo:
+        unsuitable_changes = repo_status(repo, repo_type, data_file=data_file)
+        if unsuitable_changes:
             raise ValueError("Cannot gather metadata from Git repo in '{}'".format(dirname))
 
     url = str(repo.remote('origin').url)

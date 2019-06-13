@@ -20,7 +20,7 @@ from github.GithubException import UnknownObjectException
 
 # todo: put API token in config file
 # todo: get push working on CircleCI
-RUNNING_ON_CIRCLE = True
+RUNNING_ON_CIRCLE = False
 
 
 # functions for managing test repos
@@ -91,9 +91,9 @@ class TestGit(unittest.TestCase):
 
     def test_repo_status(self):
         # both data_repo and schema_repo should return True on a clean repo
-        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
             data_file=self.test_file))
-        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
 
         # write & add test file
         with open(self.test_file, 'w') as f:
@@ -101,13 +101,13 @@ class TestGit(unittest.TestCase):
         self.repo.index.add([self.test_file])
 
         # schema_repo should return False
-        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         # data_repo with data_file=<test file> should return True
-        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
             data_file=self.test_file))
         # data_repo with data_file=<path to other file> should return False
         other_test_file = str(Path(self.repo.git_dir).parent / 'other_test.txt')
-        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
             data_file=other_test_file))
 
         # commit changes
@@ -115,9 +115,9 @@ class TestGit(unittest.TestCase):
         self.repo.index.commit("commit changes to test_file")
 
         # schema_repo and data_repo should return False because commits haven't been pushed
-        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         # data_repo with data_file=<test file> should return False
-        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
             data_file=self.test_file))
 
         if not RUNNING_ON_CIRCLE:
@@ -131,12 +131,12 @@ class TestGit(unittest.TestCase):
             untracked_filename = str(untracked_file)
             open(untracked_filename, 'wb').close()
             # schema_repo should return False
-            self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
+            self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
             # data_repo with data_file=untracked_filename should return True
-            self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+            self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
                 data_file=untracked_filename))
             # data_repo with data_file=other_test_file should return False
-            self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+            self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
                 data_file=other_test_file))
             # delete untracked_file
             untracked_file.unlink()
@@ -168,6 +168,6 @@ class TestGit(unittest.TestCase):
         with open(self.test_file, 'w') as f:
             f.write('hello world!')
 
-        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         with self.assertRaisesRegex(ValueError, "Cannot gather metadata from Git repo"):
             get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)

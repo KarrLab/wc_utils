@@ -63,7 +63,7 @@ def repo_status(repo, repo_type, data_file=None):
 
     Args:
         repo (:obj:`git.Repo`): a `GitPython` repository
-        repo_type (:obj:`RepoMetadataCollectionType`): repo type that's being tested
+        repo_type (:obj:`RepoMetadataCollectionType`): repo type having status determined
         data_file (:obj:`str`, optional): pathname of a data file in the repo; must be provided if
             `repo_type` is `RepoMetadataCollectionType.DATA_REPO`
 
@@ -122,21 +122,29 @@ def repo_status(repo, repo_type, data_file=None):
     return not unsuitable_changes
 
 
-def get_repo_metadata(dirname='.', search_parent_directories=True):
+def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=None, data_file=None):
     """ Get metadata about a Git repository
 
     Args:
         dirname (:obj:`str`): path to Git repository
         search_parent_directories (:obj:`bool`, optional): if :obj:`True`, have `GitPython` search for
             the root of the repository among the parent directories of :obj:`dirname`
+        repo_type (:obj:`RepoMetadataCollectionType`, optional): repo type having status determined
+        data_file (:obj:`str`, optional): pathname of a data file in the repo; must be provided if
+            `repo_type` is `RepoMetadataCollectionType.DATA_REPO`
 
     Returns:
-        :obj:`RepositoryMetadata`: repository meta data
+        :obj:`RepositoryMetadata`: repository metadata
 
     Raises:
-        :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository
+        :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository,
+            or if the repo is not suitable for gathering metadata
     """
     repo = get_repo(dirname=dirname, search_parent_directories=search_parent_directories)
+    if repo_type:
+        suitable_repo = repo_status(repo, repo_type, data_file=data_file)
+        if not suitable_repo:
+            raise ValueError("Cannot gather metadata from Git repo in '{}'".format(dirname))
 
     url = str(repo.remote('origin').url)
     branch = str(repo.active_branch.name)
@@ -145,7 +153,7 @@ def get_repo_metadata(dirname='.', search_parent_directories=True):
 
 
 class RepositoryMetadata(object):
-    """ Represents meta data about a Git repository
+    """ Represents metadata about a Git repository
 
     Attributes:
         url (:obj:`str`): URL
@@ -163,3 +171,14 @@ class RepositoryMetadata(object):
         self.url = url
         self.branch = branch
         self.revision = revision
+
+    def __str__(self):
+        """ Get string representation of metadata
+
+        Returns:
+            :obj:`str`: string representation of metadata
+        """
+        lines = []
+        for attr in ['url', 'branch', 'revision']:
+            lines.append("{}: {}".format(attr, getattr(self, attr)))
+        return '\n'.join(lines)

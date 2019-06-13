@@ -56,6 +56,26 @@ def delete_test_repo(name, organization='KarrLab'):
 
 class TestGit(unittest.TestCase):
 
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+
+        # create test repo on GitHub
+        self.test_repo_name = 'test_wc_utils_git'
+        # delete test repo in case it wasn't deleted previously
+        delete_test_repo(self.test_repo_name)
+        repo_url = make_test_repo(self.test_repo_name)
+        # clone from url
+        self.repo = git.Repo.clone_from(repo_url, self.tempdir)
+
+        # create test file path
+        Path(self.tempdir).joinpath('test_dir').mkdir()
+        self.test_file = str(Path(self.tempdir) / 'test_dir' / 'test.txt')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+        # delete repo from GitHub
+        delete_test_repo(self.test_repo_name)
+
     def test_get_repo(self):
         repo = get_repo(dirname='.')
         self.assertTrue(isinstance(repo, git.Repo))
@@ -70,78 +90,60 @@ class TestGit(unittest.TestCase):
         shutil.rmtree(tempdir)
 
     def test_repo_status(self):
-        tempdir = tempfile.mkdtemp()
-
-        # create test repo on GitHub
-        test_repo_name = 'test_wc_utils_git'
-        # delete test repo in case it wasn't deleted previously
-        delete_test_repo(test_repo_name)
-        repo_url = make_test_repo(test_repo_name)
-        # clone from url
-        repo = git.Repo.clone_from(repo_url, tempdir)
-
-        # create test file path
-        Path(tempdir).joinpath('test_dir').mkdir()
-        test_file = str(Path(tempdir) / 'test_dir' / 'test.txt')
-
         # both data_repo and schema_repo should return True on a clean repo
-        self.assertTrue(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
-            data_file=test_file))
-        self.assertTrue(repo_status(repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+            data_file=self.test_file))
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
 
         # write & add test file
-        with open(test_file, 'w') as f:
+        with open(self.test_file, 'w') as f:
             f.write('hello world!')
-        repo.index.add([test_file])
+        self.repo.index.add([self.test_file])
 
         # schema_repo should return False
-        self.assertFalse(repo_status(repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         # data_repo with data_file=<test file> should return True
-        self.assertTrue(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
-            data_file=test_file))
+        self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+            data_file=self.test_file))
         # data_repo with data_file=<path to other file> should return False
-        other_test_file = str(Path(repo.git_dir).parent / 'other_test.txt')
-        self.assertFalse(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
+        other_test_file = str(Path(self.repo.git_dir).parent / 'other_test.txt')
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
             data_file=other_test_file))
 
         # commit changes
-        repo.index.add([test_file])
-        repo.index.commit("commit changes to test_file")
+        self.repo.index.add([self.test_file])
+        self.repo.index.commit("commit changes to test_file")
 
         # schema_repo and data_repo should return False because commits haven't been pushed
-        self.assertFalse(repo_status(repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         # data_repo with data_file=<test file> should return False
-        self.assertFalse(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
-            data_file=test_file))
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
+            data_file=self.test_file))
 
         if not RUNNING_ON_CIRCLE:
 
             # push changes
-            origin = repo.remotes.origin
+            origin = self.repo.remotes.origin
             rv = origin.push()
 
             # create an untracked file
-            untracked_file = Path(tempdir) / 'test_dir' / 'untracked_file.txt'
+            untracked_file = Path(self.tempdir) / 'test_dir' / 'untracked_file.txt'
             untracked_filename = str(untracked_file)
             open(untracked_filename, 'wb').close()
             # schema_repo should return False
-            self.assertFalse(repo_status(repo, RepoMetadataCollectionType.SCHEMA_REPO))
+            self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
             # data_repo with data_file=untracked_filename should return True
-            self.assertTrue(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
+            self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
                 data_file=untracked_filename))
             # data_repo with data_file=other_test_file should return False
-            self.assertFalse(repo_status(repo, RepoMetadataCollectionType.DATA_REPO,
+            self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO,
                 data_file=other_test_file))
             # delete untracked_file
             untracked_file.unlink()
 
         # data_repo with file not in repo should raise exception
         with self.assertRaisesRegex(ValueError, r"data_file '.+' must be in the repo that's in '.+'"):
-            repo_status(repo, RepoMetadataCollectionType.DATA_REPO, data_file='/tmp/test.xlsx')
-
-        shutil.rmtree(tempdir)
-        # delete repo from GitHub
-        delete_test_repo(test_repo_name)
+            repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO, data_file='/tmp/test.xlsx')
 
         repo = get_repo(dirname='.')
         with self.assertRaisesRegex(ValueError, "data_file must be provided if repo_type is "
@@ -156,3 +158,16 @@ class TestGit(unittest.TestCase):
             'git@github.com:KarrLab/wc_utils.git',
         ])
         self.assertEqual(md.branch, 'correct_git_versions')
+        self.assertIn('branch: correct_git_versions', str(md))
+
+        md = get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
+        self.assertIn('KarrLab/test_wc_utils_git.git', md.url)
+        self.assertEqual(md.branch, 'master')
+
+        # write & add test file
+        with open(self.test_file, 'w') as f:
+            f.write('hello world!')
+
+        self.assertFalse(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
+        with self.assertRaisesRegex(ValueError, "Cannot gather metadata from Git repo"):
+            get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)

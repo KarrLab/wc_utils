@@ -20,7 +20,7 @@ from github.GithubException import UnknownObjectException
 
 # todo: put API token in config file
 # todo: get push working on CircleCI
-RUNNING_ON_CIRCLE = False
+RUNNING_ON_CIRCLE = True
 
 
 # functions for managing test repos

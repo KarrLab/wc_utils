@@ -7,12 +7,13 @@
 :License: MIT
 """
 
-import importlib
-git = importlib.import_module('git', package='gitpython')
+import git
 import itertools
 import os
 from pathlib import Path
 from enum import Enum, auto
+
+# todo: have repo_status return unsuitable_changes, so reason(s) can be passed to users
 
 
 def get_repo(dirname='.', search_parent_directories=True):
@@ -70,7 +71,13 @@ def repo_status(repo, repo_type, data_file=None):
         :obj:`bool`: whether the repo is in a state that's suitable for collecting metadata for the
             `repo_type`
     """
-    diff_index = repo.index.diff(None)
+    unsuitable_changes = []
+    commits_ahead = list(repo.iter_commits('origin/master..master'))
+    if commits_ahead:
+        unsuitable_changes.append('commits ahead of origin')
+
+    # diff between the index and the commit tree HEAD points to
+    diff_index = repo.index.diff(repo.head.commit)
     if repo_type is RepoMetadataCollectionType.DATA_REPO:
 
         if not data_file:
@@ -93,13 +100,11 @@ def repo_status(repo, repo_type, data_file=None):
                 resolved_b_rawpath = repo_root.joinpath(diff.b_rawpath.decode())
                 if (resolved_a_rawpath != resolved_data_file or
                     resolved_b_rawpath != resolved_data_file):
-                    return False
+                    unsuitable_changes.append('modified path(s) are not data_file path')
 
         for untracked_file in repo.untracked_files:
             if repo_root.joinpath(untracked_file) != resolved_data_file:
-                return False
-
-        return True
+                unsuitable_changes.append('untracked file is not data_file path')
 
     elif repo_type is RepoMetadataCollectionType.SCHEMA_REPO:
 
@@ -107,13 +112,14 @@ def repo_status(repo, repo_type, data_file=None):
         # isn't suitable for collecting metadata
         for change_type in diff_index.change_type:
             if list(diff_index.iter_change_type(change_type)):
-                return False
+                unsuitable_changes.append('changes present')
         if repo.untracked_files:
-            return False
-        return True
+            unsuitable_changes.append('untracked files present')
 
     else:   # pragma: no cover
         raise ValueError("Invalid RepoMetadataCollectionType: '{}'".format(repo_type.name))
+
+    return not unsuitable_changes
 
 
 def get_repo_metadata(dirname='.', search_parent_directories=True):

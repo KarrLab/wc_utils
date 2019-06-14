@@ -8,51 +8,20 @@
 """
 
 import git
-from wc_utils.util.git import get_repo, get_repo_metadata, repo_status, RepoMetadataCollectionType
+from wc_utils.util.git import (get_repo, get_repo_metadata, repo_status, RepoMetadataCollectionType,
+    TestGitRepos)
 import shutil
 import tempfile
 import os
 import unittest
 from pathlib import Path
-import github
-from github.GithubException import UnknownObjectException
-# from .config import core
 
-# todo: put API token in config file
 # todo: get push working on CircleCI
 RUNNING_ON_CIRCLE = True
 
 
-# functions for managing test repos
-def get_github_api_token():
-    '''
-    config = core.get_config()['wc_utils']
-    return config['github_api_token']
-    '''
-    return '3-2-3-d-0-9-d-3-0-6-7-3-6-d-a-d-b-4-3-8-f-3-5-6-8-2-e-1-1-5-2-b-7-b-2-e-9-b-5-6'.replace('-', '' )
-
-
-def make_test_repo(name):
-    # create a test GitHub repository in KarrLab
-    # return its URL
-    g = github.Github(get_github_api_token())
-    org = g.get_organization('KarrLab')
-    org.create_repo(name=name, private=False, auto_init=True)
-    return 'https://github.com/KarrLab/{}.git'.format(name)
-
-
-def delete_test_repo(name, organization='KarrLab'):
-    g = github.Github(get_github_api_token())
-    try:
-        repo = g.get_repo("{}/{}".format(organization, name))
-        repo.delete()
-    except UnknownObjectException:
-        # ignore exception that occurs when delete does not find the repo
-        pass
-    except Exception:   # pragma: no cover; cannot deliberately raise an other exception
-        # re-raise all other exceptions
-        raise
-
+# todo: next: rename wc_utils.util.git
+# todo: next: have obj_model's test_migrate, test_git, test_utils, and test_io reuse TestGitRepos
 
 class TestGit(unittest.TestCase):
 
@@ -61,11 +30,8 @@ class TestGit(unittest.TestCase):
 
         # create test repo on GitHub
         self.test_repo_name = 'test_wc_utils_git'
-        # delete test repo in case it wasn't deleted previously
-        delete_test_repo(self.test_repo_name)
-        repo_url = make_test_repo(self.test_repo_name)
-        # clone from url
-        self.repo = git.Repo.clone_from(repo_url, self.tempdir)
+        self.test_git_repos = TestGitRepos(self.test_repo_name)
+        self.repo = self.test_git_repos.make_test_repo(self.tempdir)
 
         # create test file path
         Path(self.tempdir).joinpath('test_dir').mkdir()
@@ -74,7 +40,7 @@ class TestGit(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
         # delete repo from GitHub
-        delete_test_repo(self.test_repo_name)
+        self.test_git_repos.delete_test_repo()
 
     def test_get_repo(self):
         repo = get_repo(dirname='.')

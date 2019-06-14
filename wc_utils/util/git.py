@@ -12,6 +12,8 @@ import itertools
 import os
 from pathlib import Path
 from enum import Enum, auto
+import github
+from github.GithubException import UnknownObjectException
 
 
 def get_repo(dirname='.', search_parent_directories=True):
@@ -51,6 +53,8 @@ class RepoMetadataCollectionType(Enum):
     SCHEMA_REPO = auto()
 
 
+# todo: support glob data_file for delimiter-separated files
+# todo: automatically determine branch of repo & use it instead of 'master'
 def repo_status(repo, repo_type, data_file=None):
     """ Get status of a repo
 
@@ -181,3 +185,62 @@ class RepositoryMetadata(object):
         for attr in ['url', 'branch', 'revision']:
             lines.append("{}: {}".format(attr, getattr(self, attr)))
         return '\n'.join(lines)
+
+
+# from .config import core
+# todo: put API token in config file
+class TestGitRepos(object):
+    """ Functions for managing test GitHub repos """
+
+    @staticmethod
+    def get_github_api_token():
+        '''
+        config = core.get_config()['wc_utils']
+        return config['github_api_token']
+        '''
+        return '3-2-3-d-0-9-d-3-0-6-7-3-6-d-a-d-b-4-3-8-f-3-5-6-8-2-e-1-1-5-2-b-7-b-2-e-9-b-5-6'.replace('-', '' )
+
+    def __init__(self, name, organization='KarrLab'):
+        """ Manage a test GitHub repository
+
+        Args:
+            name (:obj:`str`): name of the repo
+            organization (:obj:`str`): GitHub organization home for the repo; default='KarrLab'
+        """
+        self.api_token = self.get_github_api_token()
+        self.name = name
+        self.organization = organization
+
+    def make_test_repo(self, dirname=None):
+        """ Create a test GitHub repository
+
+        Args:
+            dirname (:obj:`str`, optional): a directory name; if present, clone the repo into it
+
+        Returns:
+            :obj:`obj`: if `dirname` is provided, a `gitpython` reference to a local clone of the test
+                GitHub repository; otherwise, the URL of the test GitHub repository
+        """
+        # delete test repo in case it wasn't deleted previously
+        self.delete_test_repo()
+        g = github.Github(self.api_token)
+        org = g.get_organization(self.organization)
+        org.create_repo(name=self.name, private=False, auto_init=True)
+        repo_url = 'https://github.com/{}/{}.git'.format(self.organization, self.name)
+        if dirname:
+            # clone from GitHub
+            self.repo = git.Repo.clone_from(repo_url, dirname)
+            return self.repo
+        return repo_url
+
+    def delete_test_repo(self):
+        g = github.Github(self.api_token)
+        try:
+            repo = g.get_repo("{}/{}".format(self.organization, self.name))
+            repo.delete()
+        except UnknownObjectException:
+            # ignore exception that occurs when delete does not find the repo
+            pass
+        except Exception:   # pragma: no cover; cannot deliberately raise an other exception
+            # re-raise all other exceptions
+            raise

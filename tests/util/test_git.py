@@ -9,7 +9,7 @@
 
 import git
 from wc_utils.util.git import (get_repo, get_repo_metadata, repo_status, RepoMetadataCollectionType,
-    TestGitRepos)
+    GitReposForTesting)
 import shutil
 import tempfile
 import os
@@ -21,7 +21,7 @@ RUNNING_ON_CIRCLE = True
 
 
 # todo: next: rename wc_utils.util.git
-# todo: next: have obj_model's test_migrate, test_git, test_utils, and test_io reuse TestGitRepos
+# todo: next: have obj_model's test_migrate, test_git, test_utils, and test_io reuse GitReposForTesting
 
 class TestGit(unittest.TestCase):
 
@@ -30,7 +30,7 @@ class TestGit(unittest.TestCase):
 
         # create test repo on GitHub
         self.test_repo_name = 'test_wc_utils_git'
-        self.test_git_repos = TestGitRepos(self.test_repo_name)
+        self.test_git_repos = GitReposForTesting(self.test_repo_name)
         self.repo = self.test_git_repos.make_test_repo(self.tempdir)
 
         # create test file path

@@ -14,6 +14,7 @@ from pathlib import Path
 from enum import Enum, auto
 import github
 from github.GithubException import UnknownObjectException
+from .config import core
 
 
 def get_repo(dirname='.', search_parent_directories=True):
@@ -187,18 +188,13 @@ class RepositoryMetadata(object):
         return '\n'.join(lines)
 
 
-# from .config import core
-# todo: put API token in config file
-class TestGitRepos(object):
+class GitReposForTesting(object):
     """ Functions for managing test GitHub repos """
 
     @staticmethod
     def get_github_api_token():
-        '''
         config = core.get_config()['wc_utils']
         return config['github_api_token']
-        '''
-        return '3-2-3-d-0-9-d-3-0-6-7-3-6-d-a-d-b-4-3-8-f-3-5-6-8-2-e-1-1-5-2-b-7-b-2-e-9-b-5-6'.replace('-', '' )
 
     def __init__(self, name, organization='KarrLab'):
         """ Manage a test GitHub repository

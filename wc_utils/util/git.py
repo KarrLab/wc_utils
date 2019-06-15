@@ -188,7 +188,7 @@ class RepositoryMetadata(object):
         return '\n'.join(lines)
 
 
-class GitReposForTesting(object):
+class GitHubRepoForTests(object):
     """ Functions for managing test GitHub repos """
 
     @staticmethod

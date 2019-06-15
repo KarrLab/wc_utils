@@ -9,19 +9,19 @@
 
 import git
 from wc_utils.util.git import (get_repo, get_repo_metadata, repo_status, RepoMetadataCollectionType,
-    GitReposForTesting)
+    GitHubRepoForTests)
 import shutil
 import tempfile
 import os
 import unittest
 from pathlib import Path
 
-# todo: get push working on CircleCI
-RUNNING_ON_CIRCLE = True
+# todo: next: get push working on CircleCI
+RUNNING_ON_CIRCLE = False
 
 
-# todo: next: rename wc_utils.util.git
-# todo: next: have obj_model's test_migrate, test_git, test_utils, and test_io reuse GitReposForTesting
+# todo: next: rename wc_utils.util.git: update wc_utils, obj_model, wc_kb, wc_sim, & wc_lang
+# todo: next: have obj_model's test_utils, and test_io reuse GitHubRepoForTests
 
 class TestGit(unittest.TestCase):
 
@@ -30,7 +30,7 @@ class TestGit(unittest.TestCase):
 
         # create test repo on GitHub
         self.test_repo_name = 'test_wc_utils_git'
-        self.test_git_repos = GitReposForTesting(self.test_repo_name)
+        self.test_git_repos = GitHubRepoForTests(self.test_repo_name)
         self.repo = self.test_git_repos.make_test_repo(self.tempdir)
 
         # create test file path
@@ -137,3 +137,22 @@ class TestGit(unittest.TestCase):
         self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         with self.assertRaisesRegex(ValueError, "Cannot gather metadata from Git repo"):
             get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
+
+
+class TestGitHubRepoForTests(unittest.TestCase):
+
+    def test(self):
+        self.assertTrue(isinstance(GitHubRepoForTests.get_github_api_token(), str))
+        tempdir = tempfile.mkdtemp()
+        test_repo_name = 'test_wc_utils_git'
+        test_git_repos = GitHubRepoForTests(test_repo_name)
+        self.assertTrue(isinstance(test_git_repos, GitHubRepoForTests))
+        self.assertEqual(test_git_repos.name, test_repo_name)
+        repo_url = test_git_repos.make_test_repo()
+        self.assertTrue(repo_url.startswith('https://github.com'))
+        repo = test_git_repos.make_test_repo(tempdir)
+        self.assertTrue(isinstance(repo, git.Repo))
+        test_git_repos_2 = GitHubRepoForTests('no such repo')
+        test_git_repos_2.delete_test_repo()
+        test_git_repos.delete_test_repo()
+        shutil.rmtree(tempdir)

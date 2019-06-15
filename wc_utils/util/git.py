@@ -148,7 +148,8 @@ def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=Non
     if repo_type:
         unsuitable_changes = repo_status(repo, repo_type, data_file=data_file)
         if unsuitable_changes:
-            raise ValueError("Cannot gather metadata from Git repo in '{}'".format(dirname))
+            raise ValueError("Cannot gather metadata from Git repo in '{}'\n{}".format(dirname,
+                '\n'.join(unsuitable_changes)))
 
     url = str(repo.remote('origin').url)
     branch = str(repo.active_branch.name)

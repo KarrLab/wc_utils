@@ -17,7 +17,7 @@ import unittest
 from pathlib import Path
 
 # todo: next: get push working on CircleCI
-RUNNING_ON_CIRCLE = False
+RUNNING_ON_CIRCLE = True
 
 
 # todo: next: rename wc_utils.util.git: update wc_utils, obj_model, wc_kb, wc_sim, & wc_lang
@@ -145,14 +145,14 @@ class TestGitHubRepoForTests(unittest.TestCase):
         self.assertTrue(isinstance(GitHubRepoForTests.get_github_api_token(), str))
         tempdir = tempfile.mkdtemp()
         test_repo_name = 'test_wc_utils_git'
-        test_git_repos = GitHubRepoForTests(test_repo_name)
-        self.assertTrue(isinstance(test_git_repos, GitHubRepoForTests))
-        self.assertEqual(test_git_repos.name, test_repo_name)
-        repo_url = test_git_repos.make_test_repo()
+        test_github_repo = GitHubRepoForTests(test_repo_name)
+        self.assertTrue(isinstance(test_github_repo, GitHubRepoForTests))
+        self.assertEqual(test_github_repo.name, test_repo_name)
+        repo_url = test_github_repo.make_test_repo()
         self.assertTrue(repo_url.startswith('https://github.com'))
-        repo = test_git_repos.make_test_repo(tempdir)
+        repo = test_github_repo.make_test_repo(tempdir)
         self.assertTrue(isinstance(repo, git.Repo))
         test_git_repos_2 = GitHubRepoForTests('no such repo')
         test_git_repos_2.delete_test_repo()
-        test_git_repos.delete_test_repo()
+        test_github_repo.delete_test_repo()
         shutil.rmtree(tempdir)

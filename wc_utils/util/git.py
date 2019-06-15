@@ -17,22 +17,25 @@ from github.GithubException import UnknownObjectException
 from .config import core
 
 
-def get_repo(dirname='.', search_parent_directories=True):
+def get_repo(path='.', search_parent_directories=True):
     """ Get a Git repository
 
     Args:
-        dirname (:obj:`str`): path to Git repository
+        path (:obj:`str`): path to file or directory in a Git repository; if `path` doesn't exist
+            or is a file then its directory is used
         search_parent_directories (:obj:`bool`, optional): if :obj:`True`, search for the root 
-            of the repository among the parent directories of :obj:`dirname`; default=:obj:`True`
+            of the repository among the parent directories of :obj:`path`; default=:obj:`True`
 
     Returns:
         :obj:`git.Repo`: a `GitPython` repository
 
     Raises:
-        :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository
+        :obj:`ValueError`: if obj:`path` is not a path to a Git repository
     """
     repo = None
-    resolved_path = Path(dirname).expanduser().resolve()
+    resolved_path = Path(path).expanduser().resolve()
+    if not resolved_path.exists() or resolved_path.is_file():
+        resolved_path = resolved_path.parent
     dirnames = itertools.chain([str(resolved_path)], resolved_path.parents)
     if search_parent_directories:
         dirnames = [str(resolved_path)]
@@ -40,11 +43,11 @@ def get_repo(dirname='.', search_parent_directories=True):
         try:
             repo = git.Repo(str(parent_dirname), search_parent_directories=search_parent_directories)
             break
-        except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError):
+        except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError) as e:
             pass
 
     if not repo:
-        raise ValueError('"{}" is not in a Git repository'.format(dirname))
+        raise ValueError('"{}" is not in a Git repository'.format(path))
     return repo
 
 
@@ -144,7 +147,7 @@ def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=Non
         :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository,
             or if the repo is not suitable for gathering metadata
     """
-    repo = get_repo(dirname=dirname, search_parent_directories=search_parent_directories)
+    repo = get_repo(path=dirname, search_parent_directories=search_parent_directories)
     if repo_type:
         unsuitable_changes = repo_status(repo, repo_type, data_file=data_file)
         if unsuitable_changes:

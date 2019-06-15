@@ -17,7 +17,7 @@ import unittest
 from pathlib import Path
 
 # todo: next: get push working on CircleCI
-RUNNING_ON_CIRCLE = True
+RUNNING_ON_CIRCLE = False
 
 
 # todo: next: rename wc_utils.util.git: update wc_utils, obj_model, wc_kb, wc_sim, & wc_lang
@@ -43,16 +43,20 @@ class TestGit(unittest.TestCase):
         self.test_git_repos.delete_test_repo()
 
     def test_get_repo(self):
-        repo = get_repo(dirname='.')
+        repo = get_repo(path='.')
         self.assertTrue(isinstance(repo, git.Repo))
-        repo = get_repo(dirname=os.path.dirname(__file__), search_parent_directories=False)
+        repo = get_repo(path=os.path.dirname(__file__))
         self.assertTrue(isinstance(repo, git.Repo))
-        repo = get_repo(dirname=os.path.dirname(__file__), search_parent_directories=True)
+        repo = get_repo(path=os.path.dirname(__file__), search_parent_directories=False)
+        self.assertTrue(isinstance(repo, git.Repo))
+        repo = get_repo(__file__)
+        self.assertTrue(isinstance(repo, git.Repo))
+        repo = get_repo(path=os.path.join(os.path.dirname(__file__), 'no such file'))
         self.assertTrue(isinstance(repo, git.Repo))
 
         tempdir = tempfile.mkdtemp()
         with self.assertRaisesRegex(ValueError, 'is not in a Git repository'):
-            get_repo(dirname=tempdir)
+            get_repo(path=tempdir)
         shutil.rmtree(tempdir)
 
     def test_repo_status(self):
@@ -111,7 +115,7 @@ class TestGit(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r"data_file '.+' must be in the repo that's in '.+'"):
             repo_status(self.repo, RepoMetadataCollectionType.DATA_REPO, data_file='/tmp/test.xlsx')
 
-        repo = get_repo(dirname='.')
+        repo = get_repo(path='.')
         with self.assertRaisesRegex(ValueError, "data_file must be provided if repo_type is "
                 "RepoMetadataCollectionType.DATA_REPO"):
             repo_status(repo, RepoMetadataCollectionType.DATA_REPO)

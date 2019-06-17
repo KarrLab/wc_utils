@@ -118,7 +118,7 @@ class TestGit(unittest.TestCase):
             repo_status(repo, RepoMetadataCollectionType.DATA_REPO)
 
     def test_get_repo_metadata(self):
-        md = get_repo_metadata(dirname='.')
+        md = get_repo_metadata(path='.')
         self.assertIn(md.url, [
             'https://github.com/KarrLab/wc_utils.git',
             'ssh://git@github.com/KarrLab/wc_utils.git',
@@ -127,7 +127,7 @@ class TestGit(unittest.TestCase):
         self.assertEqual(md.branch, 'master')
         self.assertIn('branch: master', str(md))
 
-        md = get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
+        md = get_repo_metadata(path=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
         self.assertIn('KarrLab/test_wc_utils_git.git', md.url)
         self.assertEqual(md.branch, 'master')
 
@@ -137,7 +137,7 @@ class TestGit(unittest.TestCase):
 
         self.assertTrue(repo_status(self.repo, RepoMetadataCollectionType.SCHEMA_REPO))
         with self.assertRaisesRegex(ValueError, "Cannot gather metadata from Git repo"):
-            get_repo_metadata(dirname=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
+            get_repo_metadata(path=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
 
 
 class TestGitHubRepoForTests(unittest.TestCase):

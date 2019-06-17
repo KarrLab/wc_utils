@@ -2,6 +2,7 @@ abduct
 attrdict
 configobj
 diskcache
+pygithub
 gitpython
 log >= 2016.10.12
 mendeleev

@@ -57,7 +57,6 @@ class RepoMetadataCollectionType(Enum):
     SCHEMA_REPO = auto()
 
 
-# todo: support glob data_file for delimiter-separated files
 # todo: automatically determine branch of repo & use it instead of 'master'
 def repo_status(repo, repo_type, data_file=None):
     """ Get status of a repo
@@ -129,14 +128,15 @@ def repo_status(repo, repo_type, data_file=None):
     return unsuitable_changes
 
 
-def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=None, data_file=None):
+# todo: also get metadata from installed packages with metadata information
+def get_repo_metadata(path='.', search_parent_directories=True, repo_type=None, data_file=None):
     """ Get metadata about a Git repository
 
     Args:
-        dirname (:obj:`str`): path to Git repository
+        path (:obj:`str`): path to file or directory in a Git repository
         search_parent_directories (:obj:`bool`, optional): if :obj:`True`, have `GitPython` search for
-            the root of the repository among the parent directories of :obj:`dirname`
-        repo_type (:obj:`RepoMetadataCollectionType`, optional): repo type having status determined
+            the root of the repository among the parent directories of :obj:`path`
+        repo_type (:obj:`RepoMetadataCollectionType`, optional): repo type having metadata collected
         data_file (:obj:`str`, optional): pathname of a data file in the repo; must be provided if
             `repo_type` is `RepoMetadataCollectionType.DATA_REPO`
 
@@ -144,14 +144,14 @@ def get_repo_metadata(dirname='.', search_parent_directories=True, repo_type=Non
         :obj:`RepositoryMetadata`: repository metadata
 
     Raises:
-        :obj:`ValueError`: if obj:`dirname` is not a path to a Git repository,
+        :obj:`ValueError`: if obj:`path` is not a path in a Git repository,
             or if the repo is not suitable for gathering metadata
     """
-    repo = get_repo(path=dirname, search_parent_directories=search_parent_directories)
+    repo = get_repo(path=path, search_parent_directories=search_parent_directories)
     if repo_type:
         unsuitable_changes = repo_status(repo, repo_type, data_file=data_file)
         if unsuitable_changes:
-            raise ValueError("Cannot gather metadata from Git repo in '{}'\n{}".format(dirname,
+            raise ValueError("Cannot gather metadata from Git repo containing '{}'\n{}".format(path,
                 '\n'.join(unsuitable_changes)))
 
     url = str(repo.remote('origin').url)

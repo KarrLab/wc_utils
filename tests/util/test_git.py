@@ -20,9 +20,6 @@ from pathlib import Path
 RUNNING_ON_CIRCLE = True
 
 
-# todo: next: rename wc_utils.util.git: update wc_utils, obj_model, wc_kb, wc_sim, & wc_lang
-# todo: next: have obj_model's test_utils, and test_io reuse GitHubRepoForTests
-
 class TestGit(unittest.TestCase):
 
     def setUp(self):

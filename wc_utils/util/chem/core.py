@@ -22,7 +22,7 @@ try:
         jnius_config.set_classpath(*classpath)
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
-    import jnius    
+    import jnius
 except ModuleNotFoundError:  # pragma: no cover
     pass  # pragma: no cover
 
@@ -239,8 +239,8 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
     return result
 
 
-def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_sets=None, show_atom_nums=False,
-                  width=200, height=200, include_xml_header=True):
+def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_sets=None, bond_sets=None,
+                  show_atom_nums=False, width=200, height=200, include_xml_header=True):
     """ Draw an image of a molecule
 
     Args:
@@ -250,6 +250,8 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys 
             {`position`, `element`, `label`, `color`})
         atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
+            {`positions`, `elements`, `color`})
+        bond_sets (:obj:`list` of :obj:`dict`, optional): list of bond sets (dictionaries with keys 
             {`positions`, `elements`, `color`})
         show_atom_nums (:obj:`bool`, optional): if :obj:`True`, show the numbers of the atoms
         width (:obj:`int`, optional): width in pixels
@@ -284,11 +286,25 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         atom_set_positions = [[0]]
         atom_set_elements = [['']]
 
+    bond_sets = bond_sets or []
+    bond_set_positions = []
+    bond_set_elements = []
+    bond_set_colors = []
+    for bond_set in bond_sets:
+        bond_set_positions.append(bond_set['positions'])
+        bond_set_elements.append(bond_set['elements'])
+        bond_set_colors.append(bond_set['color'])
+
+    if not bond_set_positions:
+        bond_set_positions = [[[0]]]
+        bond_set_elements = [[['']]]
+
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
-    image = JavaDrawMolecule.run_one(structure, format, image_format,
-                                    atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
-                                    atom_set_positions, atom_set_elements, atom_set_colors, show_atom_nums,
-                                    width, height, include_xml_header)
+    image = JavaDrawMolecule.run(structure, format, image_format,
+                                 atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
+                                 atom_set_positions, atom_set_elements, atom_set_colors,
+                                 bond_set_positions, bond_set_elements, bond_set_colors,
+                                 show_atom_nums, width, height, include_xml_header)
     if isinstance(image, jnius.jnius.ByteArray):
         image = image.tostring()
     return image

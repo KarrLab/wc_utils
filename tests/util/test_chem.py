@@ -265,17 +265,24 @@ class DrawMoleculeTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
 
     def test(self):
-        svg = chem.draw_molecule(self.ALA, 'inchi', atom_labels=[
-            {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},
-            {'position': 2, 'element': 'C', 'label': 'B', 'color': 0x00ff00},
-            {'position': 3, 'element': 'C', 'label': 'C', 'color': 0x0000ff},
-        ],
-            atom_sets=[
-            {'positions': [1], 'elements': ['C'], 'color': 0xff0000},
-            {'positions': [2], 'elements': ['C'], 'color': 0x00ff00},
-            {'positions': [3], 'elements': ['C'], 'color': 0x0000ff},
-        ])
+        svg = chem.draw_molecule(self.ALA, 'inchi',
+                                 atom_labels=[
+                                     {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},
+                                     {'position': 2, 'element': 'C', 'label': 'B', 'color': 0x00ff00},
+                                     {'position': 3, 'element': 'C', 'label': 'C', 'color': 0x0000ff},
+                                 ],
+                                 atom_sets=[
+                                     {'positions': [1], 'elements': ['C'], 'color': 0xff0000},
+                                     {'positions': [2], 'elements': ['C'], 'color': 0x00ff00},
+                                     {'positions': [3], 'elements': ['C'], 'color': 0x0000ff},
+                                 ],
+                                 bond_sets=[
+                                     {'positions': [[2, 3], [3, 5]], 'elements': [['C', 'C'], ['C', 'O']], 'color': 0xff00ff},
+                                     {'positions': [[3, 6]], 'elements': [['C', 'O']], 'color': 0xffff00},
+                                 ])
         self.assertTrue(svg.startswith('<?xml'))
+        self.assertIn('#ff00ff', svg)
+        self.assertIn('#ffff00', svg)
 
         svg = chem.draw_molecule(self.ALA, 'inchi', atom_labels=[
             {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},

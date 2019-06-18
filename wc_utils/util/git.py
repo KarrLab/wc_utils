@@ -14,7 +14,7 @@ from pathlib import Path
 from enum import Enum, auto
 import github
 from github.GithubException import UnknownObjectException
-from .config import core
+from wc_utils.config import core
 
 
 def get_repo(path='.', search_parent_directories=True):
@@ -197,7 +197,7 @@ class GitHubRepoForTests(object):
 
     @staticmethod
     def get_github_api_token():
-        config = core.get_config()['wc_utils']
+        config = core.get_config()['wc_utils']['github']
         return config['github_api_token']
 
     def __init__(self, name, organization='KarrLab'):

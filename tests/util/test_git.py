@@ -139,6 +139,9 @@ class TestGit(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Cannot gather metadata from Git repo"):
             get_repo_metadata(path=self.tempdir, repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
 
+        with self.assertRaisesRegex(ValueError, "Invalid RepoMetadataCollectionType"):
+            get_repo_metadata(path=self.tempdir, repo_type=-3)
+
 
 class TestGitHubRepoForTests(unittest.TestCase):
 

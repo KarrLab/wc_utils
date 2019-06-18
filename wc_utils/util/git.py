@@ -110,7 +110,8 @@ def repo_status(repo, repo_type, data_file=None):
 
         for untracked_file in repo.untracked_files:
             if repo_root.joinpath(untracked_file) != resolved_data_file:
-                unsuitable_changes.append('untracked file is not data_file path')
+                unsuitable_changes.append("untracked file '{}' is not data_file path '{}'".format(
+                    repo_root.joinpath(untracked_file), resolved_data_file))
 
     elif repo_type is RepoMetadataCollectionType.SCHEMA_REPO:
 
@@ -122,8 +123,8 @@ def repo_status(repo, repo_type, data_file=None):
         if repo.untracked_files:
             unsuitable_changes.append('untracked files present')
 
-    else:   # pragma: no cover
-        raise ValueError("Invalid RepoMetadataCollectionType: '{}'".format(repo_type.name))
+    else:
+        raise ValueError("Invalid RepoMetadataCollectionType: '{}'".format(repo_type))
 
     return unsuitable_changes
 

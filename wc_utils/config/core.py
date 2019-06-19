@@ -87,35 +87,38 @@ class ConfigManager(object):
 
         # read configuration schema/specification
         config_specification = ConfigObj(self.paths.schema, list_values=False, _inspec=True)
-        value_sources = []
 
         # read default configuration
+        value_sources = []
         if os.path.isfile(self.paths.default):
             value_sources.append(self.paths.default)
         config = ConfigObj(infile=self.paths.default, configspec=config_specification)
+        self.validate(config, value_sources)
 
         # read user's configuration files
         for user_config_filename in self.paths.user:
             if os.path.isfile(user_config_filename):
                 override_config = ConfigObj(infile=user_config_filename, configspec=config_specification)
                 config.merge(override_config)
-                value_sources.append(user_config_filename)
+                self.validate(config, [user_config_filename])
                 break
 
         # read configuration from environment variables
+        value_sources = []
         for key, val in os.environ.items():
             if key.startswith('CONFIG__DOT__'):
                 nested_keys = key[13:].split('__DOT__')
                 if nested_keys[0] in config:
                     DictUtil.nested_set(config, nested_keys, val)
                     value_sources.append("Environment variable '{}'".format(key))
+        self.validate(config, value_sources)
 
         # merge extra configuration
         if extra is None:
             extra = {}
         else:
-            value_sources.append("'extra' argument")
-        config.merge(extra)
+            config.merge(extra)
+            self.validate(config, ["'extra' argument"])
 
         # ensure that a configuration is found
         if not config:
@@ -126,17 +129,6 @@ class ConfigManager(object):
                               "  Environment variables"
                               ).format(
                 self.paths.default, ', '.join(self.paths.user), extra))
-
-        # validate configuration against schema
-        validator = Validator()
-        validator.functions['any'] = any_checker
-        result = config.validate(validator, copy=True, preserve_errors=True)
-
-        if result is not True:
-            raise InvalidConfigError(value_sources, config, result)
-
-        if get_extra_values(config):
-            raise ExtraValuesError(value_sources, config)
 
         # perform template substitution
         to_sub = [config]
@@ -159,6 +151,21 @@ class ConfigManager(object):
                 dictionary[key2] = val2
 
         # re-validate configuration against schema after substitution
+        self.validate(config, value_sources)
+
+        # return config
+        return config
+
+    def validate(self, config, value_sources):
+        """ Validate configuration
+
+        Args:
+            config (:obj:`ConfigObj`): configuration
+
+        Raises:
+            :obj:`InvalidConfigError`: if configuration doesn't validate against schema
+            :obj:`ValueError`: if no configuration is found   
+        """
         validator = Validator()
         validator.functions['any'] = any_checker
         result = config.validate(validator, copy=True, preserve_errors=True)
@@ -167,11 +174,7 @@ class ConfigManager(object):
             raise InvalidConfigError(value_sources, config, result)
 
         if get_extra_values(config):
-            raise ExtraValuesError(
-                value_sources, config)  # pragma: no cover # unreachable because we have already checked for extra values
-
-        # return config
-        return config
+            raise ExtraValuesError(value_sources, config)
 
 
 def any_checker(value):

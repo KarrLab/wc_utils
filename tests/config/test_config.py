@@ -20,7 +20,8 @@ import unittest
 import wc_utils
 
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
-from wc_utils.config.core import ConfigManager, ConfigPaths, any_checker, ExtraValuesError, InvalidConfigError
+from wc_utils.config.core import (ConfigManager, ConfigPaths, any_checker,
+                                  ExtraValuesError, InvalidConfigError, get_config)
 from wc_utils.util.environ import EnvironUtils, MakeEnvironArgs
 from wc_utils.util.types import assert_value_equal
 
@@ -159,9 +160,6 @@ class TestConfig(unittest.TestCase):
         with self.assertRaisesRegex(ExtraValuesError, "The following configuration sources"):
             ConfigManager(debug_logs_default_paths).get_config(extra)
 
-        with self.assertRaisesRegex(ExtraValuesError, re.escape(debug_logs_default_paths.default)):
-            ConfigManager(debug_logs_default_paths).get_config(extra)
-
         with self.assertRaisesRegex(ExtraValuesError, "  'extra' argument"):
             ConfigManager(debug_logs_default_paths).get_config(extra)
 
@@ -229,6 +227,7 @@ class TestConfig(unittest.TestCase):
         config = configobj.ConfigObj(configspec=config_specification)
         validator = Validator()
         result = config.validate(validator, preserve_errors=True)
+        InvalidConfigError([], config, result)
         self.assertNotEqual(result, True)
 
         # incorrect type
@@ -302,6 +301,9 @@ class TestConfig(unittest.TestCase):
         # string
         self.assertIsInstance(validator.check('any', 'string'), str)
         self.assertEqual(validator.check('any', 'string'), 'string')
+
+    def test_get_config(self):
+        self.assertIsInstance(get_config(), configobj.ConfigObj)
 
 
 class ApiTestCase(unittest.TestCase):

@@ -4,9 +4,11 @@ configobj
 diskcache
 pygithub
 gitpython
+humanfriendly
 log >= 2016.10.12
 mendeleev
 numpy
+objsize
 openpyxl >= 2.6.1
 pint >= 0.9
 pronto

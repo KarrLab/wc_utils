@@ -542,32 +542,35 @@ class ExcelReader(Reader):
         max_row = xls_worksheet.max_row
         max_col = xls_worksheet.max_column
 
+        if ignore_empty_final_rows:
+            real_max_row = None
+            for i_row in range(max_row, 0, -1):
+                for i_col in range(1, max_col + 1):
+                    value = self.read_cell(sheet_name, xls_worksheet, i_row, i_col)
+                    if value not in (None, ''):
+                        real_max_row = i_row
+                        break
+                if real_max_row is not None:
+                    max_row = real_max_row
+                    break
+
+        if ignore_empty_final_cols:
+            real_max_col = None
+            for i_col in range(max_col, 0, -1):
+                for i_row in range(1, max_row + 1):
+                    value = self.read_cell(sheet_name, xls_worksheet, i_row, i_col)
+                    if value not in (None, ''):
+                        real_max_col = i_col
+                        break
+                if real_max_col is not None:
+                    max_col = real_max_col
+                    break
+
         for i_row in range(1, max_row + 1):
             row = Row()
             worksheet.append(row)
             for i_col in range(1, max_col + 1):
-                cell = xls_worksheet.cell(row=i_row, column=i_col)
-
-                if cell.data_type in (openpyxl.cell.cell.TYPE_STRING, openpyxl.cell.cell.TYPE_INLINE,
-                                      openpyxl.cell.cell.TYPE_NUMERIC, openpyxl.cell.cell.TYPE_NULL,
-                                      openpyxl.cell.cell.TYPE_BOOL):
-                    value = cell.value
-                elif cell.data_type == openpyxl.cell.cell.TYPE_ERROR:
-                    raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name,
-                                                                                   get_column_letter(i_col), i_row))
-                elif cell.data_type in (openpyxl.cell.cell.TYPE_FORMULA,
-                                        openpyxl.cell.cell.TYPE_FORMULA_CACHE_STRING):
-                    if cell.value in ['=FALSE()', '=FALSE']:
-                        value = False
-                    elif cell.value in ['=TRUE()', '=TRUE']:
-                        value = True
-                    else:
-                        raise ValueError('Formula are not supported: {}:{}:{}{}'.format(
-                            self.path, sheet_name, get_column_letter(i_col), i_row))
-                else:
-                    raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(
-                        cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
-
+                value = self.read_cell(sheet_name, xls_worksheet, i_row, i_col)
                 row.append(value)
 
         for cell in xls_worksheet.merged_cells.ranges:
@@ -576,13 +579,43 @@ class ExcelReader(Reader):
                 for i_col in range(cell.min_col-1, cell.max_col):
                     worksheet[i_row][i_col] = value
 
-        if ignore_empty_final_rows:
-            worksheet.remove_empty_final_rows()
-
-        if ignore_empty_final_cols:
-            worksheet.remove_empty_final_cols()
-
         return worksheet
+
+    def read_cell(self, sheet_name,  xls_worksheet, i_row, i_col):
+        """ Read the value of a cell
+
+        Args:
+            sheet_name (:obj:`str`): worksheet name
+            xls_worksheet (:obj:`openpyxl.Worksheet`): worksheet
+            i_row (:obj:`int`): row number
+            i_col (:obj:`int`): column number
+
+        Returns:
+            :obj:`object`: value of cell
+        """
+        cell = xls_worksheet.cell(row=i_row, column=i_col)
+
+        if cell.data_type in (openpyxl.cell.cell.TYPE_STRING, openpyxl.cell.cell.TYPE_INLINE,
+                              openpyxl.cell.cell.TYPE_NUMERIC, openpyxl.cell.cell.TYPE_NULL,
+                              openpyxl.cell.cell.TYPE_BOOL):
+            value = cell.value
+        elif cell.data_type == openpyxl.cell.cell.TYPE_ERROR:
+            raise ValueError('Errors are not supported: {}:{}:{}{}'.format(self.path, sheet_name,
+                                                                           get_column_letter(i_col), i_row))
+        elif cell.data_type in (openpyxl.cell.cell.TYPE_FORMULA,
+                                openpyxl.cell.cell.TYPE_FORMULA_CACHE_STRING):
+            if cell.value in ['=FALSE()', '=FALSE']:
+                value = False
+            elif cell.value in ['=TRUE()', '=TRUE']:
+                value = True
+            else:
+                raise ValueError('Formula are not supported: {}:{}:{}{}'.format(
+                    self.path, sheet_name, get_column_letter(i_col), i_row))
+        else:
+            raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(
+                cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
+
+        return value
 
 
 class SeparatedValuesWriter(Writer):
@@ -709,26 +742,59 @@ class SeparatedValuesReader(Reader):
         sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name),
                                          skip_empty_rows=False)
 
-        for sv_row in sv_worksheet.row:
-            row = Row()
-            worksheet.append(row)
-            for sv_cell in sv_row:
-                if sv_cell == '':
-                    sv_cell = None
-                elif sv_cell == 'True':
-                    sv_cell = True
-                elif sv_cell == 'False':
-                    sv_cell = False
-
-                row.append(sv_cell)
+        rows = list(sv_worksheet.rows())
+        max_row = len(rows)
+        max_col = len(rows[0])
 
         if ignore_empty_final_rows:
-            worksheet.remove_empty_final_rows()
+            real_max_row = None
+            for i_row, row in enumerate(reversed(rows)):
+                for i_col, cell in enumerate(row):
+                    value = self.read_cell(cell)
+                    if value not in (None, ''):
+                        real_max_row = max_row - i_row
+                        break
+                if real_max_row is not None:
+                    max_row = real_max_row
+                    break
 
         if ignore_empty_final_cols:
-            worksheet.remove_empty_final_cols()
+            real_max_col = None
+            for i_col in range(max_col - 1, 0, -1):
+                for i_row in range(0, max_row):
+                    cell = rows[i_row][i_col]
+                    value = self.read_cell(cell)
+                    if value not in (None, ''):
+                        real_max_col = i_col + 1
+                        break
+                if real_max_col is not None:
+                    max_col = real_max_col
+                    break
+
+        for sv_row in rows[0:max_row]:
+            row = Row()
+            worksheet.append(row)
+            for sv_cell in sv_row[0:max_col]:
+                row.append(self.read_cell(sv_cell))
 
         return worksheet
+
+    def read_cell(self, value):
+        """ Read the value of a cell
+
+        Args:
+            value (:obj:`object`): value
+
+        Returns:
+            :obj:`object`: value
+        """
+        if value == '':
+            value = None
+        elif value == 'True':
+            value = True
+        elif value == 'False':
+            value = False
+        return value
 
 
 def get_writer(extension):

@@ -264,7 +264,7 @@ class TestConfig(unittest.TestCase):
 
         config_paths = ConfigPaths(schema=filename, default=filename, user=())
 
-        with self.assertRaisesRegex(ValueError, '^no config found in envt. variables or'):
+        with self.assertRaisesRegex(ValueError, '^No configuration found in:'):
             ConfigManager(config_paths).get_config()
 
     def test_any_checker(self):

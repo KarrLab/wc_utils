@@ -87,9 +87,11 @@ class ConfigManager(object):
 
         # read configuration schema/specification
         config_specification = ConfigObj(self.paths.schema, list_values=False, _inspec=True)
+        value_sources = []
 
         # read default configuration
-        value_sources = [self.paths.default]
+        if os.path.isfile(self.paths.default):
+            value_sources.append(self.paths.default)
         config = ConfigObj(infile=self.paths.default, configspec=config_specification)
 
         # read user's configuration files
@@ -117,8 +119,13 @@ class ConfigManager(object):
 
         # ensure that a configuration is found
         if not config:
-            raise ValueError("no config found in envt. variables or {}, {}, or {}".format(
-                self.paths.default, self.paths.user, extra))
+            raise ValueError(("No configuration found in:\n"
+                              "  Default path: {}\n"
+                              "  User paths: {}\n"
+                              "  Extras: {}\n"
+                              "  Environment variables"
+                              ).format(
+                self.paths.default, ', '.join(self.paths.user), extra))
 
         # validate configuration against schema
         validator = Validator()

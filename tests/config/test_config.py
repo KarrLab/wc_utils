@@ -30,47 +30,63 @@ class TestConfig(unittest.TestCase):
 
     def test_get_from_user(self):
         expected = ConfigManager(debug_logs_default_paths).get_config()
-        expected['debug_logs']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
+        expected['debug_logs']['loggers']['__test__'] = {
+            'template': 'xxxx',
+            'handler': 'MyHandler',
+            'timezone': None,
+            'additional_context': {},
+        }
 
         _, temp_config_filename = tempfile.mkstemp()
         with open(temp_config_filename, 'w') as file:
             file.write(u'[debug_logs]\n')
-            file.write(u'    [[formatters]]\n')
+            file.write(u'    [[loggers]]\n')
             file.write(u'        [[[__test__]]]\n')
             file.write(u'            template = xxxx\n')
-            file.write(u'            append_new_line = False\n')
+            file.write(u'            handler = MyHandler\n')
 
         temp_paths = deepcopy(debug_logs_default_paths)
         temp_paths.user = [temp_config_filename]
         config_settings = ConfigManager(temp_paths).get_config()
 
-        self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
+        self.assertEqual(config_settings['debug_logs']['loggers']['__test__'], expected['debug_logs']['loggers']['__test__'])
         assert_value_equal(config_settings, expected)
 
         os.remove(temp_config_filename)
 
     def test_get_from_env(self):
         expected = ConfigManager(debug_logs_default_paths).get_config()
-        expected['debug_logs']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
+        expected['debug_logs']['loggers']['__test__'] = {
+            'template': 'xxxx',
+            'timezone': None,
+            'handler': 'MyHandler',
+            'additional_context': {}}
 
         make_environ_args = MakeEnvironArgs()
-        make_environ_args.add_to_env(['debug_logs', 'formatters', '__test__', 'template'], 'xxxx')
-        make_environ_args.add_to_env(['debug_logs', 'formatters', '__test__', 'append_new_line'], 'False')
+        make_environ_args.add_to_env(['debug_logs', 'loggers', '__test__', 'template'], 'xxxx')
+        make_environ_args.add_to_env(['debug_logs', 'loggers', '__test__', 'handler'], 'MyHandler')
         env = make_environ_args.get_env()
         with EnvironUtils.make_temp_environ(**env):
             config_settings = ConfigManager(debug_logs_default_paths).get_config()
 
-        self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
+        self.assertEqual(config_settings['debug_logs']['loggers']['__test__'], expected['debug_logs']['loggers']['__test__'])
         assert_value_equal(config_settings, expected)
 
     def test_get_from_args(self):
         expected = ConfigManager(debug_logs_default_paths).get_config()
-        expected['debug_logs']['formatters']['__test__'] = {'template': 'xxxx', 'append_new_line': False}
+        expected['debug_logs']['loggers']['__test__'] = {
+            'template': 'xxxx',
+            'handler': 'MyHandler',
+            'timezone': None,
+            'additional_context': {}}
 
-        extra = {'debug_logs': {'formatters': {'__test__': {'template': 'xxxx', 'append_new_line': False}}}}
+        extra = {'debug_logs': {'loggers': {'__test__': {
+            'template': 'xxxx',
+            'handler': 'MyHandler',
+        }}}}
         config_settings = ConfigManager(debug_logs_default_paths).get_config(extra=extra)
 
-        self.assertEqual(config_settings['debug_logs']['formatters'], expected['debug_logs']['formatters'])
+        self.assertEqual(config_settings['debug_logs']['loggers']['__test__'], expected['debug_logs']['loggers']['__test__'])
         assert_value_equal(config_settings, expected)
 
     def test_alter_directly(self):
@@ -78,13 +94,15 @@ class TestConfig(unittest.TestCase):
         # when configuration data is loaded by many modules.
         # suppose you want to test multiple values of append_new_line
         expected = ConfigManager(debug_logs_default_paths).get_config()
+        initial_handler = expected['debug_logs']['loggers']['wc.debug.file']['handler']
+        self.assertEqual(initial_handler, 'debug.file')
 
-        initial_append_new_line = expected['debug_logs']['formatters']['default']['append_new_line']
-        self.assertEqual(initial_append_new_line, True)
-        expected['debug_logs']['formatters']['default']['append_new_line'] = False
-        #### execute tests with the modified value of append_new_line here ####
-        # restore value of append_new_line
-        expected['debug_logs']['formatters']['default']['append_new_line'] = initial_append_new_line
+        # override an option
+        expected['debug_logs']['loggers']['wc.debug.file']['handler'] = 'MyHandler'
+
+        # verify that this doesn't override the configuration in the config files
+        current = ConfigManager(debug_logs_default_paths).get_config()
+        self.assertEqual(current['debug_logs']['loggers']['wc.debug.file']['handler'], initial_handler)
 
     def test_template_substitution(self):
         _, schema_filename = tempfile.mkstemp()
@@ -233,10 +251,9 @@ class TestConfig(unittest.TestCase):
         # incorrect type
         extra = {
             'debug_logs': {
-                'formatters': {
+                'handlers': {
                     '__test__': {
-                        'template': '',
-                        'append_new_line': 10,
+                        'class': 'NotAnOption',
                     }
                 }
             }
@@ -249,7 +266,7 @@ class TestConfig(unittest.TestCase):
             'debug_logs': {
                 'loggers': {
                     '__test__': {
-                        'formatters': ['default']
+                        'template': '{source}'
                     }
                 }
             }

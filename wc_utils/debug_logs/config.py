@@ -6,18 +6,12 @@
 :License: MIT
 """
 
-from copy import deepcopy
-from log.errors import ConfigurationError
-from log.formatters import Formatter
-from log.handlers import FileHandler, StreamHandler
-from log.levels import LogLevel
-from log.loggers import Logger
 from os import makedirs, path
 from pkg_resources import resource_filename
 from wc_utils.config.core import ConfigPaths
+import logging2
 import sys
 import yaml
-import copy
 
 paths = ConfigPaths(
     default=resource_filename('wc_utils', 'debug_logs/config.default.cfg'),
@@ -39,7 +33,8 @@ class LoggerConfigurator(object):
         Deprecated in favor of ConfigObj
 
         Returns:
-            :obj:`tuple`: tuple of created formatters, handlers, loggers
+            :obj:`dict`: handlers 
+            :obj:`dict`: loggers
 
         Args:
             config_path (:obj:`str`): path to configuration file written in YAML
@@ -58,74 +53,72 @@ class LoggerConfigurator(object):
             config (:obj:`dict`): dictionary of logger configurations
 
         Returns:
-            :obj:`tuple`: tuple created formatters, handlers, loggers
+            :obj:`dict`: handlers 
+            :obj:`dict`: loggers
 
         Raises:
-            :obj:`log.ConfigurationError`: For unsupported handler types or undefined formatters
+            :obj:`log.ConfigurationError`: For unsupported handler types
         """
-
-        config = deepcopy(config)
-
-        # create formatters
-        formatters = {}
-        if 'formatters' in config:
-            for name, config_formatter in config['formatters'].items():
-                formatters[name] = Formatter(name=name, **config_formatter)
 
         # create handlers
         # risky: handlers are shared between loggers. thus,
         # any modifications of handlers by one logger may affect another.
         handlers = {}
-        if 'handlers' in config:
-            for name, config_handler in config['handlers'].items():
-                class_name = config_handler.pop('class')
+        for name, config_handler in config.get('handlers', {}).items():
+            extra_opts = set(config_handler.keys()).difference(set(['class', 'filename', 'encoding', 'level']))
+            if extra_opts:
+                raise ConfigurationError('Handler configuration does not support options "{}"'.format(
+                    '", "'.join(extra_opts)))
 
-                if class_name == 'StreamHandler':
-                    stream = getattr(sys, config_handler.pop('stream'))
-                    handler = StreamHandler(stream, name=name, **config_handler)
+            class_name = config_handler.get('class', 'StdOutHandler')
+            level = getattr(logging2.LogLevel, config_handler.get('level', 'debug').lower())
 
-                elif class_name == 'FileHandler':
-                    filename = path.expanduser(config_handler.pop('filename'))
+            if class_name in ['StdErrHandler', 'StdOutHandler']:
+                cls = getattr(logging2, class_name)
+                handler = cls(name=name, level=level)
 
-                    if not path.isdir(path.dirname(filename)):
-                        makedirs(path.dirname(filename))
+            elif class_name == 'FileHandler':
+                filename = path.expanduser(config_handler['filename'])
 
-                    if not path.isfile(filename):
-                        open(filename, 'w').close()
+                if not path.isdir(path.dirname(filename)):
+                    makedirs(path.dirname(filename))
 
-                    handler = FileHandler(filename, name=name, **config_handler)
+                if not path.isfile(filename):
+                    open(filename, 'w').close()
 
-                else:
-                    raise ConfigurationError('Unsupported handler class: ' + class_name)
+                encoding = config_handler.get('encoding', 'utf-8')
 
-                handlers[name] = handler
+                handler = logging2.FileHandler(filename, name=name, level=level, encoding=encoding)
+
+            else:
+                raise ConfigurationError('Unsupported handler class: ' + class_name)
+
+            handlers[name] = handler
 
         # create loggers
         loggers = {}
-        if 'loggers' in config:
-            for name, config_logger in config['loggers'].items():
-                if 'level' in config_logger:
-                    level = getattr(LogLevel, config_logger.pop('level'))
-                else:
-                    raise ConfigurationError("Level must be defined")
+        for name, config_logger in config.get('loggers', {}).items():
+            extra_opts = set(config_logger.keys()).difference(set(['template', 'timezone', 'handler', 'additional_context']))
+            if extra_opts:
+                raise ConfigurationError('Logger configuration does not support options "{}"'.format(
+                    '", "'.join(extra_opts)))
 
-                if 'formatters' in config_logger and config_logger['formatters']:
-                    try:
-                        logger_formatters = [formatters[formatter_name]
-                                             for formatter_name in config_logger.pop('formatters')]
-                    except KeyError as e:
-                        raise ConfigurationError("Formatter {} not found.".format(e))
-                else:
-                    raise ConfigurationError("At least one formatter must be defined.")
+            template = config_logger.get('template', None)
+            timezone = config_logger.get('timezone', None)
+            additional_context = config_logger.get('additional_context', None)
 
-                if 'handlers' in config_logger and config_logger['handlers']:
-                    logger_handlers = [handlers[handler_name] for handler_name in config_logger.pop('handlers')]
-                else:
-                    raise ConfigurationError("At least one handler must be defined.")
+            if 'handler' in config_logger and config_logger['handler'] in handlers:
+                handler = handlers[config_logger['handler']]
+            else:
+                raise ConfigurationError("A handler must be defined.")
 
-                # copying the formatter avoids unexpected formats caused by changes to shared formatters
-                loggers[name] = Logger(name=name, level=level,
-                                       formatters=copy.deepcopy(logger_formatters),
-                                       handlers=logger_handlers, **config_logger)
+            loggers[name] = logging2.Logger(name=name, template=template, timezone=timezone,
+                                            handler=handler, additional_context=additional_context)
 
-        return formatters, handlers, loggers
+        # return handlers and loggers
+        return handlers, loggers
+
+
+class ConfigurationError(Exception):
+    """ An error in a logging configuration """
+    pass

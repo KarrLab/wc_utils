@@ -9,7 +9,6 @@
 from copy import deepcopy
 import sys
 
-import log
 from wc_utils.debug_logs.config import LoggerConfigurator
 
 
@@ -38,21 +37,10 @@ class DebugLogsManager(object):
         """
 
         if 'debug_logs' in options:
-            options = deepcopy(options['debug_logs'])
-        if 'handlers' in options:
-            for name, handler in options['handlers'].items():
-                if handler['class'] == 'FileHandler':
-                    for key in handler:
-                        if key not in ['class', 'filename', 'mode', 'encoding', 'errors', 'buffering']:
-                            handler.pop(key)
+            options = options['debug_logs']
 
-                elif handler['class'] == 'StreamHandler':
-                    for key in handler:
-                        if key not in ['class', 'stream']:
-                            handler.pop(key)
-
-        _, _, logs = LoggerConfigurator.from_dict(options)
-        self.logs = logs
+        _, loggers = LoggerConfigurator.from_dict(options)
+        self.logs = loggers
         return self
 
     def get_log(self, name, logs=None):
@@ -70,7 +58,7 @@ class DebugLogsManager(object):
 
         if name not in logs:
             raise ValueError("log named '{}' not found in logs '{}'.".format(name,
-                list(logs.keys())))
+                                                                             list(logs.keys())))
 
         return logs[name]
 
@@ -83,7 +71,7 @@ class DebugLogsManager(object):
 
         def logger_desc(log):
             rv = []
-            for attr in ['level', 'template']:
+            for attr in ['template']:
                 rv.append("{}: {}".format(attr, getattr(log, attr)))
             for handler in log.handlers:
                 try:
@@ -95,6 +83,6 @@ class DebugLogsManager(object):
         if self.logs is None or not len(self.logs):
             return 'No logs configured'
         log_descriptions = ['logs:']
-        for name,log in self.logs.items():
+        for name, log in self.logs.items():
             log_descriptions.append("{}:\n\t{}".format(name, logger_desc(log)))
         return '\n'.join(log_descriptions)

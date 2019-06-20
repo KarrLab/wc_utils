@@ -11,6 +11,7 @@ import collections
 import os
 import shutil
 import tempfile
+import time
 import unittest
 import wc_utils.cache
 
@@ -147,6 +148,7 @@ class CacheTestCase(unittest.TestCase):
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             self.assertEqual(func(os.path.join(self.dir, 'test_*'), input_2=fn_2), 4)
+            time.sleep(0.1)
             self.assertEqual(captured.stdout.get_text(), 'func ran')
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:

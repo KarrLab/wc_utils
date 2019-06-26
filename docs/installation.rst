@@ -32,6 +32,5 @@ Latest revision from GitHub
 ---------------------------
 Run the following command to install the latest version from GitHub::
 
-    pip install git+https://github.com/KarrLab/log.git#egg=log
     pip install git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils[all]
     pip install git+https://github.com/KarrLab/wc_utils.git#egg=wc_utils[all]

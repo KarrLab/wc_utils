@@ -1,2 +1,0 @@
-# forks of third-party packages
-git+https://github.com/KarrLab/log.git#egg=log

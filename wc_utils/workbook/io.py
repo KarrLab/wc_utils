@@ -544,15 +544,18 @@ class ExcelReader(Reader):
 
         if ignore_empty_final_rows:
             real_max_row = None
-            for i_row in range(max_row, 0, -1):
+            for i_row in range(xls_worksheet.max_row, 0, -1):
                 for i_col in range(1, max_col + 1):
                     value = self.read_cell(sheet_name, xls_worksheet, i_row, i_col)
                     if value not in (None, ''):
                         real_max_row = i_row
                         break
                 if real_max_row is not None:
-                    max_row = real_max_row
                     break
+            if real_max_row is not None:
+                max_row = real_max_row
+            else:
+                max_row = 0
 
         if ignore_empty_final_cols:
             real_max_col = None
@@ -563,8 +566,11 @@ class ExcelReader(Reader):
                         real_max_col = i_col
                         break
                 if real_max_col is not None:
-                    max_col = real_max_col
                     break
+            if real_max_col is not None:
+                max_col = real_max_col
+            else:
+                max_col = 0
 
         for i_row in range(1, max_row + 1):
             row = Row()
@@ -744,7 +750,10 @@ class SeparatedValuesReader(Reader):
 
         rows = list(sv_worksheet.rows())
         max_row = len(rows)
-        max_col = len(rows[0])
+        if max_row:
+            max_col = len(rows[0])
+        else:
+            max_col = 0
 
         if ignore_empty_final_rows:
             real_max_row = None
@@ -755,8 +764,9 @@ class SeparatedValuesReader(Reader):
                         real_max_row = max_row - i_row
                         break
                 if real_max_row is not None:
-                    max_row = real_max_row
                     break
+            if real_max_row is not None:
+                max_row = real_max_row
 
         if ignore_empty_final_cols:
             real_max_col = None
@@ -768,8 +778,9 @@ class SeparatedValuesReader(Reader):
                         real_max_col = i_col + 1
                         break
                 if real_max_col is not None:
-                    max_col = real_max_col
                     break
+            if real_max_col is not None:
+                max_col = real_max_col
 
         for sv_row in rows[0:max_row]:
             row = Row()

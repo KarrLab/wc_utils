@@ -759,3 +759,19 @@ class TestIo(unittest.TestCase):
         filename_pattern = path.join(self.tempdir, 'test-2-*.csv')
         with self.assertRaisesRegex(ValueError, 'does not match any files$'):
             io.SeparatedValuesReader(filename_pattern).run()
+
+    def test_read_empty_worksheet(self):
+        wk = Workbook()
+        ws = wk['Ws'] = Worksheet()
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        io.ExcelWriter(filename).run(wk)
+        wk2 = io.ExcelReader(filename).run()
+        self.assertEqual(list(wk2.keys()), ['Ws'])
+        self.assertEqual(wk2['Ws'], Worksheet())
+
+        filename = path.join(self.tempdir, 'test-*.csv')
+        io.SeparatedValuesWriter(filename).run(wk)
+        wk2 = io.SeparatedValuesReader(filename).run()
+        self.assertEqual(list(wk2.keys()), ['Ws'])
+        self.assertEqual(wk2['Ws'], Worksheet())

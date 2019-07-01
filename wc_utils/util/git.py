@@ -129,7 +129,6 @@ def repo_status(repo, repo_type, data_file=None):
     return unsuitable_changes
 
 
-# todo: also get metadata from installed packages with metadata information
 def get_repo_metadata(path='.', search_parent_directories=True, repo_type=None, data_file=None):
     """ Get metadata about a Git repository
 

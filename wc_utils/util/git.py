@@ -23,8 +23,9 @@ def get_repo(path='.', search_parent_directories=True):
     Args:
         path (:obj:`str`): path to file or directory in a Git repository; if `path` doesn't exist
             or is a file then its directory is used
-        search_parent_directories (:obj:`bool`, optional): if :obj:`True`, search for the root 
-            of the repository among the parent directories of :obj:`path`; default=:obj:`True`
+        search_parent_directories (:obj:`bool`, optional): if :obj:`True` have :obj:`git.Repo` search
+            for the root of the repository among the parent directories of :obj:`path`; otherwise,
+            this method iterates over the parent directories itself
 
     Returns:
         :obj:`git.Repo`: a `GitPython` repository
@@ -58,13 +59,16 @@ class RepoMetadataCollectionType(Enum):
 
 
 # todo: automatically determine branch of repo & use it instead of 'master'
-def repo_status(repo, repo_type, data_file=None):
-    """ Get status of a repo
+def repo_suitability(repo, repo_type, data_file=None):
+    """ Evaluate whether a repo is a suitable source for git metadata
 
-    Determine whether `repo` is in a state that allows it to be used to collect metadata for
-    a data file. It cannot be ahead of the remote, because versions must have been committed to
-    the server so they can be later retrieved. And it cannot have local changes, except for
-    changes to a data file that we expect will be later committed and pushed.
+    Determine whether `repo` is in a state that's suitable for collecting metadata for
+    a data file. It cannot be ahead of the remote, because commits must have been pushed to
+    the server so they can be later retrieved.
+    If the `repo_type` is `RepoMetadataCollectionType.SCHEMA_REPO`, then there cannot be any differences
+    between the index and the working tree because the schema should be synched with the origin.
+    If the`repo_type` is `RepoMetadataCollectionType.DATA_REPO` then the repo can contain changes,
+    but the data file should not depend on them. The caller is responsible for determining this.
 
     Args:
         repo (:obj:`git.Repo`): a `GitPython` repository
@@ -96,10 +100,12 @@ def repo_status(repo, repo_type, data_file=None):
         try:
             resolved_data_file.relative_to(str(repo_root))
         except ValueError:
-            raise ValueError("data_file '{}' must be in the repo that's in '{}'".format(data_file, str(repo_root)))
+            raise ValueError("data_file '{}' must be in the repo that's in '{}'".format(
+                data_file, str(repo_root)))
 
-        # a data repo that's suitable for collecting metadata may only have differences between the
-        # index and the working tree in the data_file
+        # ideally, the git repo storing a data file should only have changes in the data file so that
+        # it depends on the prior commits; but this may be difficult to satisfy, so other differences
+        # should be reported as a warning
         for change_type in diff_index.change_type:
             for diff in diff_index.iter_change_type(change_type):
                 resolved_a_rawpath = repo_root.joinpath(diff.a_rawpath.decode())
@@ -141,23 +147,22 @@ def get_repo_metadata(path='.', search_parent_directories=True, repo_type=None, 
             `repo_type` is `RepoMetadataCollectionType.DATA_REPO`
 
     Returns:
-        :obj:`RepositoryMetadata`: repository metadata
+        :obj:`tuple`: of :obj:`RepositoryMetadata`:, :obj:`list` of :obj:`str`: repository metadata,
+            and, if `repo_type` is provided, changes in the repository that make it unsuitable
 
     Raises:
         :obj:`ValueError`: if obj:`path` is not a path in a Git repository,
             or if the repo is not suitable for gathering metadata
     """
     repo = get_repo(path=path, search_parent_directories=search_parent_directories)
+    unsuitable_changes = None
     if repo_type:
-        unsuitable_changes = repo_status(repo, repo_type, data_file=data_file)
-        if unsuitable_changes:
-            raise ValueError("Cannot gather metadata from Git repo containing '{}'\n{}".format(path,
-                '\n'.join(unsuitable_changes)))
+        unsuitable_changes = repo_suitability(repo, repo_type, data_file=data_file)
 
     url = str(repo.remote('origin').url)
     branch = str(repo.active_branch.name)
     revision = str(repo.head.commit.hexsha)
-    return RepositoryMetadata(url, branch, revision)
+    return RepositoryMetadata(url, branch, revision), unsuitable_changes
 
 
 class RepositoryMetadata(object):

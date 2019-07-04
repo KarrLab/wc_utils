@@ -7,14 +7,14 @@
 :License: MIT
 """
 
-import git
+from pathlib import Path
 from wc_utils.util.git import (get_repo, get_repo_metadata, repo_suitability, RepoMetadataCollectionType,
-    GitHubRepoForTests)
+    RepositoryMetadata, GitHubRepoForTests)
+import git
+import os
 import shutil
 import tempfile
-import os
 import unittest
-from pathlib import Path
 
 
 class TestGit(unittest.TestCase):
@@ -119,6 +119,21 @@ class TestGit(unittest.TestCase):
             repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
         self.assertIn('KarrLab/test_wc_utils_git.git', md.url)
         self.assertEqual(md.branch, 'master')
+
+
+class TestRepositoryMetadata(unittest.TestCase):
+
+    def test(self):
+        rm1a = RepositoryMetadata('https://github.com/KarrLab/wc_utils.git', 'master', 'a' * 40)
+        rm1b = RepositoryMetadata('https://github.com/KarrLab/wc_utils.git', 'master', 'a' * 40)
+        rm2 = RepositoryMetadata('https://github.com/KarrLab/wc_utils.git', 'test', 'a' * 40)
+        self.assertTrue(rm1a == rm1b)
+        self.assertFalse(rm1a == object())
+        self.assertFalse(rm1a == rm2)
+        self.assertTrue(rm1a != rm2)
+        self.assertIn('RepositoryMetadata', str(rm2))
+        self.assertIn('test', str(rm2))
+        self.assertIn('a' * 40, str(rm2))
 
 
 class TestGitHubRepoForTests(unittest.TestCase):

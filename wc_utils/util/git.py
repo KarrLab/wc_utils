@@ -7,14 +7,15 @@
 :License: MIT
 """
 
+from enum import Enum, auto
+from github.GithubException import UnknownObjectException
+from pathlib import Path
+from wc_utils.config import core
+from wc_utils.util.misc import obj_to_str
 import git
+import github
 import itertools
 import os
-from pathlib import Path
-from enum import Enum, auto
-import github
-from github.GithubException import UnknownObjectException
-from wc_utils.config import core
 
 
 def get_repo(path='.', search_parent_directories=True):
@@ -173,6 +174,7 @@ class RepositoryMetadata(object):
         branch (:obj:`str`): branch
         revision (:obj:`str`): revision
     """
+    ATTRIBUTES = ['url', 'branch', 'revision']
 
     def __init__(self, url, branch, revision):
         """
@@ -185,16 +187,42 @@ class RepositoryMetadata(object):
         self.branch = branch
         self.revision = revision
 
-    def __str__(self):
-        """ Get string representation of metadata
+    def __eq__(self, other):
+        """ Compare two repository metadata objects
+
+        Args:
+            other (:obj:`RepositoryMetadata`): other repository metadata objects
 
         Returns:
-            :obj:`str`: string representation of metadata
+            :obj:`bool`: true if repository metadata objects are semantically equal
         """
-        lines = []
-        for attr in ['url', 'branch', 'revision']:
-            lines.append("{}: {}".format(attr, getattr(self, attr)))
-        return '\n'.join(lines)
+        if other.__class__ is not self.__class__:
+            return False
+
+        for attr in self.ATTRIBUTES:
+            if getattr(other, attr) != getattr(self, attr):
+                return False
+
+        return True
+
+    def __ne__(self, other):
+        """ Compare two repository metadata objects
+
+        Args:
+            other (:obj:`RepositoryMetadata`): other repository metadata objects
+
+        Returns:
+            :obj:`bool`: true if repository metadata objects are semantically unequal
+        """
+        return not self.__eq__(other)
+
+    def __str__(self):
+        """ Get string representation of a repository metadata object
+
+        Returns:
+            :obj:`str`: string representation of a repository metadata object
+        """
+        return obj_to_str(self, self.ATTRIBUTES)
 
 
 class GitHubRepoForTests(object):

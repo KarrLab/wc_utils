@@ -116,7 +116,7 @@ def repo_suitability(repo, repo_type, data_file=None):
 
         for untracked_file in repo.untracked_files:
             if repo_root.joinpath(untracked_file) != resolved_data_file:
-                unsuitable_changes.append("untracked file '{}' is not data_file path '{}'".format(
+                unsuitable_changes.append("untracked file '{}' is not data file: '{}'".format(
                     repo_root.joinpath(untracked_file), resolved_data_file))
 
     elif repo_type is RepoMetadataCollectionType.SCHEMA_REPO:

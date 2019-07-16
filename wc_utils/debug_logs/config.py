@@ -1,3 +1,5 @@
+import yaml
+import sys
 """ Configure debug log files.
 
 :Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
@@ -9,9 +11,11 @@
 from os import makedirs, path
 from pkg_resources import resource_filename
 from wc_utils.config.core import ConfigPaths
-import logging2
-import sys
-import yaml
+import importlib
+if importlib.find_loader('logging2'):
+    import logging2
+else:  # pragma: no cover
+    logging2 = None
 
 paths = ConfigPaths(
     default=resource_filename('wc_utils', 'debug_logs/config.default.cfg'),
@@ -58,7 +62,10 @@ class LoggerConfigurator(object):
 
         Raises:
             :obj:`log.ConfigurationError`: For unsupported handler types
+            :obj:`ModuleNotFoundError`: If `logging2` is not installed
         """
+        if logging2 is None:
+            raise ModuleNotFoundError("'logging2' must be installed") # pragma: no cover
 
         # create handlers
         # risky: handlers are shared between loggers. thus,

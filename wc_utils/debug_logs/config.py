@@ -11,10 +11,11 @@ import sys
 from os import makedirs, path
 from pkg_resources import resource_filename
 from wc_utils.config.core import ConfigPaths
-import importlib
-if importlib.find_loader('logging2'):
+try:
+    # try importing logging2 because logging2 can be installed in Windows
+    # although logging2 relies on syslog which only works on Unix
     import logging2
-else:  # pragma: no cover
+except ModuleNotFoundError:  # pragma: no cover
     logging2 = None
 
 paths = ConfigPaths(
@@ -65,7 +66,7 @@ class LoggerConfigurator(object):
             :obj:`ModuleNotFoundError`: If `logging2` is not installed
         """
         if logging2 is None:
-            raise ModuleNotFoundError("'logging2' must be installed") # pragma: no cover
+            raise ModuleNotFoundError("'logging2' must be installed")  # pragma: no cover
 
         # create handlers
         # risky: handlers are shared between loggers. thus,

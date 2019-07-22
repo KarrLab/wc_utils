@@ -363,7 +363,7 @@ def get_config(extra=None):
 class AltResourceName(object):
     """ Get pathname of resource file; a substitute for `pkg_resources.resource_filename`
 
-    Finds paths to resource files in a package that has not been imported by the standard Python
+    Finds paths to resource files in a package that cannot be imported by the standard Python
     import system.
 
     Usage:

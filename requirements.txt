@@ -5,7 +5,6 @@ diskcache
 pygithub
 gitpython
 humanfriendly
-logging2
 mendeleev
 numpy
 objsize

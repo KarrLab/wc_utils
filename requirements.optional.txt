@@ -4,5 +4,8 @@ quilt # to backup data files to Quilt
 [chem]
 openbabel
 
+[logging]
+logging2
+
 [protonation]
 pyjnius

@@ -1,6 +1,7 @@
 """ Read configuration settings from files, environment variables, and function arguments
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-10-25
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
@@ -8,9 +9,10 @@
 
 from configobj import ConfigObj
 from configobj import flatten_errors, get_extra_values
+from copy import deepcopy
+from pathlib import Path
 from validate import Validator, is_boolean, is_float, is_integer, is_list, is_string, VdtTypeError
 from wc_utils.util.dict import DictUtil
-from copy import deepcopy
 import math
 import os
 import pkg_resources
@@ -164,7 +166,7 @@ class ConfigManager(object):
 
         Raises:
             :obj:`InvalidConfigError`: if configuration doesn't validate against schema
-            :obj:`ValueError`: if no configuration is found   
+            :obj:`ValueError`: if no configuration is found
         """
         validator = Validator()
         validator.functions['any'] = any_checker
@@ -356,3 +358,67 @@ def get_config(extra=None):
     )
 
     return ConfigManager(paths).get_config(extra=extra)
+
+
+class AltResourceName(object):
+    """ Get pathname of resource file; a substitute for `pkg_resources.resource_filename`
+
+    Finds paths to resource files in a package that has not been imported by the standard Python
+    import system.
+
+    Usage:
+
+    * `pkg_resources.resource_filename(package, *path_components_of_resource_in_package)
+    * `AltResourceName(any_file_in_package).resource_filename(*path_components_of_resource_in_package)
+
+    Attributes:
+        package_root (:obj:`str`): root directory of a package
+    """
+
+    def __init__(self, file_in_package):
+        self.package_root = self.get_package_root(file_in_package)
+
+    @staticmethod
+    def get_package_root(file_in_package):
+        """ Obtain root directory of a package by following `__init__.py` files up the file hierarchy
+
+        Args:
+            file_in_package (:obj:`str`): pathname of a file in a package
+
+        Returns:
+            :obj:`str`: pathname of root of package
+
+        Raises:
+            :obj:`ValueError`: if `file_in_package` is not the pathname of a file in a package
+        """
+        path = Path(file_in_package)
+        # go up directory hierarchy from path and get first directory that does not contain '__init__.py'
+        if path.is_dir():
+            dir = path
+        else:
+            dir = path.parent
+        found_package = False
+        while True:
+            if not dir.joinpath('__init__.py').is_file():
+                break
+            # exit at / root
+            if dir == dir.parent:
+                break
+            found_package = True
+            highest_package = dir
+            dir = dir.parent
+        if found_package:
+            return str(highest_package)
+        raise ValueError("'{}' is not the pathname of a file in a package".format(file_in_package))
+
+
+    def resource_filename(self, *args):
+        """ Get pathname of resource file; replaces `pkg_resources.resource_filename`
+
+        Args:
+            args (:obj:`list`): pathname components of resource file
+
+        Returns:
+            :obj:`str`: pathname of resource file
+        """
+        return os.path.join(self.package_root, *args)

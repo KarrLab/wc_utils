@@ -1,6 +1,7 @@
 """ Test configuration
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-08-25
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
@@ -15,13 +16,15 @@ import re
 import shutil
 import sys
 import tempfile
+import pkg_resources
 import types
 import unittest
 import wc_utils
 
 from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import (ConfigManager, ConfigPaths, any_checker,
-                                  ExtraValuesError, InvalidConfigError, get_config)
+                                  ExtraValuesError, InvalidConfigError, get_config,
+                                  AltResourceName)
 from wc_utils.util.environ import EnvironUtils, MakeEnvironArgs
 from wc_utils.util.types import assert_value_equal
 
@@ -327,3 +330,51 @@ class ApiTestCase(unittest.TestCase):
     def test(self):
         self.assertIsInstance(wc_utils.config, types.ModuleType)
         self.assertIsInstance(wc_utils.config.ConfigPaths, type)
+
+
+class TestAltResourceName(unittest.TestCase):
+
+    def test(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with tempfile.TemporaryDirectory(dir=tmp_dir) as nested_tmp_dir:
+                # test exceptions
+                with self.assertRaisesRegex(ValueError, "is not the pathname of a file in a package"):
+                    AltResourceName.get_package_root(nested_tmp_dir)
+                with tempfile.NamedTemporaryFile(dir=nested_tmp_dir) as fp:
+                    with self.assertRaises(ValueError):
+                        AltResourceName.get_package_root(fp.name)
+
+                    # create __init__.py & find package
+                    open(os.path.join(nested_tmp_dir, '__init__.py'), 'a').close()
+                    expected_package_root = nested_tmp_dir
+                    self.assertEqual(AltResourceName.get_package_root(fp.name), expected_package_root)
+                    self.assertEqual(AltResourceName.get_package_root(nested_tmp_dir), expected_package_root)
+
+                    alt_resource_name = AltResourceName(nested_tmp_dir)
+                    expected_path = fp.name
+                    self.assertEqual(alt_resource_name.resource_filename(os.path.basename(fp.name)),
+                        expected_path)
+
+        # test running into '/', if it can be written
+        try:
+            init_in_root = os.path.join('/', '__init__.py')
+            open(init_in_root, 'a').close()
+            self.assertEqual(AltResourceName.get_package_root('/'), '/')
+            os.remove(init_in_root)
+        except Exception:
+            pass
+
+    def test_resource_filename(self):
+        alt_resource_name = AltResourceName(__file__)
+        expected_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'debug.default.cfg')
+        self.assertEqual(expected_path,
+            alt_resource_name.resource_filename('config/fixtures/debug.default.cfg'))
+        self.assertEqual(expected_path,
+            alt_resource_name.resource_filename('config', 'fixtures', 'debug.default.cfg'))
+
+        # test against pkg_resources.resource_filename
+        wc_utils_repo = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        alt_resource_name = AltResourceName(os.path.join(wc_utils_repo, 'wc_utils', 'config'))
+        self.assertEqual(alt_resource_name.resource_filename('VERSION'),
+            pkg_resources.resource_filename('wc_utils', 'VERSION'))

@@ -115,6 +115,41 @@ def det_find_dupes(l):
     return dupes
 
 
+def get_count_limited_class(classes, class_name, min=1, max=1):
+    """ Find a class in an iterator over classes, and constrain its count
+
+    Args:
+        classes (:obj:`iterator`): an iterator over some classes
+        class_name (:obj:`str`): the desired class' name
+        min (:obj:`int`): the fewest instances of a class named `class_name` allowed
+        max (:obj:`int`): the most instances of a class named `class_name` allowed
+
+    Returns:
+        :obj:`type`: the class in `classes` whose name (`__name__`) is `class_name`; if no instances
+            of class are allowed, and no instances are found in `classes`, then return `None`
+
+    Raises:
+        :obj:`ValueError`: if `min` > `max, or
+            if `classes` doesn't contain between `min` and `max`, inclusive, class(es)
+                whose name is `class_name`, or
+            if `classes` contains multiple, distinct classes with the name `class_name`
+    """
+    if min > max:
+        raise ValueError("min ({}) > max ({})".format(min, max))
+    matching_classes = [cls for cls in classes if cls.__name__ == class_name]
+    if len(matching_classes) < min or max < len(matching_classes):
+        raise ValueError("the number of members of 'classes' named '{}' must be in [{}, {}], but it is {}".format(
+            class_name, min, max, len(matching_classes)))
+    # confirm that all elements in matching_classes are the same
+    unique_matching_classes = set(matching_classes)
+    if 1 < len(unique_matching_classes):
+        raise ValueError("'classes' should contain at most 1 class named '{}', but it contains {}".format(
+            class_name, len(unique_matching_classes)))
+    if matching_classes:
+        return matching_classes[0]
+    return None
+
+
 def det_count_elements(l):
     """ Deterministically count elements in an iterable
 

@@ -9,7 +9,7 @@
 
 import unittest
 from wc_utils.util.list import (is_sorted, transpose, difference, det_dedupe, det_find_dupes,
-    elements_to_str, det_count_elements, dict_by_class)
+    elements_to_str, get_count_limited_class, det_count_elements, dict_by_class)
 
 
 class TestListUtilities(unittest.TestCase):
@@ -52,6 +52,33 @@ class TestListUtilities(unittest.TestCase):
         self.assertEqual(det_find_dupes([]), [])
         with self.assertRaises(TypeError):
             det_find_dupes([[]])
+
+    def test_get_count_limited_class(self):
+        class A(object): pass
+        class B(object): pass
+        self.assertEqual(get_count_limited_class([A], 'A'), A)
+        self.assertEqual(get_count_limited_class([A, B, A, B], 'A', 0, 2), A)
+
+        # return None to indicate no classes called class_name
+        self.assertEqual(get_count_limited_class([B, B], 'A', 0, 2), None)
+
+        # min > max
+        with self.assertRaises(ValueError):
+            get_count_limited_class([B, B], 'A', 3, 2)
+
+        # not enough As
+        with self.assertRaisesRegex(ValueError, "the number of members of 'classes' named 'A' must be"):
+            get_count_limited_class([B, B], 'A')
+
+        # too many As
+        with self.assertRaisesRegex(ValueError, "the number of members of 'classes' named 'A' must be"):
+            get_count_limited_class([A, B, A], 'A', 0, 1)
+
+        # change name of B to 'A'
+        B.__name__ = 'A'
+        with self.assertRaisesRegex(ValueError,
+            "'classes' should contain at most 1 class named 'A', but it contains"):
+            get_count_limited_class([A, B, A], 'A', 0, 3)
 
     def test_det_count_elements(self):
         l = 'a b c b b c'.split()

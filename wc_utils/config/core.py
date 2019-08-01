@@ -392,7 +392,7 @@ class AltResourceName(object):
             :obj:`ValueError`: if `file_in_package` is not the pathname of a file in a package
         """
         path = Path(file_in_package)
-        # go up directory hierarchy from path and get first directory that does not contain '__init__.py'
+        # go up directory hierarchy from path and get highest directory that contains '__init__.py'
         if path.is_dir():
             dir = path
         else:

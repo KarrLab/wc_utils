@@ -360,9 +360,9 @@ class TestAltResourceName(unittest.TestCase):
         try:
             init_in_root = os.path.join('/', '__init__.py')
             open(init_in_root, 'a').close()
-            self.assertEqual(AltResourceName.get_package_root('/'), '/')
+            self.assertEqual(AltResourceName.get_package_root(init_in_root), '/')
             os.remove(init_in_root)
-        except Exception:
+        except PermissionError:
             pass
 
     def test_resource_filename(self):

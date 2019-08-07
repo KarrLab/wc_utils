@@ -18,7 +18,7 @@ public class DrawMolecule {
     /* Draw a molecule.
      */
      public static java.lang.Object run(String inStructure, String inStructureFormat, String outImageFormat,
-        int[] atomsToLabel, String[] atomElements, String[] atomLabels, int[] atomLabelColors,
+        int[] atomsToLabel, String[] atomElements, String[] atomLabels, int[] atomLabelColors, int atomLabelFontSize,
         int[][] atomSets, String[][] atomSetElements, int[] atomSetColors, 
         int[][][] bondSets, String[][][] bondSetElements, int[] bondSetColors, 
         boolean showAtomNums,
@@ -85,6 +85,7 @@ public class DrawMolecule {
         if (showAtomNums) {
             format += ",anum";
         }
+        format += ",atsiz" + Integer.toString(atomLabelFontSize);
         format += ",w" + Integer.toString(width);
         format += ",h" + Integer.toString(height);
         if (!includeXmlHeader && outImageFormat.equals("svg")) {

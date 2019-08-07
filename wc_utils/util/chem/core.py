@@ -239,7 +239,8 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
     return result
 
 
-def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_sets=None, bond_sets=None,
+def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_label_font_size=0.4,
+                  atom_sets=None, bond_sets=None,
                   show_atom_nums=False, width=200, height=200, include_xml_header=True):
     """ Draw an image of a molecule
 
@@ -249,6 +250,7 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         image_format (:obj:`str`, optional): format of generated image {emf, eps, jpeg, msbmp, pdf, png, or svg}
         atom_labels (:obj:`list` of :obj:`dict`, optional): list of atom labels (dictionaries with keys 
             {`position`, `element`, `label`, `color`})
+        atom_label_font_size (:obj:`float`, optional): font size of atom labels
         atom_sets (:obj:`list` of :obj:`dict`, optional): list of atom sets (dictionaries with keys 
             {`positions`, `elements`, `color`})
         bond_sets (:obj:`list` of :obj:`dict`, optional): list of bond sets (dictionaries with keys 
@@ -301,7 +303,8 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
 
     JavaDrawMolecule = jnius.autoclass('DrawMolecule')
     image = JavaDrawMolecule.run(structure, format, image_format,
-                                 atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
+                                 atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors, 
+                                 atom_label_font_size,
                                  atom_set_positions, atom_set_elements, atom_set_colors,
                                  bond_set_positions, bond_set_elements, bond_set_colors,
                                  show_atom_nums, width, height, include_xml_header)

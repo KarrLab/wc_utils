@@ -392,7 +392,7 @@ class AltResourceName(object):
             :obj:`ValueError`: if `file_in_package` is not the pathname of a file in a package
         """
         path = Path(file_in_package)
-        # go up directory hierarchy from path and get first directory that does not contain '__init__.py'
+        # go up directory hierarchy from path and get highest directory that contains '__init__.py'
         if path.is_dir():
             dir = path
         else:
@@ -401,16 +401,15 @@ class AltResourceName(object):
         while True:
             if not dir.joinpath('__init__.py').is_file():
                 break
+            found_package = True
+            highest_package = dir
             # exit at / root
             if dir == dir.parent:
                 break
-            found_package = True
-            highest_package = dir
             dir = dir.parent
         if found_package:
             return str(highest_package)
         raise ValueError("'{}' is not the pathname of a file in a package".format(file_in_package))
-
 
     def resource_filename(self, *args):
         """ Get pathname of resource file; replaces `pkg_resources.resource_filename`

@@ -19,7 +19,7 @@ import os
 
 
 def get_repo(path='.', search_parent_directories=True):
-    """ Get a Git repository
+    """ Get a Git repository given the path to a file it contains
 
     Args:
         path (:obj:`str`): path to file or directory in a Git repository; if `path` doesn't exist

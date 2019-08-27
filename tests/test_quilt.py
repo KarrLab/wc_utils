@@ -221,6 +221,14 @@ class QuiltManagerTestCase(unittest.TestCase):
             quilt.login_with_token(self.token)
             quilt.access_list(manager.get_owner_package())
 
+        manager.token = None
+        with self.assertRaisesRegex(ValueError, 'must be set'):
+            manager.upload()
+
+        manager.token = ''
+        with self.assertRaisesRegex(ValueError, 'must be set'):
+            manager.upload()
+
     def test_download(self):
         # create files for test package
         self.create_test_package()
@@ -311,6 +319,14 @@ class QuiltManagerTestCase(unittest.TestCase):
             self.assertEqual([int(b) for b in file.read()], self.rand12)
         with open(os.path.join(self.tempdir_down, 'a^b^c', 'rand.bin'), 'rb') as file:
             self.assertEqual([int(b) for b in file.read()], self.rand13)
+
+        down_manager.token = None
+        with self.assertRaisesRegex(ValueError, 'must be set'):
+            down_manager.download()
+
+        down_manager.token = ''
+        with self.assertRaisesRegex(ValueError, 'must be set'):
+            down_manager.download()
 
     def test_download_single_file(self):
         # create files for test package
@@ -545,3 +561,9 @@ class QuiltManagerTestCase(unittest.TestCase):
         manager = wc_utils.quilt.QuiltManager(self.tempdir_up, self.package)
         token = manager.get_token()
         self.assertEqual(len(token), 225)
+
+        with self.assertRaisesRegex(ValueError, 'Password must be set'):
+            manager.get_token(config={'wc_utils': {'quilt': {'username': 'xx'}}})
+
+        with self.assertRaisesRegex(ValueError, 'Username must be set'):
+            manager.get_token(config={'wc_utils': {'quilt': {}}})

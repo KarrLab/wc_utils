@@ -58,6 +58,9 @@ class QuiltManager(object):
 
     def upload(self):
         """ Build and upload Quilt package """
+        if not self.token:
+            raise ValueError('Quilt token must be set')
+
         # generate config
         config = self.gen_package_build_config()
 
@@ -90,6 +93,9 @@ class QuiltManager(object):
             :obj:`ValueError`: if a specific file is requested, but there is no
                 file with the same path within the package
         """
+        if not self.token:
+            raise ValueError('Quilt token must be set')
+
         pkg_name = self.get_owner_package()
         if system_path:
             pkg_path = self.get_package_path(system_path)
@@ -219,13 +225,21 @@ class QuiltManager(object):
         """
         return '{}/{}'.format(self.owner, self.package)
 
-    def get_token(self):
+    def get_token(self, config=None):
         """ Get token
+
+        Args:
+            config (:obj:`dict`, optional): configuration
 
         Returns
             :obj:`str`: authentication token for Quilt user
         """
-        config = wc_utils.config.get_config()['wc_utils']['quilt']
+        config = config or wc_utils.config.get_config()
+        config = config.get('wc_utils', {}).get('quilt', {})
+        if not config.get('username', None):
+            raise ValueError('Username must be set')
+        if not config.get('password', None):
+            raise ValueError('Password must be set')
 
         endpoint = 'https://pkg.quiltdata.com/api'
         result = requests.post(endpoint + '/login', json={

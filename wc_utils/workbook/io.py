@@ -419,7 +419,7 @@ class ExcelWriter(Writer):
             value = set()
             for i_row in range(row_start, row_end + 1):
                 for i_col in range(col_start, col_end + 1):
-                    if data[i_row][i_col] is not None:
+                    if i_col < len(data[i_row]) and data[i_row][i_col] is not None:
                         value.add(data[i_row][i_col])
             if len(value) == 0:
                 value = None

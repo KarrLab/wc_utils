@@ -61,6 +61,7 @@ class Writer(with_metaclass(ABCMeta, object)):
         Args:
             data (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorkbookStyle`, optional): workbook style
+            validation (:obj:`WorkbookValidation`, optional): validation
         """
         self.initialize_workbook()
 
@@ -651,16 +652,29 @@ class SeparatedValuesWriter(Writer):
             raise ValueError("path '{}' cannot have glob pattern '*' in its directory name".format(
                 path))
 
-        if basename(path).count('*') != 1:
-            raise ValueError("path '{}' must have one glob pattern '*' in its base name".format(
+        if basename(path).count('*') > 1:
+            raise ValueError("path '{}' cannot have multiple glob patterns '*' in its base name".format(
                 path))
 
         super(SeparatedValuesWriter, self).__init__(path,
                                                     title=title, description=description,
                                                     keywords=keywords, version=version, language=language, creator=creator)
 
+    def run(self, data, style=None, validation=None):
+        """ Write workbook to file(s)
+
+        Args:
+            data (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
+            style (:obj:`WorkbookStyle`, optional): workbook style
+            validation (:obj:`WorkbookValidation`, optional): validation
+        """
+        if len(data) > 1 and basename(self.path).count('*') == 0:
+            raise ValueError("path '{}' must have a glob pattern '*' in its base name".format(
+                self.path))
+        super(SeparatedValuesWriter, self).run(data, style=style, validation=validation)
+
     def initialize_workbook(self):
-        """ Initialize workbook """
+        """ Initialize workbook """        
         pass
 
     def write_worksheet(self, sheet_name, data, style=None, validation=None):
@@ -672,7 +686,7 @@ class SeparatedValuesWriter(Writer):
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
-        pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', '{}').format(sheet_name))
+        pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', sheet_name))
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -700,8 +714,8 @@ class SeparatedValuesReader(Reader):
             raise ValueError("path '{}' cannot have glob pattern '*' in its directory name".format(
                 path))
 
-        if basename(path).count('*') != 1:
-            raise ValueError("path '{}' must have one glob pattern '*' in its base name".format(
+        if basename(path).count('*') > 1:
+            raise ValueError("path '{}' cannot have multiple glob patterns '*' in its base name".format(
                 path))
 
         super(SeparatedValuesReader, self).__init__(path)
@@ -724,12 +738,15 @@ class SeparatedValuesReader(Reader):
             :obj:`ValueError`: if glob does not find any matching files
         """
         i_glob = self.path.find('*')
-        names = []
-        for filename in glob(self.path):
-            names.append(filename[i_glob:i_glob + len(filename) - len(self.path) + 1])
-        if not names:
-            raise ValueError("glob of path '{}' does not match any files".format(self.path))
-        return names
+        if i_glob == -1:
+            return  ['']
+        else:
+            names = []
+            for filename in glob(self.path):
+                names.append(filename[i_glob:i_glob + len(filename) - len(self.path) + 1])
+            if not names:
+                raise ValueError("glob of path '{}' does not match any files".format(self.path))
+            return names
 
     def read_worksheet(self, sheet_name, ignore_empty_final_rows=True, ignore_empty_final_cols=True):
         """ Read data from file
@@ -745,7 +762,7 @@ class SeparatedValuesReader(Reader):
         worksheet = Worksheet()
         # todo: skip_empty_rows=False is the default for pyexcel-io v >= 0.3.2
         # when it's available on pypi, set pyexcel>=0.4.0  pyexcel-io>=0.3.2 & remove skip_empty_rows option
-        sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', '{}').format(sheet_name),
+        sv_worksheet = pyexcel.get_sheet(file_name=self.path.replace('*', sheet_name),
                                          skip_empty_rows=False)
 
         rows = list(sv_worksheet.rows())
@@ -923,12 +940,14 @@ def convert(source, destination, worksheet_order=None, style=None, ignore_extra_
             copyfile(source, destination)
         else:
             i_glob = source.find('*')
-            dst_format = destination.replace('*', '{}')
             if not list(glob(source)):
                 raise ValueError("glob of path '{}' does not match any files".format(source))
             for filename in glob(source):
-                sheet_name = filename[i_glob:i_glob + len(filename) - len(source) + 1]
-                copyfile(filename, dst_format.format(sheet_name))
+                if i_glob == -1:
+                    sheet_name = ''
+                else:
+                    sheet_name = filename[i_glob:i_glob + len(filename) - len(source) + 1]
+                copyfile(filename, destination.replace('*', sheet_name))
         return
 
     # read, convert, and write

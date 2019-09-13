@@ -573,7 +573,7 @@ class TestIo(unittest.TestCase):
             filename = path.join(self.tempdir, 'test**.csv')
             with self.assertRaises(ValueError) as context:
                 method(filename)
-            self.assertIn("must have one glob pattern '*' in its base name", str(context.exception))
+            self.assertIn("cannot have multiple glob patterns '*' in its base name", str(context.exception))
 
     def test_read_write_csv(self):
         # write to files
@@ -618,6 +618,46 @@ class TestIo(unittest.TestCase):
         self.assertEqual(ws[3][3], None)
 
         self.assertEqual(wk, self.wk)
+
+    def test_read_write_csv_no_glob(self):
+        wb = Workbook()
+        ws = wb['Sheet1'] = Worksheet()
+        ws.append(Row(['a', 'b', 'c']))
+        ws.append(Row(['d', 'e', 'f']))
+        ws.append(Row(['g', 'h', 'i']))
+
+        filename = path.join(self.tempdir, 'test.csv')
+        io.SeparatedValuesWriter(filename).run(wb)
+
+        wb2 = io.SeparatedValuesReader(filename).run()
+        
+        wb2['Sheet1'] = wb2.pop('')
+        self.assertEqual(wb2, wb)
+
+        filename2 = path.join(self.tempdir, 'test2-*.csv')
+        io.convert(filename, filename2)
+        wb2 = io.SeparatedValuesReader(filename2).run()
+        wb2['Sheet1'] = wb2.pop('')
+        self.assertEqual(wb2, wb)
+
+        filename3 = path.join(self.tempdir, 'test3.csv')
+        io.convert(filename, filename3)
+        wb2 = io.SeparatedValuesReader(filename3).run()
+        wb2['Sheet1'] = wb2.pop('')
+        self.assertEqual(wb2, wb)
+
+    def test_read_write_csv_no_glob_error(self):
+        wb = Workbook()
+        ws = wb['Sheet1'] = Worksheet()
+        ws.append(Row(['a', 'b', 'c']))
+        ws.append(Row(['d', 'e', 'f']))
+        ws = wb['Sheet2'] = Worksheet()
+        ws.append(Row(['g', 'h', 'i']))
+        ws.append(Row(['j', 'k', 'l']))
+
+        filename = path.join(self.tempdir, 'test.csv')
+        with self.assertRaisesRegex(ValueError, 'must have a glob pattern'):
+          io.SeparatedValuesWriter(filename).run(wb)
 
     def test_write_read(self):
         file = path.join(self.tempdir, 'test.xlsx')

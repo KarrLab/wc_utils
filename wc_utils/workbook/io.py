@@ -21,7 +21,7 @@ from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
 from six import integer_types, string_types, with_metaclass
-from wc_utils.workbook.core import Workbook, Worksheet, Row
+from wc_utils.workbook.core import Workbook, Worksheet, Row, Formula
 import copy
 import enum
 import openpyxl.cell.cell
@@ -379,18 +379,24 @@ class ExcelWriter(Writer):
             assert result == 0
 
         # write data
+        def get_format(i_row, i_col, style=style,
+                       title_format=title_format, blank_head_format=blank_head_format,
+                       head_format=head_format, body_format=body_format,
+                       frozen_rows=frozen_rows, frozen_columns=frozen_columns):
+            if i_row < style.title_rows:
+                format = title_format
+            elif i_row < frozen_rows or i_col < frozen_columns:
+                if value is None or value == '':
+                    format = blank_head_format
+                else:
+                    format = head_format
+            else:
+                format = body_format
+            return format
+
         for i_row, row in enumerate(data):
             for i_col, value in enumerate(row + [None] * (n_cols - len(row))):
-                if i_row < style.title_rows:
-                    format = title_format
-                elif i_row < frozen_rows or i_col < frozen_columns:
-                    if value is None or value == '':
-                        format = blank_head_format
-                    else:
-                        format = head_format
-                else:
-                    format = body_format
-
+                format = get_format(i_row, i_col)
                 self.write_cell(xls_worksheet, sheet_name, i_row, i_col, value, format)
 
             if not isnan(row_height) and not isinf(style.extra_rows):
@@ -491,6 +497,9 @@ class ExcelWriter(Writer):
             result = xls_worksheet.write_number(i_row, i_col, float(value), format)
         elif isinstance(value, float):
             result = xls_worksheet.write_number(i_row, i_col, value, format)
+        elif isinstance(value, Formula):
+            result = xls_worksheet.write_formula(i_row, i_col,
+                                                 value.formula, format, value.value)
         else:
             raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
                 value.__class__.__name__,
@@ -634,8 +643,7 @@ class ExcelReader(Reader):
             elif cell.value in ['=TRUE()', '=TRUE']:
                 value = True
             else:
-                raise ValueError('Formula are not supported: {}:{}:{}{}'.format(
-                    self.path, sheet_name, get_column_letter(i_col), i_row))
+                value = Formula(cell.value)
         else:
             raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(
                 cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable
@@ -692,7 +700,7 @@ class SeparatedValuesWriter(Writer):
         super(SeparatedValuesWriter, self).run(data, style=style, validation=validation)
 
     def initialize_workbook(self):
-        """ Initialize workbook """        
+        """ Initialize workbook """
         pass
 
     def write_worksheet(self, sheet_name, data, style=None, validation=None):
@@ -704,7 +712,20 @@ class SeparatedValuesWriter(Writer):
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
         """
-        pyexcel.save_as(array=data, dest_file_name=self.path.replace('*', sheet_name))
+        data_values = []
+        for row in data:
+            row_values = Row(row)
+            has_formula = False
+            for i_cell, cell in enumerate(row_values):
+                if isinstance(cell, Formula):
+                    row_values[i_cell] = cell.value
+                    has_formula = True
+            if has_formula:
+                data_values.append(row_values)
+            else:
+                data_values.append(row)
+
+        pyexcel.save_as(array=data_values, dest_file_name=self.path.replace('*', sheet_name))
 
     def finalize_workbook(self):
         """ Finalize workbook """
@@ -757,7 +778,7 @@ class SeparatedValuesReader(Reader):
         """
         i_glob = self.path.find('*')
         if i_glob == -1:
-            return  ['']
+            return ['']
         else:
             names = []
             for filename in glob(self.path):
@@ -1017,16 +1038,17 @@ class WorksheetStyle(object):
         hyperlinks (:obj:`list` of :obj:`Hyperlink`): list of hyperlinks
     """
 
-    def __init__(self, 
+    def __init__(self,
                  title_rows=0, title_row_font_bold=True,
                  title_row_fill_pattern='solid', title_row_fill_fgcolor='888888',
                  head_rows=0, head_columns=0, head_row_font_bold=True,
-                 head_row_fill_pattern='solid', head_row_fill_fgcolor='CCCCCC', 
+                 head_row_fill_pattern='solid', head_row_fill_fgcolor='CCCCCC',
                  blank_head_fill_fgcolor='', merged_head_fill_fgcolor='AAAAAA',
                  extra_rows=float('inf'), extra_columns=float('inf'),
                  font_family='Arial', font_size=11.,
                  row_height=15.01, col_width=15.,
-                 auto_filter=True, merge_ranges=None, hyperlinks=None):
+                 auto_filter=True, merge_ranges=None,
+                 hyperlinks=None):
         """
         Args:
             title_rows (:obj:`int`, optional): number of title rows
@@ -1054,7 +1076,7 @@ class WorksheetStyle(object):
         self.title_rows = title_rows
         self.title_row_font_bold = title_row_font_bold
         self.title_row_fill_pattern = title_row_fill_pattern
-        self.title_row_fill_fgcolor = title_row_fill_fgcolor 
+        self.title_row_fill_fgcolor = title_row_fill_fgcolor
         self.head_rows = head_rows
         self.head_columns = head_columns
         self.head_row_font_bold = head_row_font_bold

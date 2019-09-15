@@ -276,6 +276,34 @@ class Row(list):
             return CellDifference('{} != {}'.format(cell_self, cell_other))
 
 
+class Formula(object):
+    """ Formula for a cell
+
+    Attributes:
+        formula (:obj:`str`): formula
+        value (:obj:`object`): value
+    """
+
+    def __init__(self, formula, value=None):
+        """
+        Args:
+            formula (:obj:`str`): formula
+            value (:obj:`object`, optional): value
+        """
+        self.formula = formula
+        self.value = value
+
+    def __eq__(self, other):
+        """ Determine the semantic equality of two formula
+
+        Args:
+            other (:obj:`Formula`): other formula
+        """
+        return self.__class__ == other.__class__ and \
+            self.formula == other.formula and \
+            self.value == other.value
+
+
 class WorkbookDifference(dict):
     """ Difference between values of workbook """
 

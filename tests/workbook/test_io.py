@@ -13,7 +13,7 @@ from shutil import rmtree
 from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
-from wc_utils.workbook.core import Workbook, Worksheet, Row
+from wc_utils.workbook.core import Workbook, Worksheet, Row, Formula
 import math
 import openpyxl
 import unittest
@@ -419,8 +419,7 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
 
-        with self.assertRaisesRegex(ValueError, 'Formula are not supported'):
-            io.ExcelReader(filename).run()
+        io.ExcelReader(filename).run()
 
     def test_excel_read_formula_cache_string(self):
         wb = openpyxl.Workbook()
@@ -433,8 +432,7 @@ class TestIo(unittest.TestCase):
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)
 
-        with self.assertRaisesRegex(ValueError, 'Formula are not supported'):
-            io.ExcelReader(filename).run()
+        io.ExcelReader(filename).run()
 
     def test_excel_read_error(self):
         wb = openpyxl.Workbook()
@@ -546,26 +544,31 @@ class TestIo(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'can have at most 1 value'):
             io.ExcelWriter(filename).run(wb, style=style)
 
-    def test_hyperlink(self):
+    def test_formula_hyperlink(self):
         wb = Workbook()
         ws0 = wb['Ws'] = Worksheet()
         ws0.append(Row(['abc', 'def', 'ghi']))
+        ws0[0][0] = Formula('="abc"', 'abc')
 
         wb_1 = Workbook()
         ws0 = wb_1['Ws'] = Worksheet()
         ws0.append(Row(['abc', 'def', 'ghi']))
+        ws0[0][0] = Formula('="abc"', 'abc')
 
-        style = io.WorkbookStyle()
-        style['Ws'] = io.WorksheetStyle(hyperlinks=[io.Hyperlink(0, 1, 'https://google.com', tip='Click to view def')])
+        style = io.WorkbookStyle()        
+        style['Ws'] = io.WorksheetStyle(
+          hyperlinks=[io.Hyperlink(0, 1, 'https://google.com', tip='Click to view def')])
 
         filename = path.join(self.tempdir, 'test.xlsx')
         io.ExcelWriter(filename).run(wb, style=style)
         wb_2 = io.ExcelReader(filename).run()
+        wb_2['Ws'][0][0].value = 'abc'
         self.assertEqual(wb_2, wb_1)
 
         filename = path.join(self.tempdir, 'test*.csv')
         io.SeparatedValuesWriter(filename).run(wb, style=style)
         wb_2 = io.SeparatedValuesReader(filename).run()
+        wb_2['Ws'][0][0] = Formula('="abc"', wb_2['Ws'][0][0])
         self.assertEqual(wb_2, wb_1)
 
     def test_exceptions_csv(self):

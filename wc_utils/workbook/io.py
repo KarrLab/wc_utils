@@ -252,13 +252,29 @@ class ExcelWriter(Writer):
 
         style = style or WorksheetStyle()
 
+        title_format = self.xls_workbook.add_format()
+        title_format.set_align('left')
+        title_format.set_align('top')
+        title_format.set_text_wrap(True)
+        title_format.set_font_name(style.font_family)
+        title_format.set_font_size(style.font_size)
+        title_format.set_bold(style.title_row_font_bold)
+        if style.title_row_fill_pattern:
+            if style.title_row_fill_pattern == 'solid':
+                title_format.set_pattern(1)
+            else:
+                raise ValueError('Unsupported pattern {}'.format(style.title_row_fill_pattern))
+        if style.title_row_fill_fgcolor:
+            title_format.set_fg_color('#' + style.title_row_fill_fgcolor)
+        title_format.set_locked(True)
+
         head_format = self.xls_workbook.add_format()
         head_format.set_align('left')
         head_format.set_align('top')
         head_format.set_text_wrap(True)
         head_format.set_font_name(style.font_family)
         head_format.set_font_size(style.font_size)
-        head_format.set_bold(True)
+        head_format.set_bold(style.head_row_font_bold)
         if style.head_row_fill_pattern:
             if style.head_row_fill_pattern == 'solid':
                 head_format.set_pattern(1)
@@ -339,7 +355,7 @@ class ExcelWriter(Writer):
             n_cols = max(len(row) for row in data)
         else:
             n_cols = 0
-        frozen_rows = style.head_rows
+        frozen_rows = style.title_rows + style.head_rows
         frozen_columns = style.head_columns
         row_height = style.row_height
         col_width = style.col_width
@@ -364,8 +380,10 @@ class ExcelWriter(Writer):
 
         # write data
         for i_row, row in enumerate(data):
-            for i_col, value in enumerate(row):
-                if i_row < frozen_rows or i_col < frozen_columns:
+            for i_col, value in enumerate(row + [None] * (n_cols - len(row))):
+                if i_row < style.title_rows:
+                    format = title_format
+                elif i_row < frozen_rows or i_col < frozen_columns:
                     if value is None or value == '':
                         format = blank_head_format
                     else:
@@ -976,6 +994,10 @@ class WorksheetStyle(object):
     """ Worksheet style
 
     Attributes:
+        title_rows (:obj:`int`): number of title rows
+        title_row_font_bold (:obj:`bool`): title row bold
+        title_row_fill_pattern (:obj:`str`): title row fill pattern
+        title_row_fill_fgcolor (:obj:`str`): title row background color
         head_rows (:obj:`int`): number of head rows
         head_columns (:obj:`int`): number of head columns
         head_row_font_bold (:obj:`bool`): head row bold
@@ -995,14 +1017,22 @@ class WorksheetStyle(object):
         hyperlinks (:obj:`list` of :obj:`Hyperlink`): list of hyperlinks
     """
 
-    def __init__(self, head_rows=0, head_columns=0, head_row_font_bold=False,
-                 head_row_fill_pattern='solid', head_row_fill_fgcolor='', blank_head_fill_fgcolor='', merged_head_fill_fgcolor='',
+    def __init__(self, 
+                 title_rows=0, title_row_font_bold=True,
+                 title_row_fill_pattern='solid', title_row_fill_fgcolor='888888',
+                 head_rows=0, head_columns=0, head_row_font_bold=True,
+                 head_row_fill_pattern='solid', head_row_fill_fgcolor='CCCCCC', 
+                 blank_head_fill_fgcolor='', merged_head_fill_fgcolor='AAAAAA',
                  extra_rows=float('inf'), extra_columns=float('inf'),
                  font_family='Arial', font_size=11.,
-                 row_height=15., col_width=15.,
+                 row_height=15.01, col_width=15.,
                  auto_filter=True, merge_ranges=None, hyperlinks=None):
         """
         Args:
+            title_rows (:obj:`int`, optional): number of title rows
+            title_row_font_bold (:obj:`bool`, optional): title row bold
+            title_row_fill_pattern (:obj:`str`, optional): title row fill pattern
+            title_row_fill_fgcolor (:obj:`str`, optional): title row background color
             head_rows (:obj:`int`, optional): number of head rows
             head_columns (:obj:`int`, optional): number of head columns
             head_row_font_bold (:obj:`bool`, optional): head row bold
@@ -1021,6 +1051,10 @@ class WorksheetStyle(object):
                 and end column (0-based) of each range to merge
             hyperlinks (:obj:`list` of :obj:`Hyperlink`, optional): list of hyperlinks
         """
+        self.title_rows = title_rows
+        self.title_row_font_bold = title_row_font_bold
+        self.title_row_fill_pattern = title_row_fill_pattern
+        self.title_row_fill_fgcolor = title_row_fill_fgcolor 
         self.head_rows = head_rows
         self.head_columns = head_columns
         self.head_row_font_bold = head_row_font_bold

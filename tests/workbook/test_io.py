@@ -81,7 +81,7 @@ class TestIo(unittest.TestCase):
 
         # write to file with style
         style = self.style
-        style['Ws-0'] = io.WorksheetStyle(head_rows=1, head_columns=1,
+        style['Ws-0'] = io.WorksheetStyle(title_rows=1, head_rows=1, head_columns=1,
                                           head_row_font_bold=True,
                                           head_row_fill_fgcolor='CCCCCC',
                                           row_height=15,
@@ -147,6 +147,17 @@ class TestIo(unittest.TestCase):
         style['Ws-0'] = io.WorksheetStyle(head_rows=0, head_columns=0,
                                           head_row_fill_pattern='UNDEFINED_PATTERN',
                                           head_row_fill_fgcolor='CCCCCC',
+                                          row_height=float('nan'),
+                                          col_width=10.,
+                                          extra_rows=float('inf'), extra_columns=float('inf'))
+        with self.assertRaisesRegex(ValueError, 'Unsupported pattern'):
+            io.ExcelWriter(filename).run(self.wk, style=style)
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        style = self.style
+        style['Ws-0'] = io.WorksheetStyle(head_rows=0, head_columns=0,
+                                          title_row_fill_pattern='UNDEFINED_PATTERN',
+                                          title_row_fill_fgcolor='CCCCCC',
                                           row_height=float('nan'),
                                           col_width=10.,
                                           extra_rows=float('inf'), extra_columns=float('inf'))

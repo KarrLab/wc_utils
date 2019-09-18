@@ -4,7 +4,7 @@ downstream_dependencies:
 - intro_to_wc_modeling
 - karr_lab_build_utils
 - mycoplasma_pneumoniae
-- obj_model
+- obj_tables
 - rand_wc_model_gen
 - wc_cli
 - wc_env_manager

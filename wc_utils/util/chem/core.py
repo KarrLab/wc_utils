@@ -23,7 +23,7 @@ try:
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
     import jnius
-except ModuleNotFoundError:  # pragma: no cover
+except (ModuleNotFoundError, KeyError, SystemError):  # pragma: no cover
     pass  # pragma: no cover
 
 try:

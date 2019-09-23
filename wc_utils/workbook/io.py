@@ -14,9 +14,8 @@ from itertools import chain
 from math import isnan, isinf
 from openpyxl import Workbook as XlsWorkbook, load_workbook
 from openpyxl.cell.cell import Cell
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles import Font, PatternFill
 from openpyxl.styles.colors import Color
-from openpyxl.styles.protection import Protection
 from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
@@ -644,6 +643,10 @@ class ExcelReader(Reader):
                 value = True
             else:
                 value = Formula(cell.value)
+        elif cell.data_type == 'd':
+            # datetime doesn't have a TYPE_* in openpyxl.cell.cell but the data_type is 'd'
+            # alternative, could test isinstance(cell.value, datetime)
+            value = cell.value
         else:
             raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(
                 cell.data_type, self.path, sheet_name, get_column_letter(i_col), i_row))  # pragma: no cover # unreachable

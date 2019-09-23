@@ -306,10 +306,23 @@ class TestIo(unittest.TestCase):
         cell = ws.cell(row=8, column=1)
         cell.data_type = 'd'
         cell.style = NamedStyle(name='datetime', number_format='DD/MM/YYYY HH:MM:SS')
-        datetime_value = datetime.strptime("30/10/2019 13:56:30", '%d/%m/%Y %H:%M:%S')
-        cell.value = datetime_value
+        datetime_value_1 = datetime.strptime("30/10/2019 13:56:30", '%d/%m/%Y %H:%M:%S')
+        cell.value = datetime_value_1
+
+        cell = ws.cell(row=9, column=1)
+        cell.data_type = 'd'
+        cell.style = NamedStyle(name='date', number_format='DD/MM/YYYY')
+        datetime_value_2 = datetime.strptime("30/10/2019", '%d/%m/%Y')
+        cell.value = datetime_value_2
+
+        cell = ws.cell(row=10, column=1)
+        cell.data_type = 'd'
+        cell.style = NamedStyle(name='time', number_format='HH:MM:SS')
+        datetime_value_3 = datetime.strptime("13:56:30", '%H:%M:%S')
+        cell.value = datetime_value_3
 
         filename = path.join(self.tempdir, 'test.xlsx')
+        print('test filename', filename)
         wb.save(filename)
 
         wb2 = io.ExcelReader(filename).run()
@@ -320,7 +333,9 @@ class TestIo(unittest.TestCase):
         self.assertEqual(wb2['Sheet-1'][4][0], False)
         self.assertEqual(wb2['Sheet-1'][5][0], None)
         self.assertEqual(wb2['Sheet-1'][6][0], '<b>A7</b>')
-        self.assertEqual(wb2['Sheet-1'][7][0], datetime_value)
+        self.assertEqual(wb2['Sheet-1'][7][0], datetime_value_1)
+        self.assertEqual(wb2['Sheet-1'][8][0], datetime_value_2)
+        self.assertEqual(wb2['Sheet-1'][9][0], datetime_value_3)
 
     def test_excel_read_valid_types_empty(self):
         wb = openpyxl.Workbook()

@@ -341,7 +341,7 @@ class OpenBabelUtils(object):
         assert conversion.SetOutFormat('inchi'), 'Unable to set format to InChI'
         for option in options:
             conversion.SetOptions(option, conversion.OUTOPTIONS)
-        inchi = conversion.WriteString(mol).strip()
+        inchi = conversion.WriteString(mol, True)
         inchi = inchi.replace('InChI=1/', 'InChI=1S/')
         inchi = inchi.partition('/f')[0]
         return inchi
@@ -384,4 +384,4 @@ class OpenBabelUtils(object):
         assert conversion.SetOutFormat(format), 'Unable to set format to {}'.format(format)
         for option in options:
             conversion.SetOptions(option, conversion.OUTOPTIONS)
-        return conversion.WriteString(mol).strip()
+        return conversion.WriteString(mol, True)

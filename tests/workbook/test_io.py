@@ -322,7 +322,6 @@ class TestIo(unittest.TestCase):
         cell.value = datetime_value_3
 
         filename = path.join(self.tempdir, 'test.xlsx')
-        print('test filename', filename)
         wb.save(filename)
 
         wb2 = io.ExcelReader(filename).run()

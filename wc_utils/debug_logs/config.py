@@ -54,6 +54,13 @@ class LoggerConfigurator(object):
     def from_dict(config):
         """ Create and configure logs from a dictionary which describes their configuration
 
+        Caution: because `logging2.Logger()` caches handlers and loggers, `from_dict()` may not create
+        a logger with the configuration requested. In particular, creating a logger that has the same
+        name as an existing logger will return the *existing log* without considering any of the
+        parameters provided by `config`. In addition, adding a handler to a logger (using `logger.add_handler())`)
+        will silently fail if the name of the handler being added is the same as the name of an
+        existing handler used by the logger.
+
         Args:
             config (:obj:`dict`): dictionary of logger configurations
 

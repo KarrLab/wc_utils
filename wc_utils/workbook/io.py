@@ -644,8 +644,9 @@ class ExcelReader(Reader):
             else:
                 value = Formula(cell.value)
         elif cell.data_type == 'd':
-            # datetime doesn't have a TYPE_* in openpyxl.cell.cell but the data_type is 'd'
-            # alternatively, this condition could test isinstance(cell.value, datetime)
+            # Excel cells with datetime formats are returned by openpyxl with a data_type of 'd' and a
+            # value converted to Python datetime objects. They don't have a TYPE_* in openpyxl.cell.cell.
+            # Alternatively, this condition could test isinstance(cell.value, datetime).
             value = cell.value
         else:
             raise ValueError('Unsupported data type: {} at {}:{}:{}{}'.format(

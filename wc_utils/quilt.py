@@ -1,251 +1,256 @@
-"""
+""" High-level interface for the Quilt data revisioning system
+
 :Author: Jonathan Karr <jonrkarr@gmail.com>
-:Date: 2018-08-03
-:Copyright: 2018, Karr Lab
+:Date: 2019-10-08
+:Copyright: 2018-2019, Karr Lab
 :License: MIT
 """
 
-import abduct
-import importlib
+from wc_utils.config import get_config
+import boto3
+import datetime
+import json
 import os
-try:
-    import quilt
-    quilt._DEV_MODE = True
-except ModuleNotFoundError:  # pragma: no cover
-    quilt = None  # pragma: no cover
-import re
 import requests
-import wc_utils.config
-import yaml
+import quilt3
 
 
 class QuiltManager(object):
-    """ Manages uploading and downloading of a Quilt package
+    """ Manager for Quilt packages
+
+    Quilt credentials and configuration can be stored in a `wc_utils` configuration file
+    (e.g., `~/.wc/wc_utils.cfg`) or passed to the constructor::
+
+        [wc_utils]
+            [[quilt]]
+                username = ...
+                password = ...
+                aws_bucket = ...
+                aws_profile = ...
+
+    AWS S3 credentials should be stored in `~/.aws/credentials`::
+
+        [default]
+        aws_access_key_id = ...
+        aws_secret_access_key = ...
+
+    AWS S3 regions should be configured in `~/.aws/config`::
+
+        [default]
+        region=us-east-1
+        output=json
 
     Attributes:
-        path (:obj:`str`): local path to save package or buit package from
-        package (:obj:`str`): identifier of the Quilt package
-        owner (:obj:`str`): identifier of the owner of the Quilt package
-        token (:obj:`str`): authentication token for Quilt
-        verbose (:obj:`bool`): if :obj:`True`, display Quilt status
+        path (:obj:`str`): local path to package
+        namespace (:obj:`str`): namespace for package
+        package (:obj:`str`): name of package
+        hash (:obj:`str`): hash of version of package
+        username (:obj:`str`): Quilt user name
+        password (:obj:`str`): Quilt password
+        aws_bucket (:obj:`str`): AWS bucket to store/access packages
+        aws_profile (:obj:`str`): AWS profile (credentials) to
+            store/access packages
     """
 
-    # TODO: support Quilt teams
-
-    def __init__(self, path, package, owner=None, token=None, verbose=None):
+    def __init__(self, path=None, namespace=None, package=None, hash=None,
+                 username=None, password=None,
+                 aws_bucket=None, aws_profile=None):
         """
         Args:
-            path (:obj:`str`): local path to export package or buit package from
-            package (:obj:`str`): identifier of the Quilt package
-            owner (:obj:`str`, optional): identifier of the owner of the Quilt package
-            token (:obj:`str`, optional): authentication token for Quilt
-            verbose (:obj:`bool`, optional): if :obj:`True`, display Quilt status
-
-        Raises:
-            :obj:`ModuleNotFoundError`: if Quilt is not installed
+            path (:obj:`str`): local path to package
+            namespace (:obj:`str`, optional): namespace for package
+            package (:obj:`str`): name of package
+            hash (:obj:`str`, optional): hash of version of package
+            username (:obj:`str`, optional): user name
+            password (:obj:`str`, optional): password
+            aws_bucket (:obj:`str`, optional): AWS bucket to store/access packages
+            aws_profile (:obj:`str`, optional): AWS profile (credentials) to
+                store/access packages
         """
-        # check that Quilt is installed
-        if not quilt:
-            raise ModuleNotFoundError('Quilt must be installed. Run `pip install quilt`')  # pragma: no cover
-
-        # initialize manager
-        config = wc_utils.config.get_config()['wc_utils']['quilt']
+        config = get_config()['wc_utils']['quilt']
         self.path = path
+        self.namespace = namespace or config['namespace']
         self.package = package
-        self.owner = owner or config['owner']
-        self.token = token or config['token']
-        self.verbose = verbose or config['verbose']
+        self.hash = hash
+        self.username = username or config['username']
+        self.password = password or config['password']
+        self.aws_bucket = aws_bucket or config['aws_bucket']
+        self.aws_profile = aws_profile or config['aws_profile']
 
-    def upload(self):
-        """ Build and upload Quilt package """
-        if not self.token:
-            raise ValueError('Quilt token must be set')
-
-        # generate config
-        config = self.gen_package_build_config()
-
-        # save config file
-        config_filename = os.path.join(self.path, 'build.yml')
-        with open(config_filename, 'w') as file:
-            yaml.dump(config, file, default_flow_style=False)
-
-        # build and push package
-        with abduct.captured(abduct.out(tee=self.verbose)):
-            quilt.build(self.get_owner_package(), config_filename)
-            quilt.login_with_token(self.token)
-            quilt.push(self.get_owner_package(), is_public=True, is_team=False)
-
-        # correct file permissions of Quilt package
-        quilt_cache = os.path.expanduser(os.path.join('~', '.local', 'share', 'QuiltCli', 'quilt_packages', 'objs'))
-        for filename in os.listdir(quilt_cache):
-            os.chmod(os.path.join(quilt_cache, filename), 0o664)
-
-    def download(self, system_path=None, sym_links=False):
-        """ Download Quilt package or, optionally, a single path within the package
-
-        Args:
-            system_path (:obj:`str`, optional): if provided, download a specific path
-                within the package (e.g. `subdir/subsubdir/filename.ext`) rather
-                than downloading the entire package
-            sym_links (:obj:`bool`, optional): if :obj:`True`, export files as symbolic links
-
-        Raises:
-            :obj:`ValueError`: if a specific file is requested, but there is no
-                file with the same path within the package
+    def config(self):
+        """ Configure the Quilt client to the desired AWS S3 bucket
+        ("remote Quilt registry")
         """
-        if not self.token:
-            raise ValueError('Quilt token must be set')
+        quilt3.config(default_remote_registry=self.get_aws_bucket_uri())
 
-        pkg_name = self.get_owner_package()
-        if system_path:
-            pkg_path = self.get_package_path(system_path)
-            if pkg_path is None:
-                raise ValueError('{} does not contain a file with the path `{}`'.format(
-                    pkg_name, system_path))
-            pkg_name_path = pkg_name + '/' + pkg_path
+    def login(self, credentials='aws'):
+        """ Login with user or session token """
+        if credentials == 'quilt':
+            self._login_via_quilt()
+        elif credentials == 'aws':
+            self._login_via_aws()
         else:
-            pkg_name_path = pkg_name
+            raise ValueError('Login must be via "quilt" or "aws"')
 
-        with abduct.captured(abduct.out(tee=self.verbose)):
-            quilt.login_with_token(self.token)
-            quilt.install(pkg_name_path, force=True, meta_only=False)
-            quilt.export(pkg_name_path, output_path=self.path,
-                         force=True, symlinks=sym_links)
+    def _login_via_quilt(self):
+        """ Login with user or session token """
+        user_token = self._get_user_token()
+        session_token = self._get_session_token(user_token)
+        quilt3.session.login_with_token(session_token)
 
-    def get_package_path(self, system_path):
-        """ Get the path for a file or directory within the Quilt package
+    def _login_via_aws(self):
+        """ Login with AWS credentials """
+        session = boto3.Session(profile_name=self.aws_profile)
+        credentials = session.get_credentials()
+        now = datetime.datetime.now() + datetime.timedelta(0, 3600 * 12)
+        s3_credentials = {
+            'access_key': credentials.access_key,
+            'secret_key': credentials.secret_key,
+            'token': None,
+            'expiry_time': now.strftime('%Y-%m-%dT%H:%M:%S+00:00'),
+        }
+        with open(quilt3.session.CREDENTIALS_PATH, 'w') as file:
+            json.dump(s3_credentials, file)
 
-        Args:
-            system_path (:obj:`str`): path to file or directory
+        quilt3.session.AUTH_PATH.touch()
 
-        Returns:
-            :obj:`str`: corresponding path within Quilt package to file or directory
-        """
-        system_path = re.sub('/+$', '', system_path)
-        pkg_name = self.get_owner_package()
-
-        with abduct.captured(abduct.out(tee=self.verbose)):
-            quilt.install(pkg_name, force=True, meta_only=True)
-
-        pkg = importlib.import_module('quilt.data.' + pkg_name.replace('/', '.'))
-
-        nodes_to_visit = [((), pkg)]
-        while nodes_to_visit:
-            parent_pkg_path, parent = nodes_to_visit.pop()
-            for child_name, child in parent._items():
-                if isinstance(child, quilt.nodes.DataNode):
-                    if child._meta['_system']['filepath'].startswith(system_path + '/'):
-                        n_parts = system_path.count('/') + 1
-                        pkg_path = list(parent_pkg_path) + [child_name]
-                        return '/'.join(pkg_path[0:n_parts])
-                    elif child._meta['_system']['filepath'] == system_path:
-                        return '/'.join(list(parent_pkg_path) + [child_name])
-                elif isinstance(child, quilt.nodes.GroupNode):
-                    nodes_to_visit.append((
-                        tuple(list(parent_pkg_path) + [child_name]),
-                        child))
-
-        return None
-
-    def gen_package_build_config(self):
-        """ Generate the build configuration for a package
-
-        * Force Quilt to retain Excel formatting by setting the transform of all `.xls` and `.xlsx` files to `id`
+    def _get_user_token(self):
+        """ Get a token for a user
 
         Returns:
-            :obj:`dict`: package build configuration
+            :obj:`str`: token for the user
 
         Raises:
-            :obj:`ValueError`: if Quilt node names will not be unique or there a directory is empty
+            :obj:`AssertionError`: if unable to login into Quilt
         """
-        config = {}
-        contents = config['contents'] = {}
+        registry_url = quilt3.util.get_from_config('registryUrl')
+        response = requests.post(registry_url + '/api/login',
+                                 json={
+                                     'username': self.username,
+                                     'password': self.password,
+                                 })
+        response.raise_for_status()
+        json = response.json()
+        assert json['status'] == 200, 'Unable to log into Quilt'
+        return json['token']
 
-        dir_node_names = {}
-
-        for abs_dirname, subdirnames, filenames in os.walk(self.path):
-            rel_dirname = os.path.relpath(abs_dirname, self.path)
-
-            dir_contents = contents
-            if rel_dirname != '.':
-                for sub_dirname in rel_dirname.split(os.sep):
-                    node_name = re.sub('[^a-z0-9_]', self._unique_node_name_replace_func, sub_dirname, flags=re.IGNORECASE)
-
-                    if node_name not in dir_contents:
-                        dir_contents[node_name] = {}
-                    dir_contents = dir_contents[node_name]
-
-                    if node_name in dir_node_names and dir_node_names[node_name] != sub_dirname:
-                        raise ValueError('Directory node name "{}" is not unique'.format(sub_dirname))
-                    dir_node_names[node_name] = sub_dirname
-
-            if not subdirnames and not filenames:
-                raise ValueError('Quilt does not support empty directories: {}'.format(rel_dirname))
-
-            for filename in filenames:
-                if rel_dirname == '.':
-                    full_filename = filename
-                else:
-                    full_filename = os.path.join(rel_dirname, filename)
-
-                node_name = re.sub('[^a-z0-9_]', self._unique_node_name_replace_func, filename, flags=re.IGNORECASE)
-
-                if node_name in dir_contents:
-                    raise ValueError('File node name "{}" is not unique'.format(node_name))
-
-                dir_contents[node_name] = {
-                    'file': full_filename,
-                }
-
-                basename, ext = os.path.splitext(filename)
-                if ext in ['.csv', '.ssv', '.tsv']:
-                    dir_contents[node_name]['transform'] = ext[1:]
-                elif ext != '.md':
-                    dir_contents[node_name]['transform'] = 'id'
-
-        return config
-
-    @staticmethod
-    def _unique_node_name_replace_func(match):
-        """
-        Args:
-            match (:obj:`re.MatchObject`): regular expression match to a non-alphanumeric character
-                that can't be contained in the name of a Quilt node
-
-        Returns:
-            :obj:`str`: encoded character for substitution into the name of the Quilt node
-        """
-        return '__' + str(ord(match.group(0))) + '__'
-
-    def get_owner_package(self):
-        """ Get the full identifier (owner/package) of the Quilt package
-
-        Returns:
-            :obj:`str`: full identifier of the Quilt package
-        """
-        return '{}/{}'.format(self.owner, self.package)
-
-    def get_token(self, config=None):
-        """ Get token
+    def _get_session_token(self, user_token):
+        """ Get a token for a session
 
         Args:
-            config (:obj:`dict`, optional): configuration
+            user_token (:obj:`str`): user token obtain with :obj:`get_user_token`
 
-        Returns
-            :obj:`str`: authentication token for Quilt user
+        Returns:
+            :obj:`str`: token for a session
+
+        Raises:
+            :obj:`AssertionError`: if unable to get a token for a session
         """
-        config = config or wc_utils.config.get_config()
-        config = config.get('wc_utils', {}).get('quilt', {})
-        if not config.get('username', None):
-            raise ValueError('Username must be set')
-        if not config.get('password', None):
-            raise ValueError('Password must be set')
+        registry_url = quilt3.util.get_from_config('registryUrl')
+        response = requests.get(registry_url + '/api/code',
+                                headers={
+                                    'Authorization': 'Bearer ' + user_token,
+                                })
+        response.raise_for_status()
+        json = response.json()
+        assert json['status'] == 200, 'Unable to get token for Quilt session'
+        return json['code']
 
-        endpoint = 'https://pkg.quiltdata.com/api'
-        result = requests.post(endpoint + '/login', json={
-            'username': config['username'],
-            'password': config['password'],
-        })
-        result.raise_for_status()
-        self.token = result.json()['token']
-        return self.token
+    def _get_aws_token(self, user_token):
+        """ Get a token for a session
+
+        Args:
+            user_token (:obj:`str`): user token obtain with :obj:`get_user_token`
+
+        Returns:
+            :obj:`dict`: dictionary with AWS access and secret keys
+
+        Raises:
+            :obj:`AssertionError`: if unable to get a token for a session
+        """
+        registry_url = quilt3.util.get_from_config('registryUrl')
+        response = requests.get(registry_url + '/api/auth/get_credentials',
+                                headers={
+                                    'Authorization': 'Bearer ' + user_token,
+                                })
+        response.raise_for_status()
+        json = response.json()
+        assert json['status'] == 200, 'Unable to get keys for Quilt session'
+        return {
+            'access_key': json['AccessKeyId'],
+            'secret_key': json['SecretAccessKey'],
+            'session_token': json['SessionToken'],
+            'expiry_time': json['Expiration'],
+        }
+
+    def upload_package(self, message=None):
+        """ Build and upload package from local directory,
+        ignoring all files listed in .quiltignore
+
+        Args:
+            message (:obj:`str`): commit message
+        """
+
+        # build package, ignoring all files in .quiltignore
+        package = quilt3.Package()
+        package.set_dir('/', self.path)
+
+        # upload package
+        package.push(self.get_full_package_id(), message=message)
+
+    def download_package(self, path=None):
+        """ Download package, or a path within a package, to local directory
+
+        Args:
+            path (:obj:`str`, optional): path within a package to download
+        """
+        if path:
+            # download a path within a package
+            package = quilt3.Package.browse(self.get_full_package_id(), top_hash=self.hash,
+                                            registry=self.get_aws_bucket_uri())
+            package[path].fetch(dest=os.path.join(self.path, path))
+
+        else:
+            # download full package
+            quilt3.Package.install(self.get_full_package_id(), top_hash=self.hash, dest=self.path)
+
+    def get_packages(self):
+        """ Get the names of the packages in the S3 bucket
+
+        Returns:
+            :obj:`list` of :obj:`str`: list of package names
+        """
+        packages = quilt3.list_packages(self.get_aws_bucket_uri())
+        return packages.pkg_names
+
+    def delete_package(self, del_from_bucket=True):
+        """ Delete package
+
+        Args:
+            del_from_bucket (:obj:`bool`, optional): if :obj:`True`, delete the
+                files for the package from the AWS bucket
+        """
+        quilt3.delete_package(self.get_full_package_id(), registry=self.get_aws_bucket_uri())
+
+        if del_from_bucket:
+            session = boto3.Session(profile_name=self.aws_profile)
+            s3 = session.resource('s3')
+            bucket = s3.Bucket(self.aws_bucket)
+            bucket.objects.filter(Prefix='.quilt/named_packages/' + self.get_full_package_id() + '/').delete()
+            bucket.objects.filter(Prefix=self.get_full_package_id() + '/').delete()
+
+    def get_full_package_id(self):
+        """ Get the full id of a package (namespace and package id)
+
+        Returns:
+            :obj:`str`: full package id
+        """
+        return self.namespace + '/' + self.package
+
+    def get_aws_bucket_uri(self):
+        """ Get the full URI of an AWS S3 bucket (s3:// + bucket id)
+
+        Returns:
+            :obj:`str`: full URI of an AWS S3 bucket
+        """
+        return 's3://' + self.aws_bucket

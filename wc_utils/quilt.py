@@ -45,6 +45,7 @@ class QuiltManager(object):
         namespace (:obj:`str`): namespace for package
         package (:obj:`str`): name of package
         hash (:obj:`str`): hash of version of package
+        registry (:obj:`str`): URL for Quilt registry
         username (:obj:`str`): Quilt user name
         password (:obj:`str`): Quilt password
         aws_bucket (:obj:`str`): AWS bucket to store/access packages
@@ -53,7 +54,7 @@ class QuiltManager(object):
     """
 
     def __init__(self, path=None, namespace=None, package=None, hash=None,
-                 username=None, password=None,
+                 registry=None, username=None, password=None,
                  aws_bucket=None, aws_profile=None):
         """
         Args:
@@ -61,6 +62,7 @@ class QuiltManager(object):
             namespace (:obj:`str`, optional): namespace for package
             package (:obj:`str`): name of package
             hash (:obj:`str`, optional): hash of version of package
+            registry (:obj:`str`, optional): URL for Quilt registry
             username (:obj:`str`, optional): user name
             password (:obj:`str`, optional): password
             aws_bucket (:obj:`str`, optional): AWS bucket to store/access packages
@@ -72,6 +74,7 @@ class QuiltManager(object):
         self.namespace = namespace or config['namespace']
         self.package = package
         self.hash = hash
+        self.registry = registry or config['registry']
         self.username = username or config['username']
         self.password = password or config['password']
         self.aws_bucket = aws_bucket or config['aws_bucket']
@@ -126,8 +129,7 @@ class QuiltManager(object):
         Raises:
             :obj:`AssertionError`: if unable to login into Quilt
         """
-        registry_url = quilt3.util.get_from_config('registryUrl')
-        response = requests.post(registry_url + '/api/login',
+        response = requests.post(self.registry + '/api/login',
                                  json={
                                      'username': self.username,
                                      'password': self.password,
@@ -149,8 +151,7 @@ class QuiltManager(object):
         Raises:
             :obj:`AssertionError`: if unable to get a token for a session
         """
-        registry_url = quilt3.util.get_from_config('registryUrl')
-        response = requests.get(registry_url + '/api/code',
+        response = requests.get(self.registry + '/api/code',
                                 headers={
                                     'Authorization': 'Bearer ' + user_token,
                                 })
@@ -171,8 +172,7 @@ class QuiltManager(object):
         Raises:
             :obj:`AssertionError`: if unable to get a token for a session
         """
-        registry_url = quilt3.util.get_from_config('registryUrl')
-        response = requests.get(registry_url + '/api/auth/get_credentials',
+        response = requests.get(self.registry + '/api/auth/get_credentials',
                                 headers={
                                     'Authorization': 'Bearer ' + user_token,
                                 })

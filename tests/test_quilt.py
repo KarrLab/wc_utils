@@ -80,6 +80,7 @@ class QuiltTestCase(unittest.TestCase):
 
     def test_login(self):
         mgr = wc_utils.quilt.QuiltManager()
+        mgr.config()
 
         os.remove(quilt3.session.AUTH_PATH)
         os.remove(quilt3.session.CREDENTIALS_PATH)

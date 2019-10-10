@@ -87,6 +87,7 @@ class QuiltManager(object):
         """ Configure the Quilt client to the desired AWS S3 bucket
         ("remote Quilt registry")
         """
+        quilt3.config(self.registry)
         quilt3.config(default_remote_registry=self.get_aws_bucket_uri())
 
     def login(self, credentials='aws'):

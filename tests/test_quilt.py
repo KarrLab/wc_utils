@@ -158,3 +158,28 @@ class QuiltTestCase(unittest.TestCase):
         packages = mgr.get_packages()
         self.assertIsInstance(packages, list)
         self.assertIn(mgr.namespace + '/' + 'datanator', packages)
+
+    def test_upload_download_delete_file(self):
+        mgr = wc_utils.quilt.QuiltManager()
+
+        mgr.config()
+        mgr.login()
+
+        filename = os.path.join(self.dirname, 'test.md')
+        filename2 = os.path.join(self.dirname, 'test2.md')
+        with open(filename, 'w') as file:
+            file.write('test me')
+
+        key = '__test__'
+        mgr.upload_file_to_bucket(filename, key)
+
+        mgr.download_file_from_bucket(key, filename2)
+        with open(filename2, 'r') as file:
+            self.assertEqual(file.read(), 'test me')
+
+        mgr.delete_file_from_bucket(key)
+        config = wc_utils.config.get_config()['wc_utils']['quilt']
+        session = boto3.Session(profile_name=config['aws_profile'])
+        s3 = session.resource('s3')
+        bucket = s3.Bucket(config['aws_bucket'])
+        self.assertEqual(list(bucket.objects.filter(Prefix=key)), [])

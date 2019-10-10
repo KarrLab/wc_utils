@@ -237,11 +237,9 @@ class QuiltManager(object):
         quilt3.delete_package(self.get_full_package_id(), registry=self.get_aws_bucket_uri())
 
         if del_from_bucket:
-            session = boto3.Session(profile_name=self.aws_profile)
-            s3 = session.resource('s3')
-            bucket = s3.Bucket(self.aws_bucket)
-            bucket.objects.filter(Prefix='.quilt/named_packages/' + self.get_full_package_id() + '/').delete()
-            bucket.objects.filter(Prefix=self.get_full_package_id() + '/').delete()
+            bucket = quilt3.Bucket(self.get_aws_bucket_uri())
+            bucket.delete_dir('.quilt/named_packages/' + self.get_full_package_id() + '/')
+            bucket.delete_dir(self.get_full_package_id() + '/')
 
     def get_full_package_id(self):
         """ Get the full id of a package (namespace and package id)
@@ -258,3 +256,33 @@ class QuiltManager(object):
             :obj:`str`: full URI of an AWS S3 bucket
         """
         return 's3://' + self.aws_bucket
+
+    def upload_file_to_bucket(self, path, key, meta=None):
+        """ Upload file to AWS S3 bucket
+
+        Args:
+            path (:obj:`str`): path to file to upload
+            key (:obj:`str`): path within bucket to save file
+            meta (:obj:`dict`, optional): metadata
+        """
+        bucket = quilt3.Bucket(self.get_aws_bucket_uri())
+        bucket.put_file(key, path, meta=meta)
+
+    def download_file_from_bucket(self, key, path):
+        """ Get file from AWS S3 bucket
+
+        Args:
+            key (:obj:`str`): path within bucket to file
+            path (:obj:`str`): path to save file
+        """
+        bucket = quilt3.Bucket(self.get_aws_bucket_uri())
+        bucket.fetch(key, path)
+
+    def delete_file_from_bucket(self, key):
+        """ Delete file to AWS S3 bucket
+
+        Args:
+            key (:obj:`str`): path within bucket to save file
+        """
+        bucket = quilt3.Bucket(self.get_aws_bucket_uri())
+        bucket.delete(key)

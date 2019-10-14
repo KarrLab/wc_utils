@@ -12,7 +12,7 @@ from datetime import datetime
 from glob import glob
 from itertools import chain
 from math import isnan, isinf
-from openpyxl import Workbook as XlsWorkbook, load_workbook
+from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import Font, PatternFill
 from openpyxl.styles.colors import Color

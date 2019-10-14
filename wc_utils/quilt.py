@@ -225,7 +225,7 @@ class QuiltManager(object):
             :obj:`list` of :obj:`str`: list of package names
         """
         packages = quilt3.list_packages(self.get_aws_bucket_uri())
-        return packages.pkg_names
+        return list(packages)
 
     def delete_package(self, del_from_bucket=True):
         """ Delete package

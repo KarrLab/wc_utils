@@ -1,6 +1,6 @@
 [quilt]
 boto3 # Python interface to AWS
-quilt3 # to backup data files to Quilt
+quilt3 >= 3.1.3 # to backup data files to Quilt
 
 [chem]
 openbabel

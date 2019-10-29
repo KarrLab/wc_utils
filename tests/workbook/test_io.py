@@ -594,6 +594,14 @@ class TestIo(unittest.TestCase):
         wb_2['Ws'][0][0] = Formula('="abc"', wb_2['Ws'][0][0])
         self.assertEqual(wb_2, wb_1)
 
+    def test_write_protected(self):
+        wb = Workbook()
+        ws0 = wb['Ws'] = Worksheet()
+        ws0.append(Row(['abc', 'def', 'ghi']))
+
+        filename = path.join(self.tempdir, 'test.xlsx')
+        io.ExcelWriter(filename).run(wb, protected=True)
+
     def test_exceptions_csv(self):
         for method in [io.SeparatedValuesWriter, io.SeparatedValuesReader]:
             filename = path.join(self.tempdir, 'test.foo')

@@ -54,13 +54,14 @@ class Writer(with_metaclass(ABCMeta, object)):
         self.language = language
         self.creator = creator
 
-    def run(self, data, style=None, validation=None):
+    def run(self, data, style=None, validation=None, protected=False):
         """ Write workbook to file(s)
 
         Args:
             data (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorkbookStyle`, optional): workbook style
             validation (:obj:`WorkbookValidation`, optional): validation
+            protected (:obj:`bool`, optional): if :obj:`True`, protect the worksheet
         """
         self.initialize_workbook()
 
@@ -69,7 +70,7 @@ class Writer(with_metaclass(ABCMeta, object)):
         for ws_name, ws_data in data.items():
             ws_style = style.get(ws_name, None)
             ws_validation = validation.get(ws_name, None)
-            self.write_worksheet(ws_name, ws_data, style=ws_style, validation=ws_validation)
+            self.write_worksheet(ws_name, ws_data, style=ws_style, validation=ws_validation, protected=protected)
 
         self.finalize_workbook()
 
@@ -79,7 +80,7 @@ class Writer(with_metaclass(ABCMeta, object)):
         pass  # pragma: no cover
 
     @abstractmethod
-    def write_worksheet(self, sheet_name, data, style=None, validation=None):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None, protected=False):
         """ Write worksheet to file
 
         Args:
@@ -87,6 +88,7 @@ class Writer(with_metaclass(ABCMeta, object)):
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
+            protected (:obj:`bool`, optional): if :obj:`True`, protect the worksheet
         """
         pass  # pragma: no cover
 
@@ -214,7 +216,7 @@ class ExcelWriter(Writer):
         wb.set_custom_property('created', now)
         wb.set_custom_property('modified', now)
 
-    def write_worksheet(self, sheet_name, data, style=None, validation=None):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None, protected=False):
         """ Write worksheet to file
 
         Args:
@@ -222,32 +224,34 @@ class ExcelWriter(Writer):
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
+            protected (:obj:`bool`, optional): if :obj:`True`, protect the worksheet
         """
         xls_worksheet = self.xls_workbook.add_worksheet(sheet_name)
 
         # data and formatting
-        xls_worksheet.protect('', {
-            'insert_columns': False,
-            'delete_columns': False,
+        if protected:
+            xls_worksheet.protect('', {
+                'insert_columns': False,
+                'delete_columns': False,
 
-            'insert_rows': True,
-            'delete_rows': True,
+                'insert_rows': True,
+                'delete_rows': True,
 
-            'insert_hyperlinks': False,
-            'objects': False,
-            'scenarios': False,
-            'pivot_tables': False,
+                'insert_hyperlinks': False,
+                'objects': False,
+                'scenarios': False,
+                'pivot_tables': False,
 
-            'format_cells': False,
-            'format_columns': False,
-            'format_rows': False,
+                'format_cells': False,
+                'format_columns': False,
+                'format_rows': False,
 
-            'sort': True,
-            'autofilter': True,
+                'sort': False,
+                'autofilter': False,
 
-            'select_locked_cells': True,
-            'select_unlocked_cells': True,
-        })
+                'select_locked_cells': True,
+                'select_unlocked_cells': True,
+            })
 
         style = style or WorksheetStyle()
 
@@ -690,24 +694,25 @@ class SeparatedValuesWriter(Writer):
                                                     title=title, description=description,
                                                     keywords=keywords, version=version, language=language, creator=creator)
 
-    def run(self, data, style=None, validation=None):
+    def run(self, data, style=None, validation=None, protected=False):
         """ Write workbook to file(s)
 
         Args:
             data (:obj:`Workbook`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorkbookStyle`, optional): workbook style
             validation (:obj:`WorkbookValidation`, optional): validation
+            protected (:obj:`bool`, optional): if :obj:`True`, protect the worksheet
         """
         if len(data) > 1 and basename(self.path).count('*') == 0:
             raise ValueError("path '{}' must have a glob pattern '*' in its base name".format(
                 self.path))
-        super(SeparatedValuesWriter, self).run(data, style=style, validation=validation)
+        super(SeparatedValuesWriter, self).run(data, style=style, validation=validation, protected=protected)
 
     def initialize_workbook(self):
         """ Initialize workbook """
         pass
 
-    def write_worksheet(self, sheet_name, data, style=None, validation=None):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None, protected=False):
         """ Write worksheet to file
 
         Args:
@@ -715,6 +720,7 @@ class SeparatedValuesWriter(Writer):
             data (:obj:`Worksheet`): python representation of data; each element must be a string, boolean, integer, float, or NoneType
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
+            protected (:obj:`bool`, optional): if :obj:`True`, protect the worksheet
         """
         data_values = []
         for row in data:

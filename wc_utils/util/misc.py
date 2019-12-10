@@ -7,9 +7,12 @@
 :License: MIT
 """
 
+from fractions import Fraction
+import collections
 import six
-import sys
 import socket
+import sys
+
 
 def isclass(cls, cls_info):
     """Compares a class with classes in `cls_info`.
@@ -50,7 +53,7 @@ def isclass_by_name(cls_name, cls_info):
 
 
 def most_qual_cls_name(obj):
-    """Obtain the most qualified class name available for `obj`.
+    """ Obtain the most qualified class name available for `obj`.
 
     Since references to classes cannot be sent in messages that leave an address space,
     use the most qualified class name available to compare class values across address spaces.
@@ -74,7 +77,7 @@ def most_qual_cls_name(obj):
 
 
 def round_direct(value, precision=2):
-    '''Convert `value` to rounded string with appended sign indicating the rounding direction.
+    """ Convert `value` to rounded string with appended sign indicating the rounding direction.
 
     Append '+' to indicate that `value` has been rounded down, and '-' to indicate rounding up.
     For example, 
@@ -91,7 +94,7 @@ def round_direct(value, precision=2):
 
     Returns:
         str: `value` rounded to `precision` places, followed by a sign indicating rounding direction.
-    '''
+    """
     if round(value, precision) == value:
         return str(round(value, precision))
     elif round(value, precision) < value:
@@ -116,6 +119,15 @@ def quote(s):
 
 
 def obj_to_str(obj, attrs):
+    """ Provide a string representation of an object
+
+    Args:
+        obj (:obj:`object`): an object
+        attrs (:obj:`collections.abc.Iterator`): the names of attributes in `obj` to represent
+
+    Returns:
+        :obj:`str`: a string
+    """
     rv = ['\nClass: ' + obj.__class__.__name__]
     for attr in attrs:
         if hasattr(obj, attr):
@@ -163,9 +175,9 @@ def internet_connected():
         # connect to the host -- tells us if the host is actually reachable
         socket.create_connection(("www.google.com", 80))
         return True
-    except OSError:
+    except OSError: # pragma: no cover
         pass
-    return False
+    return False    # pragma: no cover
 
 
 class OrderableNoneType(object):
@@ -194,8 +206,8 @@ OrderableNone = OrderableNoneType()
 class DFSMAcceptor(object):
     """ Deterministic finite state machine (DFSM) that accepts sequences which move from the start to the end state
 
-        A data-driven finite state machine (finite-state automaton). States and messages can be any
-        hashable type.
+    A data-driven finite state machine (finite-state automaton). States and messages can be any
+    hashable type.
 
     Attributes:
         start_state (:obj:`object`): a DFSM's start state
@@ -278,3 +290,72 @@ class DFSMAcceptor(object):
         if self.state == self.accepting_state:
             return DFSMAcceptor.ACCEPT
         return DFSMAcceptor.FAIL
+
+
+class UniformSequence(collections.abc.Iterator):
+    """ Generate an infinite uniform sequence, especially for non-integral step sizes
+
+    Uses a :obj:`Fraction` to represent the step size as a ratio of integers.
+
+    Attributes:
+        _start (:obj:`float`): starting point of the sequence
+        _fraction_step (:obj:`Fraction`): step size for the sequence
+        _num_steps (:obj:`int`): number of steps taken in the sequence
+        _digits_precision (:obj:`int`): number of digits of precision; the sequence terminates if a step
+            cannot be represented with `_digits_precision` digits
+    """
+
+    def __init__(self, start, step, digits_precision=6):
+        """ Initialize a :obj:`UniformSequence`
+
+        Args:
+            start (:obj:`float`): starting point of the sequence
+            step (:obj:`float`): step size for the sequence
+            digits_precision (:obj:`int`): number of digits of precision; the sequence terminates
+                if a step cannot be represented with `_digits_precision` digits
+        """
+        self._start = start
+        MAX_DENOMINATOR = 1000000
+        self._fraction_step = Fraction(step).limit_denominator(max_denominator=MAX_DENOMINATOR)
+        if step * self._fraction_step.denominator != self._fraction_step.numerator:
+            raise ValueError(f"UniformSequence: step {step} can't be a fraction with "
+                             f"denominator <= {MAX_DENOMINATOR}")
+        self._digits_precision = digits_precision
+        self._num_steps = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """ Get next value in the sequence
+
+        Raises:
+            :obj:`StopIteration`: if the next value encounters a floating-point rounding error
+        """
+        next_value = self._start + \
+            (self._num_steps * self._fraction_step.numerator) / self._fraction_step.denominator
+        if (next_value - self._start) * self._fraction_step.denominator != \
+            self._num_steps * self._fraction_step.numerator:
+            raise StopIteration(f'UniformSequence: floating-point rounding error:\n'
+                                f'_num_steps: {self._num_steps}; '
+                                f'_fraction_step.numerator: {self._fraction_step.numerator}; '
+                                f'_fraction_step.denominator: {self._fraction_step.denominator}')
+        # ensure that next_value can be truncated
+        self.truncate(next_value)
+        self._num_steps += 1
+        return next_value
+
+    def truncate(self, value):
+        """ Truncate a sequence value into fixed-point notation for output
+
+        Raise an exception if truncation loses precision.
+
+        Raises:
+            :obj:`StopIteration`: if the truncated value does not equal `value`
+        """
+        truncated_value = f'{value:.{self._digits_precision}f}'
+        if float(truncated_value) != value:
+            raise StopIteration(f'UniformSequence: truncation error:\n'
+                                f'value: {value}; truncated_value: {truncated_value} '
+                                f'_fraction_step.denominator: {self._fraction_step.denominator}')
+        return truncated_value

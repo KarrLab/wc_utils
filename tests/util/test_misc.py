@@ -6,13 +6,11 @@
 :License: MIT
 """
 
-from math import pi
 import six
 import unittest
 
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
-                                isclass_by_name, obj_to_str, as_dict, internet_connected,
-                                DFSMAcceptor, UniformSequence)
+                                isclass_by_name, obj_to_str, as_dict, internet_connected, DFSMAcceptor)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -205,37 +203,3 @@ class TestDFSMAcceptor(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, 'no transitions available from start state'):
             DFSMAcceptor('s', 'e', [('f', 'm1', 0), ('e', 'm1', 'f')])
-
-
-class TestUniformSequence(unittest.TestCase):
-
-    def test_uniform_sequence(self):
-        initial_values = [((0, 1), (0, 1, 2, 3)),
-                          ((2, 1), (2, 3)),
-                          ((0, -1), (0, -1, -2, -3)),
-                          ((0, .1), (0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.)),
-                          ((0, .3), (0, .3, .6, .9, 1.2)),
-                          ((0, .7), (0, .7, 1.4, 2.1)),
-                         ]
-        for args, expected_seq in initial_values:
-            start, period = args
-            us = UniformSequence(start, period)
-            for expected in expected_seq:
-                next = us.__next__()
-                self.assertEqual(next, expected)
-                self.assertEqual(float(us.truncate(next)), next)
-
-        us = UniformSequence(0, 1)
-        self.assertEqual(us.__iter__(), us)
-
-        with self.assertRaisesRegex(ValueError, "UniformSequence: step .* can't be a fraction"):
-            UniformSequence(0, pi)
-
-        us = UniformSequence(pi, 1)
-        with self.assertRaisesRegex(StopIteration, "UniformSequence: truncation error"):
-            for i in range(100):
-                next_value = us.__next__()
-
-        us = UniformSequence(pi, 1)
-        with self.assertRaisesRegex(StopIteration, "UniformSequence: truncation error"):
-            us.truncate(us.__next__())

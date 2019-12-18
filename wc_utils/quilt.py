@@ -257,16 +257,15 @@ class QuiltManager(object):
         """
         return 's3://' + self.aws_bucket
 
-    def upload_file_to_bucket(self, path, key, meta=None):
+    def upload_file_to_bucket(self, path, key):
         """ Upload file to AWS S3 bucket
 
         Args:
             path (:obj:`str`): path to file to upload
             key (:obj:`str`): path within bucket to save file
-            meta (:obj:`dict`, optional): metadata
         """
         bucket = quilt3.Bucket(self.get_aws_bucket_uri())
-        bucket.put_file(key, path, meta=meta)
+        bucket.put_file(key, path)
 
     def download_file_from_bucket(self, key, path):
         """ Get file from AWS S3 bucket

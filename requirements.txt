@@ -8,7 +8,7 @@ humanfriendly
 mendeleev
 numpy
 objsize
-openpyxl >= 2.6.1
+openpyxl >= 2.6.1, <= 3.0.1
 pint >= 0.9
 pronto
 pyexcel >= 0.5.9.1

@@ -341,37 +341,48 @@ class TestIo(unittest.TestCase):
         ws = wb.create_sheet('Sheet-1')
 
         cell = ws.cell(row=1, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_STRING)
+        cell.value = None
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
 
         cell = ws.cell(row=1, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_STRING)
+        cell.value = ''
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING
 
         cell = ws.cell(row=2, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_INLINE)
+        cell.value = None
+        cell.data_type = openpyxl.cell.cell.TYPE_INLINE
 
         cell = ws.cell(row=2, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_INLINE)
+        cell.value = ''
+        cell.data_type = openpyxl.cell.cell.TYPE_INLINE
 
         cell = ws.cell(row=3, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_NUMERIC)
+        cell.value = None
+        cell.data_type = openpyxl.cell.cell.TYPE_NUMERIC
 
         cell = ws.cell(row=3, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_NUMERIC)
+        cell.value = ''
+        cell.data_type = openpyxl.cell.cell.TYPE_NUMERIC
 
         cell = ws.cell(row=4, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_BOOL)
+        cell.value = None
+        cell.data_type = openpyxl.cell.cell.TYPE_BOOL
 
         cell = ws.cell(row=4, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_BOOL)
+        cell.value = ''
+        cell.data_type = openpyxl.cell.cell.TYPE_BOOL
 
         cell = ws.cell(row=5, column=1)
-        cell.set_explicit_value(None, openpyxl.cell.cell.TYPE_NULL)
+        cell.value = None
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
 
         cell = ws.cell(row=5, column=2)
-        cell.set_explicit_value('', openpyxl.cell.cell.TYPE_NULL)
+        cell.value = ''
+        cell.data_type = openpyxl.cell.cell.TYPE_NULL
 
         cell = ws.cell(row=6, column=2)
-        cell.set_explicit_value('end', openpyxl.cell.cell.TYPE_STRING)  # to force max row and column
+        cell.value = 'end'
+        cell.data_type = openpyxl.cell.cell.TYPE_STRING  # to force max row and column
 
         filename = path.join(self.tempdir, 'test.xlsx')
         wb.save(filename)

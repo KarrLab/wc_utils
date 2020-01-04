@@ -6,7 +6,6 @@
 :License: MIT
 """
 
-from math import pi
 import unittest
 import sys
 
@@ -16,15 +15,18 @@ from wc_utils.util.uniform_seq import UniformSequence
 class TestUniformSequence(unittest.TestCase):
 
     def test_uniform_sequence(self):
-        initial_values = [((0, 1), (0, 1, 2, 3)),
-                          ((2, 1), (2, 3)),
-                          ((0, -1), (0, -1, -2, -3)),
-                          ((0, .1), (0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.)),
-                          ((0, .3), (0, .3, .6, .9, 1.2)),
-                          # an example from Guido van Rossum: http://code.activestate.com/recipes/577068/
-                          ((0, .7), (0, .7, 1.4, 2.1)),
-                         ]
-        for args, expected_seq in initial_values:
+        initial_and_expected_values = \
+            [((0, 1), (0, 1, 2, 3)),
+              ((2, 1), (2, 3)),
+              ((0, -1), (0, -1, -2, -3)),
+              ((0, .1), (0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.)),
+              ((0, .100), (0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.)),
+              ((0, .3), (0, .3, .6, .9, 1.2)),
+              # example from Guido van Rossum: http://code.activestate.com/recipes/577068/
+              ((0, .7), (0, .7, 1.4, 2.1)),
+              ((0, .04), (0, 0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32)),
+        ]
+        for args, expected_seq in initial_and_expected_values:
             start, period = args
             us = UniformSequence(start, period)
             for expected in expected_seq:
@@ -35,14 +37,21 @@ class TestUniformSequence(unittest.TestCase):
         us = UniformSequence(0, 1)
         self.assertEqual(us.__iter__(), us)
 
-        with self.assertRaisesRegex(ValueError, "UniformSequence: step .* can't be a fraction"):
-            UniformSequence(0, pi)
+        bad_steps = [0, float('nan'), float('inf'), -float('inf')]
+        for bad_step in bad_steps:
+            with self.assertRaisesRegex(ValueError, "UniformSequence: step=.* can't be 0, NaN, "
+                                                    "infinite, or subnormal"):
+                UniformSequence(0, bad_step)
 
-        us = UniformSequence(sys.float_info.max, 2)
-        with self.assertRaisesRegex(StopIteration, "UniformSequence: floating-point rounding error:"):
-            us.__next__()
-            us.__next__()
+        with self.assertRaisesRegex(ValueError, "precision in start=.* exceeds UNIFORM_SEQ_PRECISION threshold"):
+            UniformSequence(1/3, 1)
 
-        us = UniformSequence(pi, 1)
-        with self.assertRaisesRegex(StopIteration, "UniformSequence: truncation error"):
-            us.truncate(us.__next__())
+        nonterminating_steps = [2**0.5, 1/3]
+        for nonterminating_step in nonterminating_steps:
+            with self.assertRaisesRegex(ValueError, "precision in step=.* exceeds UNIFORM_SEQ_PRECISION threshold"):
+                UniformSequence(0, nonterminating_step)
+
+        excessively_precise_steps = [0.123456789, 0.10101010101]
+        for excessively_precise_step in excessively_precise_steps:
+            with self.assertRaisesRegex(ValueError, "precision in step=.* exceeds UNIFORM_SEQ_PRECISION threshold"):
+                UniformSequence(0, excessively_precise_step)

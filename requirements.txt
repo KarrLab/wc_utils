@@ -10,7 +10,7 @@ numpy
 objsize
 openpyxl >= 2.6.1, <= 3.0.1
 pint >= 0.9
-pronto
+pronto >= 1
 pyexcel >= 0.5.9.1
 # avoid a bug in pyexcel_io 0.4.1; see https://github.com/pyexcel/pyexcel/issues/89
 pyexcel_io >= 0.5.9.1

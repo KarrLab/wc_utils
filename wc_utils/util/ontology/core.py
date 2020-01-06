@@ -19,4 +19,4 @@ def are_terms_equivalent(term1, term2):
     Returns:
         :obj:`bool`: :obj:`True` if the terms are semantically equivalent
     """
-    return term1 is term2 or (term1.__class__ == term2.__class__ and term1.id == term2.id)
+    return term1 == term2

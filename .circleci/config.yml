@@ -49,6 +49,8 @@ jobs:
       # Test code
       - run:
           name: Test code
+          environment:
+            JAVA_OPTS: -Xmx1024m
           command: |
             set +e
 

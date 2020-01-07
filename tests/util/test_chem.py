@@ -7,6 +7,7 @@
 """
 
 from wc_utils.util import chem
+from wc_utils.util.chem import marvin
 import attrdict
 import imghdr
 import mock
@@ -218,54 +219,54 @@ class GetMajorMicroSpeciesTestCase(unittest.TestCase):
                    </molecule>"""
 
     def test_inchi(self):
-        self.assertEqual(chem.get_major_micro_species(self.GLY, 'inchi', 'inchi', ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
-        self.assertEqual(chem.get_major_micro_species(self.GLY, 'inchi', 'inchi', ph=13.),
+        self.assertEqual(marvin.get_major_micro_species(self.GLY, 'inchi', 'inchi', ph=2.), 'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p+1')
+        self.assertEqual(marvin.get_major_micro_species(self.GLY, 'inchi', 'inchi', ph=13.),
                          'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1')
-        self.assertEqual(chem.get_major_micro_species(self.ALA, 'inchi', 'inchi', ph=13.),
+        self.assertEqual(marvin.get_major_micro_species(self.ALA, 'inchi', 'inchi', ph=13.),
                          'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1')
-        self.assertEqual(chem.get_major_micro_species([self.ALA, self.GLY], 'inchi', 'inchi', ph=13.), [
+        self.assertEqual(marvin.get_major_micro_species([self.ALA, self.GLY], 'inchi', 'inchi', ph=13.), [
             'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/p-1/t2-/m0/s1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
         ])
-        self.assertEqual(chem.get_major_micro_species([self.GLY, self.GLY], 'inchi', 'inchi', ph=13.), [
+        self.assertEqual(marvin.get_major_micro_species([self.GLY, self.GLY], 'inchi', 'inchi', ph=13.), [
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
             'InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)/p-1',
         ])
 
     def test_smiles(self):
-        self.assertEqual(chem.get_major_micro_species(self.GLY_smiles, 'smiles', 'smiles', ph=2.),
+        self.assertEqual(marvin.get_major_micro_species(self.GLY_smiles, 'smiles', 'smiles', ph=2.),
                          '[N+]CC(O)=O')
-        self.assertEqual(chem.get_major_micro_species(self.GLY_smiles, 'smiles', 'smiles', ph=13.),
+        self.assertEqual(marvin.get_major_micro_species(self.GLY_smiles, 'smiles', 'smiles', ph=13.),
                          '[N+]CC([O-])=O')
-        self.assertEqual(chem.get_major_micro_species(self.ALA_smiles, 'smiles', 'smiles', ph=13.),
+        self.assertEqual(marvin.get_major_micro_species(self.ALA_smiles, 'smiles', 'smiles', ph=13.),
                          'CC([N+])C([O-])=O')
-        self.assertEqual(chem.get_major_micro_species([self.ALA_smiles, self.GLY_smiles], 'smiles', 'smiles', ph=13.), [
+        self.assertEqual(marvin.get_major_micro_species([self.ALA_smiles, self.GLY_smiles], 'smiles', 'smiles', ph=13.), [
             'CC([N+])C([O-])=O',
             '[N+]CC([O-])=O',
         ])
-        self.assertEqual(chem.get_major_micro_species([self.GLY_smiles, self.GLY_smiles], 'smiles', 'smiles', ph=13.), [
+        self.assertEqual(marvin.get_major_micro_species([self.GLY_smiles, self.GLY_smiles], 'smiles', 'smiles', ph=13.), [
             '[N+]CC([O-])=O',
             '[N+]CC([O-])=O',
         ])
 
     def test_cml(self):
-        result = chem.get_major_micro_species(self.ALA_cml, 'cml', 'cml', ph=2.)
+        result = marvin.get_major_micro_species(self.ALA_cml, 'cml', 'cml', ph=2.)
         self.assertTrue(result.startswith('<?xml'))
 
-        result = chem.get_major_micro_species(self.ALA_cml_2, 'cml', 'cml', ph=2.)
+        result = marvin.get_major_micro_species(self.ALA_cml_2, 'cml', 'cml', ph=2.)
         self.assertTrue(result.startswith('<?xml'))
 
     def test_errors(self):
         import jnius
         with self.assertRaises(jnius.JavaException):
-            chem.get_major_micro_species('C2H5NO2', 'inchi', 'inchi', ph=2.)
+            marvin.get_major_micro_species('C2H5NO2', 'inchi', 'inchi', ph=2.)
 
 
 class DrawMoleculeTestCase(unittest.TestCase):
     ALA = 'InChI=1S/C3H7NO2/c1-2(4)3(5)6/h2H,4H2,1H3,(H,5,6)/t2-/m0/s1'
 
     def test(self):
-        svg = chem.draw_molecule(self.ALA, 'inchi',
+        svg = marvin.draw_molecule(self.ALA, 'inchi',
                                  atom_labels=[
                                      {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},
                                      {'position': 2, 'element': 'C', 'label': 'B', 'color': 0x00ff00},
@@ -284,7 +285,7 @@ class DrawMoleculeTestCase(unittest.TestCase):
         self.assertIn('#ff00ff', svg)
         self.assertIn('#ffff00', svg)
 
-        svg = chem.draw_molecule(self.ALA, 'inchi', atom_labels=[
+        svg = marvin.draw_molecule(self.ALA, 'inchi', atom_labels=[
             {'position': 1, 'element': 'C', 'label': 'A', 'color': 0xff0000},
             {'position': 2, 'element': 'C', 'label': 'B', 'color': 0x00ff00},
             {'position': 3, 'element': 'C', 'label': 'C', 'color': 0x0000ff},
@@ -296,12 +297,12 @@ class DrawMoleculeTestCase(unittest.TestCase):
         ], show_atom_nums=True, include_xml_header=False)
         self.assertTrue(svg.startswith('<svg'))
 
-        svg = chem.draw_molecule(self.ALA, 'inchi')
+        svg = marvin.draw_molecule(self.ALA, 'inchi')
 
         file, filename = tempfile.mkstemp()
         os.close(file)
         with open(filename, 'wb') as file:
-            file.write(chem.draw_molecule(self.ALA, 'inchi', image_format='png'))
+            file.write(marvin.draw_molecule(self.ALA, 'inchi', image_format='png'))
         self.assertEqual(imghdr.what(filename), 'png')
         os.remove(filename)
 

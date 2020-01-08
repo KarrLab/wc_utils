@@ -29,6 +29,9 @@ try:
 except (ModuleNotFoundError, KeyError, SystemError):  # pragma: no cover
     pass  # pragma: no cover
 
+JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
+JavaDrawMolecule = jnius.autoclass('DrawMolecule')
+
 
 def get_major_micro_species(structure_or_structures, in_format, out_format,
                             ph=7.4, major_tautomer=False, keep_hydrogens=False, dearomatize=False):
@@ -48,7 +51,6 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
         :obj:`str` or :obj:`list` of :obj:`str`: protonated chemical structure or
             list of protonated chemical structures
     """
-    JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
     ph = float(ph)
 
     if isinstance(structure_or_structures, str):
@@ -127,7 +129,6 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         bond_set_positions = [[[0]]]
         bond_set_elements = [[['']]]
 
-    JavaDrawMolecule = jnius.autoclass('DrawMolecule')
     image = JavaDrawMolecule.run(structure, format, image_format,
                                  atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
                                  atom_label_font_size,

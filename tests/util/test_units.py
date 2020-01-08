@@ -65,3 +65,14 @@ class TestUnits(unittest.TestCase):
         self.assertTrue(units.are_units_equivalent(
             registry1.parse_units('mole / liter / molar / second'),
             registry1.parse_units('1 / second')))
+
+        self.assertFalse(units.are_units_equivalent(
+            registry1.parse_units('molecule'),
+            registry1.parse_units('liter * molar')))
+        self.assertTrue(units.are_units_equivalent(
+            registry1.parse_units('molecule / (molecule / mole)'),
+            registry1.parse_units('liter * molar')))
+
+        self.assertFalse(units.are_units_equivalent(
+            registry1.parse_units('molecule'),
+            registry1.parse_units('dimensionless')))

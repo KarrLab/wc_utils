@@ -56,6 +56,11 @@ jobs:
             set +e
 
             python3 -m pytest tests/util/chem/test_marvin.py
+            python3 -m pytest tests/util/chem
+            python3 -m pytest tests/util
+            python3 -m pytest tests/
+
+            karr_lab_build_utils3 run-tests --test-path tests/util/chem/test_marvin.py --with-xunit --with-coverage
 
             karr_lab_build_utils3 run-tests --with-xunit --with-coverage
             TEST_EXIT_CODE_PY3=$?
@@ -82,7 +87,7 @@ jobs:
               TEST_EXIT_CODE=1
             fi
 
-            karr_lab_build_utils3 do-post-test-tasks $INSTALLATION_EXIT_CODE $TEST_EXIT_CODE
+            # karr_lab_build_utils3 do-post-test-tasks $INSTALLATION_EXIT_CODE $TEST_EXIT_CODE
 
       - store_test_results:
           path: /root/project/tests/reports

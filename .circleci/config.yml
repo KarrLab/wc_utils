@@ -55,6 +55,8 @@ jobs:
           command: |
             set +e
 
+            python3 -m pytest tests/util/chem/test_marvin.py
+
             karr_lab_build_utils3 run-tests --with-xunit --with-coverage
             TEST_EXIT_CODE_PY3=$?
 

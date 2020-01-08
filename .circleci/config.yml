@@ -53,14 +53,13 @@ jobs:
             JAVA_OPTS: -Xms256m -Xmx2048m
             PYTHONFAULTHANDLER: 1
           command: |
-            set +e
-
-            python3 -m pytest tests/util/chem/test_marvin.py
-            python3 -m pytest tests/util/chem
-            python3 -m pytest tests/util
-            python3 -m pytest tests/
+            set +e            
 
             karr_lab_build_utils3 run-tests --test-path tests/util/chem/test_marvin.py --with-xunit --with-coverage
+            karr_lab_build_utils3 run-tests --test-path tests/util/chem/ --with-xunit --with-coverage
+            karr_lab_build_utils3 run-tests --test-path tests/util/ --with-xunit --with-coverage
+
+            python3 -m pytest tests/
 
             karr_lab_build_utils3 run-tests --with-xunit --with-coverage
             TEST_EXIT_CODE_PY3=$?

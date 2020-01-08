@@ -13,7 +13,7 @@ jobs:
           keys:
             - v3-{{ arch }}-{{ .Branch }}-{{ checksum "/etc/docker-image-tag" }}-{{ checksum "requirements.txt" }}
 
-      # Python 3 installation tasks      
+      # Python 3 installation tasks
       - run:
           name: Install pkg_utils (Python 3)
           command: python3 -m pip install -U git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils
@@ -50,16 +50,9 @@ jobs:
       - run:
           name: Test code
           environment:
-            JAVA_OPTS: -Xms256m -Xmx2048m
             PYTHONFAULTHANDLER: 1
           command: |
-            set +e            
-
-            karr_lab_build_utils3 run-tests --test-path tests/util/chem/test_marvin.py --with-xunit --with-coverage
-            karr_lab_build_utils3 run-tests --test-path tests/util/chem/ --with-xunit --with-coverage
-            karr_lab_build_utils3 run-tests --test-path tests/util/ --with-xunit --with-coverage
-
-            python3 -m pytest tests/
+            set +e
 
             karr_lab_build_utils3 run-tests --with-xunit --with-coverage
             TEST_EXIT_CODE_PY3=$?
@@ -86,7 +79,7 @@ jobs:
               TEST_EXIT_CODE=1
             fi
 
-            # karr_lab_build_utils3 do-post-test-tasks $INSTALLATION_EXIT_CODE $TEST_EXIT_CODE
+            karr_lab_build_utils3 do-post-test-tasks $INSTALLATION_EXIT_CODE $TEST_EXIT_CODE
 
       - store_test_results:
           path: /root/project/tests/reports

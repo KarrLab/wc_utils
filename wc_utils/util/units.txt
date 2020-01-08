@@ -8,7 +8,7 @@
 
 
 # Substance
-molecule = 1 / avogadro_number
+molecule = 1 / avogadro_constant
 cell = [cell]
 
 # Concentration

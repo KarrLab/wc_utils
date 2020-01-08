@@ -61,3 +61,7 @@ class TestUnits(unittest.TestCase):
                                                     check_same_magnitude=True))
         self.assertTrue(units.are_units_equivalent(registry1.parse_units('ag'), registry1.parse_units('g'),
                                                    check_same_magnitude=False))
+
+        self.assertTrue(units.are_units_equivalent(
+            registry1.parse_units('mole / liter / molar / second'),
+            registry1.parse_units('1 / second')))

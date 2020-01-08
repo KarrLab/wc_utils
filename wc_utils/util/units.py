@@ -71,8 +71,9 @@ def are_units_equivalent(units1, units2, check_same_magnitude=True):
 
             if check_same_magnitude:
                 try:
-                    return units1_expr.compare(units2_expr, operator.eq)
+                    return units1_expr.compare(units2_expr, operator.eq) or \
+                        (abs(units1_expr.to(units2_expr).magnitude - 1) < 1e-12)
                 except pint.DimensionalityError:
                     return False
-            else:                
+            else:
                 return units1_expr.check(units2_expr)

@@ -8,15 +8,23 @@
 
 import os
 import pkg_resources
+import re
 
 try:
     import jnius_config
+
+    opts = os.getenv('JAVA_OPTS', None)
+    if opts:
+        opts = re.split(r' +', opts)
+        jnius_config.add_options(*opts)
+
     classpath = os.getenv('CLASSPATH', None)
     if classpath:
         classpath = classpath.split(':')
         jnius_config.set_classpath(*classpath)
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
+
     import jnius
 except (ModuleNotFoundError, KeyError, SystemError):  # pragma: no cover
     pass  # pragma: no cover

@@ -51,6 +51,7 @@ jobs:
           name: Test code
           environment:
             JAVA_OPTS: -Xmx1024m
+            PYTHONFAULTHANDLER: 1
           command: |
             set +e
 

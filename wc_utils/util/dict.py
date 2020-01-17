@@ -164,10 +164,12 @@ class DictUtil(object):
             :obj:`dict`: a single level, flattened dict with tuples for keys
         """
 
+        if not isinstance(d, dict):
+            raise ValueError(f"d is a(n) '{type(d).__name__}', not a dict")
         flat_dict = {}
         for key in d:
             if root_flat_key is None:
-                flat_key = list(key)
+                flat_key = [key]
             else:
                 flat_key = root_flat_key + [key]
             if isinstance(d[key], dict):

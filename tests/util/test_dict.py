@@ -130,8 +130,10 @@ class DictUtilTest(unittest.TestCase):
         self.assertEqual(test_dict['c_dict']['key'][key], new_value)
 
     def test_flatten_dict(self):
+
         tst_d = {}
         self.assertEqual(DictUtil.flatten_dict(tst_d), {})
+
         tst_d = {'a': 1,
                  'b': 2,
                  'c': {'a': 3,
@@ -142,6 +144,7 @@ class DictUtilTest(unittest.TestCase):
                      ('c', 'a'): 3,
                      ('c', 'b'): 4}
         self.assertEqual(DictUtil.flatten_dict(tst_d), flattened)
+
         tst_d = {'a': 1,
                  'b': {'c': 2,
                        'd': {'e': 3,
@@ -151,3 +154,6 @@ class DictUtilTest(unittest.TestCase):
                      ('b', 'd', 'e'): 3,
                      ('b', 'd', 'f'): 4}
         self.assertEqual(DictUtil.flatten_dict(tst_d), flattened)
+
+        with self.assertRaises(ValueError):
+            DictUtil.flatten_dict(3)

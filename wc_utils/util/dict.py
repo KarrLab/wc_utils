@@ -151,3 +151,29 @@ class DictUtil(object):
                 DictUtil.set_value(val, target_key, new_value, match_type=match_type)
             elif key == target_key and (not match_type or isinstance(val, type(new_value))):
                 d[target_key] = new_value
+
+    @staticmethod
+    def flatten_dict(d, root_flat_key=None):
+        """ Flatten a dict, converting nested keys into tuples
+
+        Args:
+            d (:obj:`dict`): dictionary to flatten
+            root_flat_key (:obj:`list`): flat key for parent dict
+
+        Returns:
+            :obj:`dict`: a single level, flattened dict with tuples for keys
+        """
+
+        flat_dict = {}
+        for key in d:
+            if root_flat_key is None:
+                flat_key = list(key)
+            else:
+                flat_key = root_flat_key + [key]
+            if isinstance(d[key], dict):
+                nested_dict = DictUtil.flatten_dict(d[key], root_flat_key=flat_key)
+                for k, v in nested_dict.items():
+                    flat_dict[k] = v
+            else:
+                flat_dict[tuple(flat_key)] = d[key]
+        return flat_dict

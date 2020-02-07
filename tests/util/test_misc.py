@@ -8,9 +8,11 @@
 
 import six
 import unittest
+import numpy as np
 
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
-                                isclass_by_name, obj_to_str, as_dict, internet_connected, DFSMAcceptor)
+                                isclass_by_name, obj_to_str, as_dict, internet_connected,
+                                geometric_iterator, DFSMAcceptor)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -181,6 +183,19 @@ class TestMisc(unittest.TestCase):
 
     def test_internet_connected(self):
         self.assertEqual(internet_connected(), internet_connected())
+
+    def test_geometric_iterator(self):
+        self.assertEqual([2, 4, 8], list(geometric_iterator(2, 10, 2)))
+        self.assertEqual([1e-05, 0.0001, 0.001, 0.01, 0.1], list(geometric_iterator(1E-5, 0.1, 10)))
+        np.testing.assert_allclose([.1, .3], list(geometric_iterator(0.1, 0.3, 3)))
+        with self.assertRaisesRegexp(ValueError, '0 < min is required'):
+            next(geometric_iterator(-1, 0.3, 3))
+        with self.assertRaisesRegexp(ValueError, '0 < min is required'):
+            next(geometric_iterator(0, 0.3, 3))
+        with self.assertRaisesRegexp(ValueError, 'min <= max is required'):
+            next(geometric_iterator(1, 0.3, 3))
+        with self.assertRaisesRegexp(ValueError, '1 < factor is required'):
+            next(geometric_iterator(.1, 0.3, .6))
 
 
 class TestDFSMAcceptor(unittest.TestCase):

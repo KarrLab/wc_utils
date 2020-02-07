@@ -181,7 +181,7 @@ def internet_connected():
 
 
 class OrderableNoneType(object):
-    """ Type than can be used for sorting in Python 3 in place of :obj:`None` """
+    """ Type that can be used for sorting in Python 3 in place of :obj:`None` """
 
     def __lt__(self, other):
         return (other is not self) and (other is not None)
@@ -199,8 +199,39 @@ class OrderableNoneType(object):
         return False
 
 
+# Object that can be used for sorting in Python 3 in place of :obj:`None`
 OrderableNone = OrderableNoneType()
-# Object than can be used for sorting in Python 3 in place of :obj:`None`
+
+
+def geometric_iterator(min, max, factor):
+    """ Create a geometic sequence
+
+    Generate the sequence `min`, `min`*`factor`, `min`*`factor`**2, ..., stopping at the first
+    element greater then or equal to `max`.
+
+    Args:
+        min (:obj:`float`): first and smallest element of the geometic sequence
+        max (:obj:`float`): largest element of the geometic sequence
+        factor (:obj:`float`): multiplicative factor between sequence entries
+
+    Returns:
+        :obj:`iterator` of :obj:`float`: the geometic sequence
+
+    Raises:
+        :obj:`ValueError`: if `min` <= 0, or
+            if `max` < `min`, or
+            if `factor` <= 1
+    """
+    if not 0 < min:
+        raise ValueError(f'min = {min}; 0 < min is required')
+    if max < min:
+        raise ValueError(f'min = {min} and max = {max}; min <= max is required')
+    if factor <= 1:
+        raise ValueError(f'factor = {factor}; 1 < factor is required')
+    sequence_value = min
+    while sequence_value < max or math.isclose(sequence_value, max, rel_tol=1E-14):
+        yield sequence_value
+        sequence_value *= factor
 
 
 class DFSMAcceptor(object):

@@ -73,9 +73,7 @@ author = 'Arthur Goldberg, Jonathan Karr'
 # built documents.
 #
 # The short X.Y version.
-filename = os.path.join(os.path.dirname(__file__), '..', 'wc_utils', 'VERSION')
-with open(filename, 'r') as file:
-    version = file.read()
+from wc_utils._version import __version__ as version
 # The full version, including alpha/beta/rc tags.
 release = version
 

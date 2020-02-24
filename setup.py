@@ -16,7 +16,6 @@ name = 'wc_utils'
 dirname = os.path.dirname(__file__)
 package_data = {
     name: [
-        'VERSION',
         'config/*.cfg',
         'debug_logs/*.cfg',
         'util/chem/*.java',

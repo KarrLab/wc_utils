@@ -2,8 +2,6 @@ abduct
 attrdict
 configobj
 diskcache
-pygithub
-gitpython
 humanfriendly
 mendeleev
 numpy

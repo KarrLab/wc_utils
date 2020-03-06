@@ -16,7 +16,6 @@ from wc_utils.util.dict import DictUtil
 import math
 import os
 import pkg_resources
-import six
 import string
 import sys
 
@@ -146,7 +145,7 @@ class ConfigManager(object):
                     to_sub.append(val)
                 elif isinstance(val, (list, tuple)):
                     val2 = [string.Template(v).substitute(context) for v in val]
-                elif isinstance(val, six.string_types):
+                elif isinstance(val, str):
                     val2 = string.Template(val).substitute(context)
 
                 dictionary.pop(key)

@@ -6,7 +6,6 @@
 :License: MIT
 """
 
-import six
 import unittest
 import numpy as np
 
@@ -54,19 +53,13 @@ class TestMisc(unittest.TestCase):
 
         class str3(object):
             pass
-        if six.PY3:
-            name3 = 'tests.util.test_misc.TestMisc.test_isclass_by_name.<locals>.str3'
-        else:
-            name3 = 'tests.util.test_misc.str3'
+        name3 = 'tests.util.test_misc.TestMisc.test_isclass_by_name.<locals>.str3'
         self.assertTrue(isclass_by_name(name3, str3))
 
         class str4():
             pass
         str5 = type('str5', (), {})
-        if six.PY3:
-            name4 = 'tests.util.test_misc.TestMisc.test_isclass_by_name.<locals>.str4'
-        else:
-            name4 = 'tests.util.test_misc.str4'
+        name4 = 'tests.util.test_misc.TestMisc.test_isclass_by_name.<locals>.str4'
         self.assertTrue(isclass_by_name(name4, (((str4, ), ), str5)))
         self.assertFalse(isclass_by_name(name3, (((str4, ), ), str5)))
 

@@ -16,5 +16,4 @@ pyyaml >= 5.1
 qualname
 requests
 setuptools
-six
 xlsxwriter

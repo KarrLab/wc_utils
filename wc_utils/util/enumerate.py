@@ -7,7 +7,6 @@
 """
 
 from enum import Enum, EnumMeta, _EnumDict
-from six import with_metaclass
 
 
 class _CaseInsensitiveEnumDict(_EnumDict):
@@ -56,6 +55,6 @@ class CaseInsensitiveEnumMeta(EnumMeta):
         return super(CaseInsensitiveEnumMeta, cls).__getitem__(name.lower())
 
 
-class CaseInsensitiveEnum(with_metaclass(CaseInsensitiveEnumMeta, Enum)):
+class CaseInsensitiveEnum(Enum, metaclass=CaseInsensitiveEnumMeta):
     """ Enumeration with case-insensitive attribute lookup """
     pass

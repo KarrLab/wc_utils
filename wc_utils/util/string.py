@@ -9,7 +9,6 @@
 
 import collections
 import re
-import six
 
 
 def indent_forest(forest, indentation=2, keep_trailing_blank_lines=False, return_list=False):
@@ -76,7 +75,7 @@ def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
 
 def _iterable_not_string(o):
     # todo: try to simplify & generalize this by using isinstance(o, basestring)
-    return isinstance(o, collections.Iterable) and not isinstance(o, six.string_types)
+    return isinstance(o, collections.Iterable) and not isinstance(o, str)
 
 
 def delete_trailing_blanks(l_of_strings):

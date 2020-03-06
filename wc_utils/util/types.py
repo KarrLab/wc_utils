@@ -7,7 +7,6 @@
 """
 
 import numpy as np
-import six
 from wc_utils.util.list import det_dedupe
 
 
@@ -31,7 +30,7 @@ def cast_to_builtins(obj):
     elif hasattr(obj, '__dict__'):
         return dict((key, cast_to_builtins(val)) for key, val in obj.__dict__.items())
 
-    elif hasattr(obj, '__iter__') and not isinstance(obj, six.string_types):
+    elif hasattr(obj, '__iter__') and not isinstance(obj, str):
         return [cast_to_builtins(val) for val in obj]
 
     if isinstance(obj, (np.bool_, np.int_, np.intc, np.intp,
@@ -96,9 +95,9 @@ def assert_value_equal(obj1, obj2, check_type=False, check_iterable_ordering=Fal
             assert_value_equal(val1, val2, check_type, check_iterable_ordering)
 
     elif (hasattr(obj1, '__iter__') and not (isinstance(obj1, dict) or hasattr(obj1, '__dict__') or
-                                             isinstance(obj1, six.string_types))):
+                                             isinstance(obj1, str))):
         if not ((hasattr(obj2, '__iter__') and not (isinstance(obj2, dict) or
-                                                    hasattr(obj2, '__dict__') or isinstance(obj2, six.string_types)))):
+                                                    hasattr(obj2, '__dict__') or isinstance(obj2, str)))):
             raise TypesUtilAssertionError('obj1 is iterable, but obj2 is not')
 
         if len(obj1) != len(obj2):
@@ -172,7 +171,7 @@ def is_iterable(obj):
         :obj:`bool`: Whether or not object is iterable
     """
     return hasattr(obj, '__iter__') \
-        and not isinstance(obj, (six.string_types, dict)) \
+        and not isinstance(obj, (str, dict)) \
         and not hasattr(obj, '__dict__')
 
 

@@ -12,7 +12,6 @@ from os import path
 from openpyxl.styles import NamedStyle
 from datetime import datetime
 from shutil import rmtree
-from six import integer_types, string_types
 from tempfile import mkdtemp
 from wc_utils.workbook import io
 from wc_utils.workbook.core import Workbook, Worksheet, Row, Formula
@@ -97,9 +96,9 @@ class TestIo(unittest.TestCase):
 
         # assert content is the same
         ws = wk['Ws-0']
-        self.assertIsInstance(ws[1][0], string_types)
-        self.assertIsInstance(ws[1][1], integer_types)
-        self.assertIsInstance(ws[1][2], integer_types)
+        self.assertIsInstance(ws[1][0], str)
+        self.assertIsInstance(ws[1][1], int)
+        self.assertIsInstance(ws[1][2], int)
         self.assertIsInstance(ws[1][3], bool)
         self.assertEqual(ws[2][0], u'b0\u20ac')
         self.assertEqual(ws[3][3], None)
@@ -644,8 +643,8 @@ class TestIo(unittest.TestCase):
 
         # assert content is the same
         ws = wk['Ws-0']
-        self.assertIsInstance(ws[1][0], string_types)
-        self.assertIsInstance(ws[1][1], integer_types)
+        self.assertIsInstance(ws[1][0], str)
+        self.assertIsInstance(ws[1][1], int)
         self.assertIsInstance(ws[1][2], float)
         self.assertIsInstance(ws[1][3], bool)
         self.assertEqual(ws[2][0], u'b0\u20ac')
@@ -666,8 +665,8 @@ class TestIo(unittest.TestCase):
 
         # assert content is the same
         ws = wk['Ws-0']
-        self.assertIsInstance(ws[1][0], string_types)
-        self.assertIsInstance(ws[1][1], integer_types)
+        self.assertIsInstance(ws[1][0], str)
+        self.assertIsInstance(ws[1][1], int)
         self.assertIsInstance(ws[1][2], float)
         self.assertIsInstance(ws[1][3], bool)
         self.assertEqual(ws[2][0], u'b0\u20ac')

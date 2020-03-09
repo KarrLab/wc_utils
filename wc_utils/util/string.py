@@ -7,7 +7,7 @@
 :License: MIT
 """
 
-import collections
+import collections.abc
 import re
 
 
@@ -75,7 +75,7 @@ def __indent_forest(forest, indentation, depth, keep_trailing_blank_lines):
 
 def _iterable_not_string(o):
     # todo: try to simplify & generalize this by using isinstance(o, basestring)
-    return isinstance(o, collections.Iterable) and not isinstance(o, str)
+    return isinstance(o, collections.abc.Iterable) and not isinstance(o, str)
 
 
 def delete_trailing_blanks(l_of_strings):

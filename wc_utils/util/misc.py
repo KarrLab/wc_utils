@@ -8,7 +8,7 @@
 """
 
 from fractions import Fraction
-import collections
+import collections.abc
 import math
 import socket
 import sys

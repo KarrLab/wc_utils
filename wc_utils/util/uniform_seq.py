@@ -7,7 +7,7 @@
 """
 
 from decimal import Decimal, getcontext
-import collections
+import collections.abc
 
 from wc_utils.config.core import get_config
 UNIFORM_SEQ_PRECISION = get_config()['wc_utils']['misc']['uniform_seq_precision']

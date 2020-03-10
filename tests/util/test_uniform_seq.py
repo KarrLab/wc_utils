@@ -36,6 +36,11 @@ class TestUniformSequence(unittest.TestCase):
             for expected in expected_seq:
                 next = us.__next__()
                 self.assertEqual(next, Decimal(expected))
+        for args, expected_seq in initial_and_expected_values:
+            start, period = args
+            us = UniformSequence(start, period)
+            for expected in expected_seq:
+                self.assertEqual(us.next_float(), float(expected))
 
         us = UniformSequence(0, 1)
         self.assertEqual(us.__iter__(), us)

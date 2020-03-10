@@ -72,6 +72,14 @@ class UniformSequence(collections.abc.Iterator):
             return 0.
         return next_value
 
+    def next_float(self):
+        """ Get next value in the sequence as a float for external use
+
+        Returns:
+            :obj:`float`: next value in this :obj:`UniformSequence`
+        """
+        return float(self.__next__())
+
     # todo: support scientific notation in truncate() so that sequences like this work
     # ((0, 1E-11), (0, .1E-10, .2E-10, .3E-10, .4E-10, .5E-10, .6E-10, .7E-10, .8E-10, .9E-10)),
     @staticmethod
@@ -82,6 +90,10 @@ class UniformSequence(collections.abc.Iterator):
 
         Args:
             value (:obj:`float`): value to truncate to a certain precision
+
+        Returns:
+            :obj:`str`: string representation of a uniform sequence value truncated to the maximum
+                precision supported
 
         Raises:
             :obj:`StopIteration`: if the truncated value does not equal `value`

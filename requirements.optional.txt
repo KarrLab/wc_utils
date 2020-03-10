@@ -1,12 +1,16 @@
-[quilt]
-boto3 # Python interface to AWS
-quilt3 >= 3.1.5 # to backup data files to Quilt
-
 [chem]
 openbabel
 
+[git]
+gitpython
+pygithub
+
 [logging]
 logging2
+
+[quilt]
+boto3 # Python interface to AWS
+quilt3 >= 3.1.5 # to backup data files to Quilt
 
 [protonation]
 pyjnius

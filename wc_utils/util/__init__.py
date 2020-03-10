@@ -4,7 +4,7 @@ from . import dict
 from . import enumerate
 from . import environ
 from . import files
-from . import git
+# from . import git
 from . import list
 from . import misc
 from . import ontology

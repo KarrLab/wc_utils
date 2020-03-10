@@ -7,7 +7,6 @@
 """
 
 from numpy import random as numpy_random
-from six import integer_types
 from wc_utils.util.types import is_iterable
 import math
 import numpy as np
@@ -208,7 +207,7 @@ def validate_random_state(random_state):
         raise InvalidRandomStateException(
             'Random number generator random_state[1] must be an array of length 624 of unsigned ints')
     for r in random_state[1]:
-        if not isinstance(r, (integer_types, np.uint32)):
+        if not isinstance(r, (int, np.uint32)):
             raise InvalidRandomStateException(
                 'Random number generator random_state[1] must be an array of length 624 of unsigned ints')
 

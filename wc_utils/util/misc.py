@@ -8,9 +8,8 @@
 """
 
 from fractions import Fraction
-import collections
+import collections.abc
 import math
-import six
 import socket
 import sys
 
@@ -66,7 +65,7 @@ def most_qual_cls_name(obj):
     Returns:
         :obj:`str`: the most qualified class name available for `obj`.
     """
-    if isinstance(obj, six.class_types):
+    if isinstance(obj, type):
         cls = obj
     else:
         cls = obj.__class__

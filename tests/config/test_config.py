@@ -376,5 +376,5 @@ class TestAltResourceName(unittest.TestCase):
         # test against pkg_resources.resource_filename
         wc_utils_repo = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         alt_resource_name = AltResourceName(os.path.join(wc_utils_repo, 'wc_utils', 'config'))
-        self.assertEqual(alt_resource_name.resource_filename('VERSION'),
-            pkg_resources.resource_filename('wc_utils', 'VERSION'))
+        self.assertEqual(alt_resource_name.resource_filename('_version.py'),
+            pkg_resources.resource_filename('wc_utils', '_version.py'))

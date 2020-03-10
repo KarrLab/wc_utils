@@ -24,13 +24,16 @@ try:
         jnius_config.set_classpath(*classpath)
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/GetMajorMicroSpecies.jar'))
     jnius_config.add_classpath(pkg_resources.resource_filename('wc_utils', 'util/chem/DrawMolecule.jar'))
-
-    import jnius
 except (ModuleNotFoundError, KeyError, SystemError):  # pragma: no cover
     pass  # pragma: no cover
 
-JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
-JavaDrawMolecule = jnius.autoclass('DrawMolecule')
+try:
+    import jnius
+    JavaGetMajorMicroSpecies = jnius.autoclass('GetMajorMicroSpecies')
+    JavaDrawMolecule = jnius.autoclass('DrawMolecule')
+except ModuleNotFoundError:  # pragma: no cover
+    JavaGetMajorMicroSpecies = None
+    JavaDrawMolecule = None
 
 
 def get_major_micro_species(structure_or_structures, in_format, out_format,
@@ -52,6 +55,9 @@ def get_major_micro_species(structure_or_structures, in_format, out_format,
             list of protonated chemical structures
     """
     ph = float(ph)
+
+    if not JavaGetMajorMicroSpecies:
+        raise ModuleNotFoundError("ChemAxon Marvin and pyjnius must be installed")
 
     if isinstance(structure_or_structures, str):
         result = JavaGetMajorMicroSpecies.run_one(structure_or_structures, in_format, out_format,
@@ -129,6 +135,8 @@ def draw_molecule(structure, format, image_format='svg', atom_labels=None, atom_
         bond_set_positions = [[[0]]]
         bond_set_elements = [[['']]]
 
+    if not JavaDrawMolecule:
+        raise ModuleNotFoundError("ChemAxon Marvin and pyjnius must be installed")
     image = JavaDrawMolecule.run(structure, format, image_format,
                                  atoms_to_label, atom_label_elements, atom_label_texts, atom_label_colors,
                                  atom_label_font_size,

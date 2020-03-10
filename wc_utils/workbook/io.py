@@ -19,7 +19,6 @@ from openpyxl.styles.colors import Color
 from openpyxl.utils import get_column_letter
 from os.path import basename, dirname, splitext
 from shutil import copyfile
-from six import integer_types, string_types, with_metaclass
 from wc_utils.workbook.core import Workbook, Worksheet, Row, Formula
 import copy
 import enum
@@ -28,7 +27,7 @@ import pyexcel
 import xlsxwriter
 
 
-class Writer(with_metaclass(ABCMeta, object)):
+class Writer(object, metaclass=ABCMeta):
     """ Write data to file(s)
 
     Attributes:
@@ -98,7 +97,7 @@ class Writer(with_metaclass(ABCMeta, object)):
         pass  # pragma: no cover
 
 
-class Reader(with_metaclass(ABCMeta, object)):
+class Reader(object, metaclass=ABCMeta):
     """ Read data from file(s)
 
     Attributes:
@@ -492,11 +491,11 @@ class ExcelWriter(Writer):
         """
         if value is None or value == '':
             result = xls_worksheet.write_blank(i_row, i_col, value, format)
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             result = xls_worksheet.write_string(i_row, i_col, value, format)
         elif isinstance(value, bool):
             result = xls_worksheet.write_boolean(i_row, i_col, value, format)
-        elif isinstance(value, integer_types):
+        elif isinstance(value, int):
             result = xls_worksheet.write_number(i_row, i_col, float(value), format)
         elif isinstance(value, float):
             result = xls_worksheet.write_number(i_row, i_col, value, format)

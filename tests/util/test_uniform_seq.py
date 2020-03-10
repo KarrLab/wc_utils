@@ -6,10 +6,13 @@
 :License: MIT
 """
 
+from decimal import Decimal
 import unittest
 import sys
 
+from wc_utils.config.core import get_config
 from wc_utils.util.uniform_seq import UniformSequence
+UNIFORM_SEQ_PRECISION = get_config()['wc_utils']['misc']['uniform_seq_precision']
 
 
 class TestUniformSequence(unittest.TestCase):
@@ -19,20 +22,20 @@ class TestUniformSequence(unittest.TestCase):
             [((0, 1), (0, 1, 2, 3)),
               ((2, 1), (2, 3)),
               ((0, -1), (0, -1, -2, -3)),
-              ((0, .1), (0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.)),
-              ((0, .100), (0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.)),
-              ((0, .3), (0, .3, .6, .9, 1.2)),
+              # non integer values are loaded as strings so that Decimal represents them exactly
+              ((0, '.1'), (0, '.1', '.2', '.3')),
+              ((0, '.100'), (0, '.1', '.2', '.3', '.4', '.5', '.6', '.7', '.8', '.9', 1)),
+              ((0, '-.100'), (0, '-0.1', '-0.2', '-0.3', '-0.4')),
+              ((0, '.3'), (0, '.3', '.6', '.9', '1.2')),
               # example from Guido van Rossum: http://code.activestate.com/recipes/577068/
-              ((0, .7), (0, .7, 1.4, 2.1)),
-              ((0, .04), (0, 0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32)),
+              ((0, '.7'), (0, '.7', '1.4', '2.1')),
         ]
         for args, expected_seq in initial_and_expected_values:
             start, period = args
             us = UniformSequence(start, period)
             for expected in expected_seq:
                 next = us.__next__()
-                self.assertEqual(next, expected)
-                self.assertEqual(float(us.truncate(next)), next)
+                self.assertEqual(next, Decimal(expected))
 
         us = UniformSequence(0, 1)
         self.assertEqual(us.__iter__(), us)
@@ -51,7 +54,12 @@ class TestUniformSequence(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "precision in step=.* exceeds UNIFORM_SEQ_PRECISION threshold"):
                 UniformSequence(0, nonterminating_step)
 
-        excessively_precise_steps = [0.123456789, 0.10101010101]
-        for excessively_precise_step in excessively_precise_steps:
-            with self.assertRaisesRegex(ValueError, "precision in step=.* exceeds UNIFORM_SEQ_PRECISION threshold"):
-                UniformSequence(0, excessively_precise_step)
+        with self.assertRaisesRegex(ValueError, "precision in step=.* exceeds UNIFORM_SEQ_PRECISION threshold"):
+            UniformSequence(0, '0.123456789')
+
+    def test_truncate(self):
+        not_too_much_precision = float('1.' + '1' * UNIFORM_SEQ_PRECISION)
+        self.assertEqual(UniformSequence.truncate(not_too_much_precision), str(not_too_much_precision))
+        with self.assertRaisesRegex(StopIteration, 'UniformSequence: truncation error:'):
+            too_much_precision = float('1.' + '1' * (UNIFORM_SEQ_PRECISION + 1))
+            UniformSequence.truncate(too_much_precision)

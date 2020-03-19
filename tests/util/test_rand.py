@@ -25,8 +25,8 @@ class TestRandomState(unittest.TestCase):
         samples = 1000
 
         obs_avg = np.mean([random_state.round(avg) for i in range(samples)])
-        min = np.floor(avg) + binom.ppf(0.001, n=samples, p=avg % 1) / samples
-        max = np.floor(avg) + binom.ppf(0.999, n=samples, p=avg % 1) / samples
+        min = np.floor(avg) + binom.ppf(0.0001, n=samples, p=avg % 1) / samples
+        max = np.floor(avg) + binom.ppf(0.9999, n=samples, p=avg % 1) / samples
         self.assertGreater(obs_avg, min)
         self.assertLess(obs_avg, max)
 

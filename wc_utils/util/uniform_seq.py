@@ -45,10 +45,10 @@ class UniformSequence(collections.abc.Iterator):
         # start and step cannot contain more digits than the Decimal precision
         if UNIFORM_SEQ_PRECISION < len(self._start.as_tuple().digits):
             raise ValueError(f"UniformSequence: precision in start={start} exceeds UNIFORM_SEQ_PRECISION "
-                             f"threshold={UNIFORM_SEQ_PRECISION}")
+                             f"threshold={UNIFORM_SEQ_PRECISION}; provide value as a string to avoid roundoff error")
         if UNIFORM_SEQ_PRECISION < len(self._step.as_tuple().digits):
             raise ValueError(f"UniformSequence: precision in step={step} exceeds UNIFORM_SEQ_PRECISION "
-                             f"threshold={UNIFORM_SEQ_PRECISION}")
+                             f"threshold={UNIFORM_SEQ_PRECISION}; provide value as a string to avoid roundoff error")
         self._num_steps = 0
 
     def __iter__(self):

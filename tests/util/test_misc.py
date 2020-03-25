@@ -6,12 +6,13 @@
 :License: MIT
 """
 
+from dataclasses import dataclass
 import unittest
 import numpy as np
 
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
                                 isclass_by_name, obj_to_str, as_dict, internet_connected,
-                                geometric_iterator, DFSMAcceptor)
+                                geometric_iterator, DFSMAcceptor, ValidatedDataClass)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -211,3 +212,38 @@ class TestDFSMAcceptor(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, 'no transitions available from start state'):
             DFSMAcceptor('s', 'e', [('f', 'm1', 0), ('e', 'm1', 'f')])
+
+
+class TestValidatedDataClass(unittest.TestCase):
+
+        @dataclass
+        class TestClass(ValidatedDataClass):
+            i: int
+            f: float = 0.0
+            s: str = None
+
+        def test_validate_dataclass_type(self):
+
+            tc = self.TestClass(1, 2.2)
+            self.assertEquals(tc.validate_dataclass_type('i'), None)
+            self.assertEquals(tc.validate_dataclass_type('f'), None)
+            tc_2 = self.TestClass(1, 2)
+            self.assertEquals(tc.validate_dataclass_type('f'), None)
+
+            # test 'an' int, no default
+            with self.assertRaisesRegex(TypeError, "an int"):
+                self.TestClass(1.3)
+
+            # test default
+            with self.assertRaisesRegex(TypeError, "a float"):
+                self.TestClass(2, 'h')
+
+            # test bad name
+            tc_3 = self.TestClass(2)
+            with self.assertRaises(ValueError):
+                tc_3.validate_dataclass_type('bad name')
+
+        def test_validate_dataclass_types(self):
+
+            tc = self.TestClass(1, 2.2)
+            self.assertEquals(tc.validate_dataclass_types(), None)

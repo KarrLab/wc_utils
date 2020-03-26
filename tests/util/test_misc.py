@@ -9,6 +9,10 @@
 from dataclasses import dataclass
 import unittest
 import numpy as np
+import os
+import pickle
+import shutil
+import tempfile
 
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
                                 isclass_by_name, obj_to_str, as_dict, internet_connected,
@@ -214,36 +218,91 @@ class TestDFSMAcceptor(unittest.TestCase):
             DFSMAcceptor('s', 'e', [('f', 'm1', 0), ('e', 'm1', 'f')])
 
 
+@dataclass
+class TestClass(ValidatedDataClass):
+    DO_NOT_PICKLE = {'s'}
+
+    i: int
+    f: float = 0.0
+    s: str = None
+
+
+@dataclass
+class TestClass2(ValidatedDataClass):
+    DO_NOT_PICKLE = {'bad'}
+
+    k: int
+    test_class: TestClass
+    bad: object = None
+
+
+@dataclass
+class TestClassAllPickles(ValidatedDataClass):
+
+    m: int
+
+
 class TestValidatedDataClass(unittest.TestCase):
 
-        @dataclass
-        class TestClass(ValidatedDataClass):
-            i: int
-            f: float = 0.0
-            s: str = None
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
 
-        def test_validate_dataclass_type(self):
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
 
-            tc = self.TestClass(1, 2.2)
-            self.assertEquals(tc.validate_dataclass_type('i'), None)
-            self.assertEquals(tc.validate_dataclass_type('f'), None)
-            tc_2 = self.TestClass(1, 2)
-            self.assertEquals(tc.validate_dataclass_type('f'), None)
+    def test_validate_dataclass_type(self):
 
-            # test 'an' int, no default
-            with self.assertRaisesRegex(TypeError, "an int"):
-                self.TestClass(1.3)
+        tc = TestClass(1, 2.2)
+        self.assertEquals(tc.validate_dataclass_type('i'), None)
+        self.assertEquals(tc.validate_dataclass_type('f'), None)
+        tc_2 = TestClass(1, 2)
+        self.assertEquals(tc.validate_dataclass_type('f'), None)
 
-            # test default
-            with self.assertRaisesRegex(TypeError, "a float"):
-                self.TestClass(2, 'h')
+        # test 'an' int, no default
+        with self.assertRaisesRegex(TypeError, "an int"):
+            TestClass(1.3)
 
-            # test bad name
-            tc_3 = self.TestClass(2)
-            with self.assertRaises(ValueError):
-                tc_3.validate_dataclass_type('bad name')
+        # test default
+        with self.assertRaisesRegex(TypeError, "a float"):
+            TestClass(2, 'h')
 
-        def test_validate_dataclass_types(self):
+        # test bad name
+        tc_3 = TestClass(2)
+        with self.assertRaises(ValueError):
+            tc_3.validate_dataclass_type('bad name')
 
-            tc = self.TestClass(1, 2.2)
-            self.assertEquals(tc.validate_dataclass_types(), None)
+    def test_validate_dataclass_types(self):
+
+        tc = TestClass(1, 2.2)
+        self.assertEquals(tc.validate_dataclass_types(), None)
+
+    test_class = TestClass(1, 2.2, 'hi')
+    test_class_2 = TestClass2(k=3, test_class=test_class, bad=object())
+    test_class_all_pickles = TestClassAllPickles(5)
+
+    def round_trip_pickle_test(self, validated_dataclass):
+        file = os.path.join(self.tmp_dir, 'test.pickle')
+        prepared_to_pickle = validated_dataclass.prepare_to_pickle()
+        with open(file, 'wb') as fd:
+            pickle.dump(prepared_to_pickle, fd)
+        with open(file, 'rb') as fd:
+            loaded_validated_dataclass = pickle.load(fd)
+        self.assertEquals(prepared_to_pickle, loaded_validated_dataclass)
+
+    def test_prepare_to_pickle(self):
+        self.test_class.validate_dataclass_types()
+        prepared_to_pickle = self.test_class.prepare_to_pickle()
+        self.assertEquals(prepared_to_pickle.s, None)
+        self.round_trip_pickle_test(self.test_class)
+
+        self.test_class_2.validate_dataclass_types()
+        prepared_to_pickle = self.test_class_2.prepare_to_pickle()
+        self.assertEquals(prepared_to_pickle.bad, None)
+        self.assertEquals(prepared_to_pickle.test_class.s, None)
+        self.round_trip_pickle_test(self.test_class_2)
+
+        self.test_class_all_pickles.validate_dataclass_types()
+        prepared_to_pickle = self.test_class_all_pickles.prepare_to_pickle()
+        self.assertEquals(prepared_to_pickle, self.test_class_all_pickles)
+        self.round_trip_pickle_test(self.test_class_all_pickles)
+

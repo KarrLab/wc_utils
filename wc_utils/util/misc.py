@@ -9,6 +9,7 @@
 
 from fractions import Fraction
 import collections.abc
+import copy
 import dataclasses
 import math
 import socket
@@ -326,9 +327,16 @@ class DFSMAcceptor(object):
 
 class ValidatedDataClass(object):
     """ A mixin that validates attributes in dataclasses
+
+    Attributes:
+        LIKELY_INITIAL_VOWEL_SOUNDS (:obj:`set` of :obj:`str`): initial letters of words that will
+            be preceeded by 'an'
+        DO_NOT_PICKLE (:obj:`set` of :obj:`str`): fields in a dataclass that cannot be pickled
     """
 
     LIKELY_INITIAL_VOWEL_SOUNDS = {'a', 'e', 'i', 'o', 'u'}
+
+    DO_NOT_PICKLE = set()
 
     def validate_dataclass_type(self, attr_name):
         """ Validate the type of an attribute in a dataclass instance
@@ -389,3 +397,18 @@ class ValidatedDataClass(object):
         """ Validate a dataclass attribute when it is changed """
         object.__setattr__(self, name, value)
         self.validate_dataclass_type(name)
+
+    def prepare_to_pickle(self):
+        """ Provide a copy that can be pickled; recursively calls nested :obj:`ValidatedDataClass`\ s
+
+        Returns:
+            :obj:`SimulationConfig`: a copy of `self` that can be pickled
+        """
+        to_pickle = copy.deepcopy(self)
+        for field in dataclasses.fields(self):
+            attr = getattr(self, field.name)
+            if field.name in self.DO_NOT_PICKLE:
+                setattr(to_pickle, field.name, None)
+            elif isinstance(attr, ValidatedDataClass):
+                setattr(to_pickle, field.name, attr.prepare_to_pickle())
+        return to_pickle

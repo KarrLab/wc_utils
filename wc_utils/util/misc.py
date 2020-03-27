@@ -12,6 +12,8 @@ import collections.abc
 import copy
 import dataclasses
 import math
+import os
+import pickle
 import socket
 import sys
 
@@ -325,8 +327,9 @@ class DFSMAcceptor(object):
         return DFSMAcceptor.FAIL
 
 
-class ValidatedDataClass(object):
-    """ A mixin that validates attributes in dataclasses
+# FIX FOR DE-SIM CHANGES
+class EnhancedDataClass(object):
+    """ A mixin that enhances dataclasses
 
     Attributes:
         LIKELY_INITIAL_VOWEL_SOUNDS (:obj:`set` of :obj:`str`): initial letters of words that will
@@ -335,7 +338,6 @@ class ValidatedDataClass(object):
     """
 
     LIKELY_INITIAL_VOWEL_SOUNDS = {'a', 'e', 'i', 'o', 'u'}
-
     DO_NOT_PICKLE = set()
 
     def validate_dataclass_type(self, attr_name):
@@ -399,7 +401,7 @@ class ValidatedDataClass(object):
         self.validate_dataclass_type(name)
 
     def prepare_to_pickle(self):
-        """ Provide a copy that can be pickled; recursively calls nested :obj:`ValidatedDataClass`\ s
+        """ Provide a copy that can be pickled; recursively calls nested :obj:`EnhancedDataClass`\ s
 
         Returns:
             :obj:`SimulationConfig`: a copy of `self` that can be pickled
@@ -409,6 +411,60 @@ class ValidatedDataClass(object):
             attr = getattr(self, field.name)
             if field.name in self.DO_NOT_PICKLE:
                 setattr(to_pickle, field.name, None)
-            elif isinstance(attr, ValidatedDataClass):
+            elif isinstance(attr, EnhancedDataClass):
                 setattr(to_pickle, field.name, attr.prepare_to_pickle())
         return to_pickle
+
+    @classmethod
+    def write_dataclass(cls, dataclass, dirname):
+        """ Save an `EnhancedDataClass` object to the directory `dirname`
+
+        Args:
+            dataclass (:obj:`EnhancedDataClass`): an `EnhancedDataClass` instance
+            dirname (:obj:`str`): directory for holding the dataclass
+
+        Raises:
+            :obj:`ValueError`: if a dataclass has already been written to `dirname`
+        """
+
+        # FIX FOR DE-SIM CHANGES
+        pathname = cls.get_pathname(dirname)
+        if os.path.isfile(pathname):
+            raise ValueError(f"'{pathname}' already exists")
+
+        with open(pathname, 'wb') as file:
+            pickle.dump(dataclass, file)
+
+    @classmethod
+    def read_dataclass(cls, dirname):
+        """ Read an `EnhancedDataClass` object from the directory `dirname`
+
+        Args:
+            dirname (:obj:`str`): directory for holding the dataclass
+
+        Returns:
+            :obj:`EnhancedDataClass`: an `EnhancedDataClass` object
+        """
+
+        pathname = cls.get_pathname(dirname)
+
+        # load and return this EnhancedDataClass
+        with open(pathname, 'rb') as file:
+            return pickle.load(file)
+
+    @staticmethod
+    def get_pathname(dirname):
+        """ Get the pathname for an `EnhancedDataClass` object stored in directory `dirname`
+
+        Subclasses must override this method.
+
+        Args:
+            dirname (:obj:`str`): directory for holding the dataclass
+
+        Returns:
+            :obj:`str`: pathname for the `EnhancedDataClass`
+        """
+        # FIX FOR DE-SIM CHANGES
+
+        raise ValueError(f"subclasses of EnhancedDataClass that read or write files must define get_pathname")
+        return os.path.join(dirname, 'filename goes here')  # pragma: no cover

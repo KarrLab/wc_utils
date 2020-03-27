@@ -16,7 +16,7 @@ import tempfile
 
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
                                 isclass_by_name, obj_to_str, as_dict, internet_connected,
-                                geometric_iterator, DFSMAcceptor, ValidatedDataClass)
+                                geometric_iterator, DFSMAcceptor, EnhancedDataClass)
 from wc_utils.util.stats import ExponentialMovingAverage
 
 
@@ -219,7 +219,7 @@ class TestDFSMAcceptor(unittest.TestCase):
 
 
 @dataclass
-class TestClass(ValidatedDataClass):
+class TestClass(EnhancedDataClass):
     DO_NOT_PICKLE = {'s'}
 
     i: int
@@ -228,7 +228,7 @@ class TestClass(ValidatedDataClass):
 
 
 @dataclass
-class TestClass2(ValidatedDataClass):
+class TestClass2(EnhancedDataClass):
     DO_NOT_PICKLE = {'bad'}
 
     k: int
@@ -237,12 +237,41 @@ class TestClass2(ValidatedDataClass):
 
 
 @dataclass
-class TestClassAllPickles(ValidatedDataClass):
+class TestClassAllPickles(EnhancedDataClass):
+
+    m: int
+
+    @staticmethod
+    def get_pathname(dirname):
+        """ Get the filename for this `EnhancedDataClass` object stored in directory `dirname`
+
+        Args:
+            dirname (:obj:`str`): directory for holding the dataclass
+
+        Returns:
+            :obj:`str`: filename for this `EnhancedDataClass`
+        """
+        return os.path.join(dirname, 'test_class_all_pickles.pickle')
+
+
+@dataclass
+class TestClassNoGetPathname(EnhancedDataClass):
 
     m: int
 
 
-class TestValidatedDataClass(unittest.TestCase):
+@dataclass
+class TestClassOverwrite(EnhancedDataClass):
+
+    m: int
+
+    @staticmethod
+    def get_pathname(dirname):
+        return os.path.join(dirname, 'test_class_overwrite.pickle')
+
+
+# FIX FOR DE-SIM CHANGES
+class TestEnhancedDataClass(unittest.TestCase):
 
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
@@ -280,6 +309,18 @@ class TestValidatedDataClass(unittest.TestCase):
     test_class_2 = TestClass2(k=3, test_class=test_class, bad=object())
     test_class_all_pickles = TestClassAllPickles(5)
 
+    def test_write_and_read(self):
+        TestClassAllPickles.write_dataclass(self.test_class_all_pickles, self.tmp_dir)
+        self.assertEqual(self.test_class_all_pickles, TestClassAllPickles.read_dataclass(self.tmp_dir))
+
+        with self.assertRaisesRegexp(ValueError, 'subclasses of EnhancedDataClass .* must define get_pathname'):
+            TestClassNoGetPathname.get_pathname(self.tmp_dir)
+
+        test_class_overwrite = TestClassOverwrite(1)
+        TestClassOverwrite.write_dataclass(test_class_overwrite, self.tmp_dir)
+        with self.assertRaisesRegexp(ValueError, '.* already exists'):
+            TestClassOverwrite.write_dataclass(test_class_overwrite, self.tmp_dir)
+
     def round_trip_pickle_test(self, validated_dataclass):
         file = os.path.join(self.tmp_dir, 'test.pickle')
         prepared_to_pickle = validated_dataclass.prepare_to_pickle()
@@ -305,4 +346,3 @@ class TestValidatedDataClass(unittest.TestCase):
         prepared_to_pickle = self.test_class_all_pickles.prepare_to_pickle()
         self.assertEquals(prepared_to_pickle, self.test_class_all_pickles)
         self.round_trip_pickle_test(self.test_class_all_pickles)
-

@@ -7,6 +7,7 @@
 :License: MIT
 """
 
+from dataclasses import dataclass
 from enum import Enum, auto
 from github.GithubException import UnknownObjectException
 from pathlib import Path
@@ -166,6 +167,7 @@ def get_repo_metadata(path='.', search_parent_directories=True, repo_type=None, 
     return RepositoryMetadata(url, branch, revision), unsuitable_changes
 
 
+@dataclass
 class RepositoryMetadata(object):
     """ Represents metadata about a Git repository
 
@@ -174,55 +176,10 @@ class RepositoryMetadata(object):
         branch (:obj:`str`): branch
         revision (:obj:`str`): revision
     """
-    ATTRIBUTES = ['url', 'branch', 'revision']
 
-    def __init__(self, url, branch, revision):
-        """
-        Args:
-            url (:obj:`str`): URL
-            branch (:obj:`str`): branch
-            revision (:obj:`str`): revision
-        """
-        self.url = url
-        self.branch = branch
-        self.revision = revision
-
-    def __eq__(self, other):
-        """ Compare two repository metadata objects
-
-        Args:
-            other (:obj:`RepositoryMetadata`): other repository metadata objects
-
-        Returns:
-            :obj:`bool`: true if repository metadata objects are semantically equal
-        """
-        if other.__class__ is not self.__class__:
-            return False
-
-        for attr in self.ATTRIBUTES:
-            if getattr(other, attr) != getattr(self, attr):
-                return False
-
-        return True
-
-    def __ne__(self, other):
-        """ Compare two repository metadata objects
-
-        Args:
-            other (:obj:`RepositoryMetadata`): other repository metadata objects
-
-        Returns:
-            :obj:`bool`: true if repository metadata objects are semantically unequal
-        """
-        return not self.__eq__(other)
-
-    def __str__(self):
-        """ Get string representation of a repository metadata object
-
-        Returns:
-            :obj:`str`: string representation of a repository metadata object
-        """
-        return obj_to_str(self, self.ATTRIBUTES)
+    url: str
+    branch: str
+    revision: str
 
 
 class GitHubRepoForTests(object):

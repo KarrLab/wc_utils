@@ -270,7 +270,6 @@ class TestClassOverwrite(EnhancedDataClass):
         return os.path.join(dirname, 'test_class_overwrite.pickle')
 
 
-# FIX FOR DE-SIM CHANGES
 class TestEnhancedDataClass(unittest.TestCase):
 
     def setUp(self):
@@ -313,7 +312,7 @@ class TestEnhancedDataClass(unittest.TestCase):
         TestClassAllPickles.write_dataclass(self.test_class_all_pickles, self.tmp_dir)
         self.assertEqual(self.test_class_all_pickles, TestClassAllPickles.read_dataclass(self.tmp_dir))
 
-        with self.assertRaisesRegexp(ValueError, 'subclasses of EnhancedDataClass .* must define get_pathname'):
+        with self.assertRaisesRegexp(ValueError, 'subclasses of EnhancedDataClass .* must define get_pathname method'):
             TestClassNoGetPathname.get_pathname(self.tmp_dir)
 
         test_class_overwrite = TestClassOverwrite(1)

@@ -327,7 +327,6 @@ class DFSMAcceptor(object):
         return DFSMAcceptor.FAIL
 
 
-# FIX FOR DE-SIM CHANGES
 class EnhancedDataClass(object):
     """ A mixin that enhances dataclasses
 
@@ -427,7 +426,6 @@ class EnhancedDataClass(object):
             :obj:`ValueError`: if a dataclass has already been written to `dirname`
         """
 
-        # FIX FOR DE-SIM CHANGES
         pathname = cls.get_pathname(dirname)
         if os.path.isfile(pathname):
             raise ValueError(f"'{pathname}' already exists")
@@ -464,7 +462,6 @@ class EnhancedDataClass(object):
         Returns:
             :obj:`str`: pathname for the `EnhancedDataClass`
         """
-        # FIX FOR DE-SIM CHANGES
 
-        raise ValueError(f"subclasses of EnhancedDataClass that read or write files must define get_pathname")
+        raise ValueError(f"subclasses of EnhancedDataClass that read or write files must define get_pathname method")
         return os.path.join(dirname, 'filename goes here')  # pragma: no cover

@@ -219,50 +219,47 @@ class TestDFSMAcceptor(unittest.TestCase):
 
 
 @dataclass
-class TestClass(EnhancedDataClass):
-    DO_NOT_PICKLE = {'s'}
-
-    i: int
-    f: float = 0.0
-    s: str = None
-
-
-@dataclass
-class TestClass2(EnhancedDataClass):
+class InnerClassFiltersPickle(EnhancedDataClass):
     DO_NOT_PICKLE = {'bad'}
-
-    k: int
-    test_class: TestClass
     bad: object = None
 
 
 @dataclass
-class TestClassAllPickles(EnhancedDataClass):
-
-    m: int
+class  OuterClassFiltersPickle(EnhancedDataClass):
+    DO_NOT_PICKLE = {'j'}
+    i: int
+    f: float = None
+    o: InnerClassFiltersPickle = None
 
     @staticmethod
     def get_pathname(dirname):
-        """ Get the filename for this `EnhancedDataClass` object stored in directory `dirname`
+        return os.path.join(dirname, 'outer_class_filters_pickle.pickle')
 
-        Args:
-            dirname (:obj:`str`): directory for holding the dataclass
 
-        Returns:
-            :obj:`str`: filename for this `EnhancedDataClass`
-        """
-        return os.path.join(dirname, 'test_class_all_pickles.pickle')
+@dataclass
+class InnerClassDoesNotFilterPickle(EnhancedDataClass):
+    i: int
+    s: str = None
+
+
+@dataclass
+class OuterClassDoesNotFilterPickle(EnhancedDataClass):
+    j: int
+    o: InnerClassDoesNotFilterPickle
+    f: float = 1.0
+
+    @staticmethod
+    def get_pathname(dirname):
+        return os.path.join(dirname, 'outer_class_does_not_filter_pickle.pickle')
 
 
 @dataclass
 class TestClassNoGetPathname(EnhancedDataClass):
-
     m: int
 
 
 @dataclass
 class TestClassOverwrite(EnhancedDataClass):
-
     m: int
 
     @staticmethod
@@ -280,39 +277,48 @@ class TestEnhancedDataClass(unittest.TestCase):
 
     def test_validate_dataclass_type(self):
 
-        tc = TestClass(1, 2.2)
-        self.assertEquals(tc.validate_dataclass_type('i'), None)
-        self.assertEquals(tc.validate_dataclass_type('f'), None)
-        tc_2 = TestClass(1, 2)
-        self.assertEquals(tc.validate_dataclass_type('f'), None)
+        o = InnerClassDoesNotFilterPickle(1, 'x')
+        self.assertEquals(o.validate_dataclass_type('i'), None)
+        self.assertEquals(o.validate_dataclass_type('s'), None)
+        o = InnerClassDoesNotFilterPickle(2)
+        self.assertEquals(o.validate_dataclass_type('i'), None)
+
+        # test accept int inputs to float fields
+        f = 4
+        o = OuterClassFiltersPickle(i=3, f=f)
+        self.assertEquals(o.validate_dataclass_type('f'), None)
+        self.assertEquals(o.f, float(f))
 
         # test 'an' int, no default
         with self.assertRaisesRegex(TypeError, "an int"):
-            TestClass(1.3)
+            InnerClassDoesNotFilterPickle(1.3)
 
         # test default
-        with self.assertRaisesRegex(TypeError, "a float"):
-            TestClass(2, 'h')
+        with self.assertRaisesRegex(TypeError, "a str"):
+            InnerClassDoesNotFilterPickle(1, 1.4)
 
         # test bad name
-        tc_3 = TestClass(2)
+        o = InnerClassDoesNotFilterPickle(2)
         with self.assertRaises(ValueError):
-            tc_3.validate_dataclass_type('bad name')
+            o.validate_dataclass_type('bad name')
 
     def test_validate_dataclass_types(self):
 
-        tc = TestClass(1, 2.2)
-        self.assertEquals(tc.validate_dataclass_types(), None)
+        o = InnerClassDoesNotFilterPickle(1, 'hi')
+        self.assertEquals(o.validate_dataclass_types(), None)
 
-    test_class = TestClass(1, 2.2, 'hi')
-    test_class_2 = TestClass2(k=3, test_class=test_class, bad=object())
-    test_class_all_pickles = TestClassAllPickles(5)
+    inner_class_filters_pickle = InnerClassFiltersPickle(bad=object())
+    outer_class_filters_pickle = OuterClassFiltersPickle(i=3, o=inner_class_filters_pickle)
+    inner_class_does_not_filter_pickle = InnerClassDoesNotFilterPickle(3, 'ab')
+    outer_class_does_not_filter_pickle = OuterClassDoesNotFilterPickle(7, inner_class_does_not_filter_pickle)
 
     def test_write_and_read(self):
-        TestClassAllPickles.write_dataclass(self.test_class_all_pickles, self.tmp_dir)
-        self.assertEqual(self.test_class_all_pickles, TestClassAllPickles.read_dataclass(self.tmp_dir))
+        OuterClassDoesNotFilterPickle.write_dataclass(self.outer_class_does_not_filter_pickle, self.tmp_dir)
+        self.assertEqual(OuterClassDoesNotFilterPickle.read_dataclass(self.tmp_dir),
+                         self.outer_class_does_not_filter_pickle)
 
-        with self.assertRaisesRegexp(ValueError, 'subclasses of EnhancedDataClass .* must define get_pathname method'):
+        with self.assertRaisesRegexp(ValueError,
+                                     'subclasses of EnhancedDataClass .* must define get_pathname method'):
             TestClassNoGetPathname.get_pathname(self.tmp_dir)
 
         test_class_overwrite = TestClassOverwrite(1)
@@ -321,6 +327,7 @@ class TestEnhancedDataClass(unittest.TestCase):
             TestClassOverwrite.write_dataclass(test_class_overwrite, self.tmp_dir)
 
     def round_trip_pickle_test(self, validated_dataclass):
+        """ Round-trip test of pickle write and read of EnhancedDataClass """
         file = os.path.join(self.tmp_dir, 'test.pickle')
         prepared_to_pickle = validated_dataclass.prepare_to_pickle()
         with open(file, 'wb') as fd:
@@ -330,18 +337,17 @@ class TestEnhancedDataClass(unittest.TestCase):
         self.assertEquals(prepared_to_pickle, loaded_validated_dataclass)
 
     def test_prepare_to_pickle(self):
-        self.test_class.validate_dataclass_types()
-        prepared_to_pickle = self.test_class.prepare_to_pickle()
-        self.assertEquals(prepared_to_pickle.s, None)
-        self.round_trip_pickle_test(self.test_class)
+        # test test_cls.prepare_to_pickle() == test_cls.prepare_to_pickle().prepare_to_pickle() for any test_cls
+        for instance in [self.inner_class_filters_pickle,
+                         self.outer_class_filters_pickle,
+                         self.inner_class_does_not_filter_pickle,
+                         self.outer_class_does_not_filter_pickle]:
+            self.assertEquals(instance.validate_dataclass_types(), None)
+            self.assertEquals(instance.prepare_to_pickle(), instance.prepare_to_pickle().prepare_to_pickle())
 
-        self.test_class_2.validate_dataclass_types()
-        prepared_to_pickle = self.test_class_2.prepare_to_pickle()
+        for outer_instance in [self.outer_class_filters_pickle, self.outer_class_does_not_filter_pickle]:
+            self.round_trip_pickle_test(outer_instance)
+
+        # test that filtered attribute is not set
+        prepared_to_pickle = self.inner_class_filters_pickle.prepare_to_pickle()
         self.assertEquals(prepared_to_pickle.bad, None)
-        self.assertEquals(prepared_to_pickle.test_class.s, None)
-        self.round_trip_pickle_test(self.test_class_2)
-
-        self.test_class_all_pickles.validate_dataclass_types()
-        prepared_to_pickle = self.test_class_all_pickles.prepare_to_pickle()
-        self.assertEquals(prepared_to_pickle, self.test_class_all_pickles)
-        self.round_trip_pickle_test(self.test_class_all_pickles)

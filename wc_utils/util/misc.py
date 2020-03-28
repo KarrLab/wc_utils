@@ -400,7 +400,9 @@ class EnhancedDataClass(object):
         self.validate_dataclass_type(name)
 
     def prepare_to_pickle(self):
-        """ Provide a copy that can be pickled; recursively calls nested :obj:`EnhancedDataClass`\ s
+        """ Provide a copy of this instance that can be pickled; recursively calls nested :obj:`EnhancedDataClass`\ s
+
+        Some objects, such as functions, cannot be pickled. Replace the value of these attributes with :obj:`None`.
 
         Returns:
             :obj:`SimulationConfig`: a copy of `self` that can be pickled
@@ -431,7 +433,7 @@ class EnhancedDataClass(object):
             raise ValueError(f"'{pathname}' already exists")
 
         with open(pathname, 'wb') as file:
-            pickle.dump(dataclass, file)
+            pickle.dump(dataclass.prepare_to_pickle(), file)
 
     @classmethod
     def read_dataclass(cls, dirname):
@@ -452,15 +454,15 @@ class EnhancedDataClass(object):
 
     @staticmethod
     def get_pathname(dirname):
-        """ Get the pathname for an `EnhancedDataClass` object stored in directory `dirname`
+        """ Get the pathname for a pickled :obj:`EnhancedDataClass` object stored in directory `dirname`
 
-        Subclasses must override this method.
+        Subclasses of :obj:`EnhancedDataClass` that read or write files must override this method.
 
         Args:
             dirname (:obj:`str`): directory for holding the dataclass
 
         Returns:
-            :obj:`str`: pathname for the `EnhancedDataClass`
+            :obj:`str`: pathname for the :obj:`EnhancedDataClass`
         """
 
         raise ValueError(f"subclasses of EnhancedDataClass that read or write files must define get_pathname method")

@@ -112,7 +112,7 @@ class TestGit(unittest.TestCase):
             'git@github.com:KarrLab/wc_utils.git',
         ])
         self.assertEqual(md.branch, 'master')
-        self.assertIn('branch: master', str(md))
+        self.assertIn("branch='master'", str(md))
         self.assertEqual(unsuitable_changes, None)
 
         md, unsuitable_changes = get_repo_metadata(path=self.tempdir,

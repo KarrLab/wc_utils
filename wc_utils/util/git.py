@@ -188,6 +188,8 @@ class GitHubRepoForTests(object):
     @staticmethod
     def get_github_api_token():
         config = core.get_config()['wc_utils']['github']
+        if config['github_api_token'] == '':
+            raise ValueError(f"'github_api_token' is not provided by config")
         return config['github_api_token']
 
     def __init__(self, name, organization='KarrLab'):

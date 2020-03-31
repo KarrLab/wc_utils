@@ -157,3 +157,42 @@ class DictUtilTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             DictUtil.flatten_dict(3)
+
+    def test_expand_dict(self):
+        expand_dict = DictUtil.expand_dict
+
+        d = {'key1': 3,
+             'key2': 2}
+        self.assertEqual(expand_dict(d), d)
+
+        d = {'key1.key2': 3,
+             'key1.key3': 2}
+        expected = {'key1': {'key2': 3,
+                             'key3': 2}}
+        self.assertEqual(expand_dict(d), expected)
+
+        d = {('key1', 'key2'): 3,
+             ('key1', 'key3'): 2}
+        self.assertEqual(expand_dict(d), expected)
+
+        d = {('key1', 'key2'): 3,
+              'key1.key3': 2}
+        self.assertEqual(expand_dict(d), expected)
+
+        with self.assertRaisesRegex(ValueError, 'not a dict'):
+            expand_dict(3)
+
+        d = {'key1': 3,
+             5.5: 2}
+        with self.assertRaisesRegex(ValueError, 'key must be a str or tuple'):
+            expand_dict(d)
+
+        d = {'key1.key2': 3,
+             'key1': 2}
+        with self.assertRaisesRegex(ValueError, 'conflicting key sequence'):
+            expand_dict(d)
+
+        d = {('key1', 'key2'): 3,
+              'key1.key2': 2}
+        with self.assertRaisesRegex(ValueError, 'conflicting key sequence'):
+            expand_dict(d)

@@ -13,7 +13,7 @@ class DictUtil(object):
 
     @staticmethod
     def nested_in(dict, keys, key_delimiter='.'):
-        """ Determines in the nested key sequence `keys` is in the dictionary `dict`
+        """ Determine whether the nested key sequence `keys` is in the dictionary `dict`
 
         Args:
             dict (:obj:`dict`): dictionary to retrieve value from
@@ -179,3 +179,40 @@ class DictUtil(object):
             else:
                 flat_dict[tuple(flat_key)] = d[key]
         return flat_dict
+
+    @staticmethod
+    def expand_dict(d, separator='.'):
+        """ Expand a dict, converting string or tuple keys into nested keys
+
+        Args:
+            d (:obj:`dict`): dictionary to expand
+            separator (:obj:`str`, optional): separator for keys that are strings
+
+        Returns:
+            :obj:`dict`: a nested dict, with each tuple element used as a key
+
+        Raises:
+            :obj:`ValueError`: if `d` is not a dict, or `d` contains a key that's neither a tuple or a str,
+                or `d` contains conflicting keys
+        """
+
+        if not isinstance(d, dict):
+            raise ValueError(f"d is a(n) '{type(d).__name__}', not a dict")
+        expanded = dict()
+        for keys, v in d.items():
+            if not isinstance(keys, (str, tuple)):
+                raise ValueError(f"key must be a str or tuple, but is a(n) '{type(keys).__name__}'")
+            if isinstance(keys, str):
+                keys = keys.split(separator)
+            nested_dict = expanded
+            for k_i in keys[:-1]:
+                try:
+                    nested_dict = nested_dict[k_i]
+                except KeyError:
+                    nested_dict[k_i] = dict()
+                    nested_dict = nested_dict[k_i]
+
+            if keys[-1] in nested_dict:
+                raise ValueError(f"conflicting key sequence {keys}")
+            nested_dict[keys[-1]] = v
+        return expanded

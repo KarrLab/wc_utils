@@ -275,6 +275,15 @@ class TestEnhancedDataClass(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp_dir)
 
+    def test___setattr__(self):
+        # in constructor
+        i = 3
+        inner_class_does_not_filter_pickle = InnerClassDoesNotFilterPickle(i, 'ab')
+        self.assertEquals(inner_class_does_not_filter_pickle.i, i)
+
+        with self.assertRaisesRegex(TypeError, "an int"):
+            InnerClassDoesNotFilterPickle('x')
+
     def test_validate_dataclass_type(self):
 
         o = InnerClassDoesNotFilterPickle(1, 'x')

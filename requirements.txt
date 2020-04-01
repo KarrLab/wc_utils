@@ -1,6 +1,7 @@
 abduct
 attrdict
 configobj
+dataclasses
 diskcache
 humanfriendly
 mendeleev

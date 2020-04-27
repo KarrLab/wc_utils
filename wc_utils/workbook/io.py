@@ -1042,7 +1042,7 @@ class WorksheetStyle(object):
         row_height (:obj:`float`): row height
         col_width (:obj:`float`): column width
         auto_filter (:obj:`bool`): whether or not to activate auto filters for row
-        merge_ranges (:obj:`list` of :obj:`tuple` of :obj:`int`): list of tuples of the start row, start column, end row, and end column (0-based) 
+        merge_ranges (:obj:`list` of :obj:`tuple` of :obj:`int`): list of tuples of the start row, start column, end row, and end column (0-based)
             of each range to merge
         hyperlinks (:obj:`list` of :obj:`Hyperlink`): list of hyperlinks
     """
@@ -1274,11 +1274,11 @@ class FieldValidation(object):
         self.show_error = show_error
 
     def apply_help_comment(self, ws, i_row, i_col):
-        """ Apply help comment to cell 
+        """ Apply help comment to cell
 
         Args:
             ws (:obj:`xlsxwriter.Worksheet`): worksheet
-            i_row (:obj:`int`): row        
+            i_row (:obj:`int`): row
             i_col (:obj:`int`): column
         """
         ws.write_comment(i_row, i_col, self.input_message, {

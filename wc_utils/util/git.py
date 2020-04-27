@@ -60,6 +60,7 @@ class RepoMetadataCollectionType(Enum):
     SCHEMA_REPO = auto()
 
 
+# FIX FOR DE-SIM CHANGES
 # todo: automatically determine branch of repo & use it instead of 'master'
 def repo_suitability(repo, repo_type, data_file=None):
     """ Evaluate whether a repo is a suitable source for git metadata
@@ -82,6 +83,11 @@ def repo_suitability(repo, repo_type, data_file=None):
         :obj:`list` of :obj:`str`: list of reasons, if any, that the repo is in a state that's not
             suitable for collecting metadata; an empty list indicates that the repo can be used to
             collect metadata
+
+    Raises:
+        :obj:`ValueError`: if obj:`data_file` is not a path in a Git repository, or
+            if `repo_type` is `RepoMetadataCollectionType.DATA_REPO` and `data_file` is not provided, or
+            if `repo_type` is not a `RepoMetadataCollectionType`
     """
     unsuitable_changes = []
     commits_ahead = list(repo.iter_commits('origin/master..master'))
@@ -151,10 +157,6 @@ def get_repo_metadata(path='.', search_parent_directories=True, repo_type=None, 
     Returns:
         :obj:`tuple`: of :obj:`RepositoryMetadata`:, :obj:`list` of :obj:`str`: repository metadata,
             and, if `repo_type` is provided, changes in the repository that make it unsuitable
-
-    Raises:
-        :obj:`ValueError`: if obj:`path` is not a path in a Git repository,
-            or if the repo is not suitable for gathering metadata
     """
     repo = get_repo(path=path, search_parent_directories=search_parent_directories)
     unsuitable_changes = None

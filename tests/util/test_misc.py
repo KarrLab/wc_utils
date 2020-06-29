@@ -7,12 +7,15 @@
 """
 
 from dataclasses import dataclass
-import unittest
+import datetime
+import math
 import numpy as np
 import os
 import pickle
+import random
 import shutil
 import tempfile
+import unittest
 
 from wc_utils.util.misc import (most_qual_cls_name, round_direct, OrderableNone, quote, isclass,
                                 isclass_by_name, obj_to_str, as_dict, internet_connected,
@@ -267,6 +270,47 @@ class TestClassOverwrite(EnhancedDataClass):
         return os.path.join(dirname, 'test_class_overwrite.pickle')
 
 
+@dataclass
+class TestSemanticallyEqualSimpleInner(EnhancedDataClass):
+    id: str
+    val: int
+
+
+@dataclass
+class TestSemanticallyEqualSimpleOuter(EnhancedDataClass):
+    my_bool: bool
+    nested_class: TestSemanticallyEqualSimpleInner
+
+
+@dataclass
+class TestSemanticallyEqualComplex(EnhancedDataClass):
+    """ A class for testing `semantically_equal()`
+
+    Two `TestSemanticallyEqual` instances will be considered semantically equal if their
+    `id` values are equal, and `val` values are close. Their `rand` values are ignored.
+    These choices convey the intent of `semantically_equal()`.
+    """
+    id: str
+    val: float
+    rand: object = None
+
+    def __post_init__(self):
+        self.rand = random.random()
+
+    def semantically_equal(self, other):
+        """ Evaluate whether two instances of :obj:`TestSemanticallyEqualComplex` are semantically equal
+
+        Overrides `semantically_equal` in :obj:`EnhancedDataClass`.
+
+        Args:
+            other (:obj:`Object`): other object
+
+        Returns:
+            :obj:`bool`: :obj:`True` if `other` is semantically equal to `self`, :obj:`False` otherwise
+        """
+        return self.id == other.id and math.isclose(self.val, other.val)
+
+
 class TestEnhancedDataClass(unittest.TestCase):
 
     def setUp(self):
@@ -360,3 +404,29 @@ class TestEnhancedDataClass(unittest.TestCase):
         # test that filtered attribute is not set
         prepared_to_pickle = self.inner_class_filters_pickle.prepare_to_pickle()
         self.assertEquals(prepared_to_pickle.bad, None)
+
+    def test_semantically_equal(self):
+        # test the default semantically_equal
+        tses_inner_1 = TestSemanticallyEqualSimpleInner('x', 1)
+        tses_inner_2 = TestSemanticallyEqualSimpleInner('y', 2)
+        tses_outer_1 = TestSemanticallyEqualSimpleOuter(True, tses_inner_1)
+        tses_outer_2 = TestSemanticallyEqualSimpleOuter(True, tses_inner_1)
+        tses_outer_3 = TestSemanticallyEqualSimpleOuter(False, tses_inner_1)
+        tses_outer_4 = TestSemanticallyEqualSimpleOuter(True, tses_inner_2)
+
+        self.assertFalse(tses_inner_1.semantically_equal(tses_inner_2))
+        self.assertTrue(tses_outer_1.semantically_equal(tses_outer_2))
+        self.assertTrue(tses_outer_2.semantically_equal(tses_outer_1))
+        self.assertFalse(tses_outer_1.semantically_equal(tses_outer_3))
+        self.assertFalse(tses_outer_1.semantically_equal(tses_outer_3))
+        self.assertFalse(tses_outer_1.semantically_equal(tses_outer_4))
+
+        # test the custom semantically_equal in TestSemanticallyEqualComplex
+        tsec_1 = TestSemanticallyEqualComplex('x_1', 1E9)
+        tsec_2 = TestSemanticallyEqualComplex('x_1', 1E9)
+        tsec_3 = TestSemanticallyEqualComplex('x_1', 1E9 - 0.1)
+        tsec_4 = TestSemanticallyEqualComplex('x_1', 1E9 - 2)
+        self.assertTrue(tsec_1.semantically_equal(tsec_1))
+        self.assertTrue(tsec_1.semantically_equal(tsec_2))
+        self.assertTrue(tsec_1.semantically_equal(tsec_3))
+        self.assertFalse(tsec_1.semantically_equal(tsec_4))

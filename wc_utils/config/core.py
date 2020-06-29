@@ -154,7 +154,6 @@ class ConfigManager(object):
         # re-validate configuration against schema after substitution
         self.validate(config, value_sources)
 
-        # return config
         return config
 
     def validate(self, config, value_sources):

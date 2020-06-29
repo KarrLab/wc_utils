@@ -84,7 +84,7 @@ def round_direct(value, precision=2):
     """ Convert `value` to rounded string with appended sign indicating the rounding direction.
 
     Append '+' to indicate that `value` has been rounded down, and '-' to indicate rounding up.
-    For example, 
+    For example,
     round_direct(3.01, 2) == '3.01'
     round_direct(3.01, 1) == '3.0+'
     round_direct(2.99, 1) == '3.0-'
@@ -328,7 +328,7 @@ class DFSMAcceptor(object):
 
 
 class EnhancedDataClass(object):
-    """ A mixin that enhances dataclasses
+    """ A class that enhances dataclasses
 
     Attributes:
         LIKELY_INITIAL_VOWEL_SOUNDS (:obj:`set` of :obj:`str`): initial letters of words that will
@@ -352,7 +352,6 @@ class EnhancedDataClass(object):
             :obj:`ValueError`: if `attr_name` is not the name of a field
             :obj:`TypeError`: if attribute `attr_name` does not have the right type
         """
-
         fields_map = {field.name: field for field in dataclasses.fields(self)}
         if attr_name not in fields_map:
             raise ValueError(f"'{attr_name}' must be a field in {self.__class__.__name__}")
@@ -389,7 +388,6 @@ class EnhancedDataClass(object):
         Raises:
             :obj:`error_type`: if an attribute does not have the right type
         """
-
         # validate types
         for field in dataclasses.fields(self):
             self.validate_dataclass_type(field.name)
@@ -427,7 +425,6 @@ class EnhancedDataClass(object):
         Raises:
             :obj:`ValueError`: if a dataclass has already been written to `dirname`
         """
-
         pathname = cls.get_pathname(dirname)
         if os.path.isfile(pathname):
             raise ValueError(f"'{pathname}' already exists")
@@ -445,7 +442,6 @@ class EnhancedDataClass(object):
         Returns:
             :obj:`EnhancedDataClass`: an `EnhancedDataClass` object
         """
-
         pathname = cls.get_pathname(dirname)
 
         # load and return this EnhancedDataClass
@@ -464,6 +460,20 @@ class EnhancedDataClass(object):
         Returns:
             :obj:`str`: pathname for the :obj:`EnhancedDataClass`
         """
-
         raise ValueError(f"subclasses of EnhancedDataClass that read or write files must define get_pathname method")
         return os.path.join(dirname, 'filename goes here')  # pragma: no cover
+
+    def semantically_equal(self, other):
+        """ Evaluate whether two instances of an :obj:`EnhancedDataClass` subclass are semantically equal
+
+        Defaults to `self == other` if not overridden. Otherwise, should return :obj:`True` if
+        `self` and `other` are semantically equal, and :obj:`False` otherwise.
+        By default, `dataclasses` are created with `__eq__` methods that compare all attributes.
+
+        Args:
+            other (:obj:`Object`): other object
+
+        Returns:
+            :obj:`bool`: :obj:`True` if `other` is semantically equal to `self`, :obj:`False` otherwise
+        """
+        return self == other

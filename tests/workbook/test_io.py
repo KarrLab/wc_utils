@@ -588,9 +588,9 @@ class TestIo(unittest.TestCase):
         ws0.append(Row(['abc', 'def', 'ghi']))
         ws0[0][0] = Formula('="abc"', 'abc')
 
-        style = io.WorkbookStyle()        
+        style = io.WorkbookStyle()
         style['Ws'] = io.WorksheetStyle(
-          hyperlinks=[io.Hyperlink(0, 1, 'https://google.com', tip='Click to view def')])
+            hyperlinks=[io.Hyperlink(0, 1, 'https://google.com', tip='Click to view def')])
 
         filename = path.join(self.tempdir, 'test.xlsx')
         io.ExcelWriter(filename).run(wb, style=style)
@@ -685,7 +685,7 @@ class TestIo(unittest.TestCase):
         io.SeparatedValuesWriter(filename).run(wb)
 
         wb2 = io.SeparatedValuesReader(filename).run()
-        
+
         wb2['Sheet1'] = wb2.pop('')
         self.assertEqual(wb2, wb)
 
@@ -712,7 +712,7 @@ class TestIo(unittest.TestCase):
 
         filename = path.join(self.tempdir, 'test.csv')
         with self.assertRaisesRegex(ValueError, 'must have a glob pattern'):
-          io.SeparatedValuesWriter(filename).run(wb)
+            io.SeparatedValuesWriter(filename).run(wb)
 
     def test_write_read(self):
         file = path.join(self.tempdir, 'test.xlsx')

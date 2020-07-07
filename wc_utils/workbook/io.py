@@ -215,7 +215,7 @@ class ExcelWriter(Writer):
         wb.set_custom_property('created', now)
         wb.set_custom_property('modified', now)
 
-    def write_worksheet(self, sheet_name, data, style=None, validation=None, protected=False):
+    def write_worksheet(self, sheet_name, data, style=None, validation=None, protected=False, include_help_comments=False):
         """ Write worksheet to file
 
         Args:
@@ -224,6 +224,7 @@ class ExcelWriter(Writer):
             style (:obj:`WorksheetStyle`, optional): worksheet style
             validation (:obj:`WorksheetValidation`, optional): worksheet validation
             protected (:obj:`bool`, optional): if :obj:`True`, protect the worksheet
+            include_help_comments (:obj:`bool`, optional): if :obj:`True`, include help comments
         """
         xls_worksheet = self.xls_workbook.add_worksheet(sheet_name)
 
@@ -362,6 +363,16 @@ class ExcelWriter(Writer):
         row_height = style.row_height
         col_width = style.col_width
 
+        if isinf(style.extra_rows):
+            extra_rows = min(100, 2**20 - n_rows)
+        else:
+            extra_rows = style.extra_rows
+
+        if isinf(style.extra_columns):
+            extra_columns = min(100, 2**14 - n_cols)
+        else:
+            extra_columns = style.extra_columns
+
         # format rows
         if isnan(row_height):
             default_row_height = None
@@ -418,10 +429,7 @@ class ExcelWriter(Writer):
                 assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # format extra columns
-        if isinf(style.extra_columns):
-            extra_columns = min(100, 2**14 - n_cols)
-        else:
-            extra_columns = style.extra_columns
+        if not isinf(style.extra_columns):
             result = xls_worksheet.set_column(n_cols + style.extra_columns, 2**14 - 1,
                                               options={'hidden': True})
             if result == -1:
@@ -440,10 +448,7 @@ class ExcelWriter(Writer):
                 assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # format extra rows
-        if isinf(style.extra_rows):
-            extra_rows = min(100, 2**20 - n_rows)
-        else:
-            extra_rows = style.extra_rows
+        if not isinf(style.extra_rows):
             for i_row in range(n_rows, n_rows + style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
                 if result == -1:
@@ -492,7 +497,8 @@ class ExcelWriter(Writer):
         if validation:
             validation.apply(xls_worksheet,
                              frozen_rows, frozen_columns,
-                             n_rows + extra_rows - 1, n_cols + extra_columns - 1)
+                             n_rows + extra_rows - 1, n_cols + extra_columns - 1,
+                             include_help_comments=include_help_comments)
 
         # freeze panes
         xls_worksheet.freeze_panes(frozen_rows, frozen_columns)
@@ -1183,7 +1189,7 @@ class WorksheetValidation(object):
         self.orientation = orientation
         self.fields = fields
 
-    def apply(self, ws, first_row, first_col, last_row, last_col):
+    def apply(self, ws, first_row, first_col, last_row, last_col, include_help_comments=False):
         """ Apply validation to worksheet
 
         Args:
@@ -1192,14 +1198,17 @@ class WorksheetValidation(object):
             first_col (:obj:`int`): first column
             last_row (:obj:`int`): last row
             last_col (:obj:`int`): last column
+            include_help_comments (:obj:`bool`, optional): if :obj:`True`, include help comments
         """
         for i_field, field in enumerate(self.fields):
             if field:
                 if self.orientation == WorksheetValidationOrientation.row:
-                    field.apply_help_comment(ws, first_row - 1, i_field)
+                    if include_help_comments:
+                        field.apply_help_comment(ws, first_row - 1, i_field)
                     field.apply_validation(ws, first_row, i_field, last_row, i_field)
                 else:
-                    field.apply_help_comment(ws, i_field, first_col - 1)
+                    if include_help_comments:
+                        field.apply_help_comment(ws, i_field, first_col - 1)
                     field.apply_validation(ws, i_field, first_col, i_field, last_col)
 
 
@@ -1308,13 +1317,13 @@ class FieldValidation(object):
             i_row (:obj:`int`): row
             i_col (:obj:`int`): column
         """
-        result = ws.write_comment(i_row, i_col, self.input_message, {
-            # 'author': None,  # generates XLSX files that Microsoft Excel can't read
+        options = {
             'visible': False,
-            'font_name': 'Arial',
-            # 'font_size': 10,  # generates XLSX files that Microsoft Excel can't read
+            'font_size': 10,
             'width': 300,  # pixels
-        })
+            'height': 74,  # pixels
+        }
+        result = ws.write_comment(i_row, i_col, self.input_message, options)
         if result == -1:
             raise ValueError('Cell is out of bounds')
         elif result == -2:

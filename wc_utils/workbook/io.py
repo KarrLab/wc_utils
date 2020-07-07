@@ -1308,12 +1308,11 @@ class FieldValidation(object):
             i_row (:obj:`int`): row
             i_col (:obj:`int`): column
         """
-        print(i_row, i_row, len(self.input_message))
         result = ws.write_comment(i_row, i_col, self.input_message, {
-            'author': None,
+            # 'author': None,  # generates XLSX files that Microsoft Excel can't read
             'visible': False,
             'font_name': 'Arial',
-            'font_size': 10,
+            # 'font_size': 10,  # generates XLSX files that Microsoft Excel can't read
             'width': 300,  # pixels
         })
         if result == -1:

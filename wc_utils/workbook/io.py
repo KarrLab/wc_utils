@@ -373,12 +373,22 @@ class ExcelWriter(Writer):
         # format columns
         if not isnan(col_width) and n_cols >= 1 and not isinf(style.extra_columns):
             result = xls_worksheet.set_column(0, n_cols - 1, width=col_width, options={'hidden': False})
-            assert result == 0, result
+            if result == -1:
+                raise ValueError("Column is out of bounds")
+            assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # hyperlinks
         for hyperlink in style.hyperlinks:
             result = xls_worksheet.write_url(hyperlink.i_row, hyperlink.i_col, hyperlink.url, tip=hyperlink.tip)
-            assert result == 0
+            if result == -1:
+                raise ValueError("Cell is out of bounds")
+            elif result == -2:
+                raise ValueError("String must be <= 32,000 characters")
+            elif result == -3:
+                raise ValueError("URL must be <= 2,079 characters")
+            elif result == -4:
+                raise ValueError("Worksheet must have <= 65,530 URLs")
+            assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # write data
         def get_format(i_row, i_col, style=style,
@@ -403,7 +413,9 @@ class ExcelWriter(Writer):
 
             if not isnan(row_height) and not isinf(style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
-                assert result in [0, None], result
+                if result == -1:
+                    raise ValueError("Row is out of bounds")
+                assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # format extra columns
         if isinf(style.extra_columns):
@@ -412,7 +424,9 @@ class ExcelWriter(Writer):
             extra_columns = style.extra_columns
             result = xls_worksheet.set_column(n_cols + style.extra_columns, 2**14 - 1,
                                               options={'hidden': True})
-            assert result == 0, result
+            if result == -1:
+                raise ValueError("Column is out of bounds")
+            assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         for i_row in range(n_rows):
             for i_col in range(n_cols, n_cols + extra_columns):
@@ -421,7 +435,9 @@ class ExcelWriter(Writer):
                 else:
                     format = body_format
                 result = xls_worksheet.write_blank(i_row, i_col, None, format)
-                assert result == 0, result
+                if result == -1:
+                    raise ValueError("Row is out of bounds")
+                assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # format extra rows
         if isinf(style.extra_rows):
@@ -430,7 +446,9 @@ class ExcelWriter(Writer):
             extra_rows = style.extra_rows
             for i_row in range(n_rows, n_rows + style.extra_rows):
                 result = xls_worksheet.set_row(i_row, options={'hidden': False})
-                assert result in [0, None], result
+                if result == -1:
+                    raise ValueError("Row is out of bounds")
+                assert result in [0, None], "xlsxwriter error: {}".format(result)
 
                 for i_col in range(n_cols + extra_columns):
                     if i_row < frozen_rows or i_col < frozen_columns:
@@ -438,7 +456,9 @@ class ExcelWriter(Writer):
                     else:
                         format = body_format
                     result = xls_worksheet.write_blank(i_row, i_col, None, format)
-                    assert result == 0, result
+                    if result == -1:
+                        raise ValueError("Row is out of bounds")
+                    assert result in [0, None], "xlsxwriter error: {}".format(result)
 
         # merge ranges
         for row_start, col_start, row_end, col_end in style.merge_ranges:
@@ -462,7 +482,10 @@ class ExcelWriter(Writer):
                 format = merged_head_format
             else:
                 format = merge_body_format
-            xls_worksheet.merge_range(row_start, col_start, row_end, col_end, None)
+            result = xls_worksheet.merge_range(row_start, col_start, row_end, col_end, None)
+            if result == -1:
+                raise ValueError("Range of out of bounds")
+            assert result in [0, None], "xlsxwriter error: {}".format(result)
             self.write_cell(xls_worksheet, sheet_name, row_start, col_start, value, format)
 
         # validation
@@ -506,7 +529,11 @@ class ExcelWriter(Writer):
             raise ValueError('Unsupported type {} at {}:{}:{}{}'.format(
                 value.__class__.__name__,
                 self.path, sheet_name, get_column_letter(i_col + 1), i_row + 1))
-        assert result == 0, 'Error code {} when writing "{}" to worksheet "{}"'.format(
+        if result == -1:
+            raise ValueError("Row is out of bounds")
+        if result == -2:
+            raise ValueError("Value must be <= 32,000 characters")
+        assert result in [0, None], 'Error code {} when writing "{}" to worksheet "{}"'.format(
             result, value, sheet_name)
 
     def finalize_workbook(self):
@@ -1281,13 +1308,19 @@ class FieldValidation(object):
             i_row (:obj:`int`): row
             i_col (:obj:`int`): column
         """
-        ws.write_comment(i_row, i_col, self.input_message, {
+        print(i_row, i_row, len(self.input_message))
+        result = ws.write_comment(i_row, i_col, self.input_message, {
             'author': None,
             'visible': False,
             'font_name': 'Arial',
             'font_size': 10,
             'width': 300,  # pixels
         })
+        if result == -1:
+            raise ValueError('Cell is out of bounds')
+        elif result == -2:
+            raise ValueError('Comment must be <= 32,000 characters')
+        assert result in [0, None], "xlsxwriter error: {}".format(result)
 
     def apply_validation(self, ws, first_row, first_col, last_row, last_col):
         """ Apply validation to cells
@@ -1299,7 +1332,12 @@ class FieldValidation(object):
             last_row (:obj:`int`): last row
             last_col (:obj:`int`): last column
         """
-        ws.data_validation(first_row, first_col, last_row, last_col, self.get_options())
+        result = ws.data_validation(first_row, first_col, last_row, last_col, self.get_options())
+        if result == -1:
+            raise ValueError('Range is out of bounds')
+        elif result == -2:
+            raise ValueError('Invalid options')
+        assert result in [0, None], "xlsxwriter error: {}".format(result)
 
     def get_options(self):
         """ Get options for :obj:`xlsxwriter.Worksheet.data_validation`

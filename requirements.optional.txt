@@ -1,5 +1,5 @@
 [chem]
-openbabel
+openbabel < 3
 
 [git]
 gitpython

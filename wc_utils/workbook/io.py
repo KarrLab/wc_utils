@@ -258,7 +258,7 @@ class ExcelWriter(Writer):
         title_format = self.xls_workbook.add_format()
         title_format.set_align('left')
         title_format.set_align('top')
-        title_format.set_text_wrap(True)
+        title_format.set_text_wrap(False)
         title_format.set_font_name(style.font_family)
         title_format.set_font_size(style.font_size)
         title_format.set_bold(style.title_row_font_bold)

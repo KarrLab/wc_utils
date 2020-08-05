@@ -12,6 +12,7 @@ from datetime import datetime
 from glob import glob
 from itertools import chain
 from math import isnan, isinf
+from natsort import natsorted, ns
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import Font, PatternFill
@@ -823,7 +824,7 @@ class SeparatedValuesReader(Reader):
             return ['']
         else:
             names = []
-            for filename in glob(self.path):
+            for filename in natsorted(glob(self.path), alg=ns.IGNORECASE):
                 names.append(filename[i_glob:i_glob + len(filename) - len(self.path) + 1])
             if not names:
                 raise ValueError("glob of path '{}' does not match any files".format(self.path))

@@ -5,6 +5,7 @@ dataclasses
 diskcache
 humanfriendly
 mendeleev
+natsort
 numpy
 objsize
 openpyxl >= 2.6.1, <= 3.0.1

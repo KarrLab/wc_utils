@@ -111,11 +111,12 @@ def quote(s):
     """ Enclose a string that contains spaces in single quotes, 'like this'
 
     Args:
-        s (:obj:`str`): a string
+        s (:obj:`object`): a string
 
     Returns:
         :obj:`str`: a string
     """
+    s = str(s)
     if ' ' in s:
         return "'{}'".format(s)
     else:

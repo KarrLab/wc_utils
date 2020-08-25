@@ -25,7 +25,7 @@ from tests.config.fixtures.paths import debug_logs as debug_logs_default_paths
 from wc_utils.config.core import (ConfigManager, ConfigPaths, any_checker,
                                   ExtraValuesError, InvalidConfigError, get_config,
                                   AltResourceName)
-from wc_utils.util.environ import EnvironUtils, MakeEnvironArgs
+from wc_utils.util.environ import EnvironUtils, ConfigEnvDict
 from wc_utils.util.types import assert_value_equal
 
 
@@ -65,10 +65,10 @@ class TestConfig(unittest.TestCase):
             'handler': 'MyHandler',
             'additional_context': {}}
 
-        make_environ_args = MakeEnvironArgs()
-        make_environ_args.add_to_env(['debug_logs', 'loggers', '__test__', 'template'], 'xxxx')
-        make_environ_args.add_to_env(['debug_logs', 'loggers', '__test__', 'handler'], 'MyHandler')
-        env = make_environ_args.get_env()
+        config_env_dict = ConfigEnvDict()
+        config_env_dict.add_config_value(['debug_logs', 'loggers', '__test__', 'template'], 'xxxx')
+        config_env_dict.add_config_value(['debug_logs', 'loggers', '__test__', 'handler'], 'MyHandler')
+        env = config_env_dict.get_env_dict()
         with EnvironUtils.make_temp_environ(**env):
             config_settings = ConfigManager(debug_logs_default_paths).get_config()
 

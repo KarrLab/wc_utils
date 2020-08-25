@@ -1,35 +1,39 @@
 """ Environment utilities
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-10-24
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
-
 
 import contextlib
 import os
 
 
 class EnvironUtils(object):
+    """ A context manager that temporarily sets environment variables
+    """
 
     @staticmethod
     @contextlib.contextmanager
     def make_temp_environ(**environ):
         """ Temporarily set environment variables:
 
-            with make_temp_environ(PLUGINS_DIR=u'test/plugins'):
-                "PLUGINS_DIR" in os.environ
-                    True
-                "PLUGINS_DIR" in os.environ
-                    False
+        # assume 'NO_SUCH_ENV_VAR' is not set in the environment
+        assert 'NO_SUCH_ENV_VAR' not in os.environ
+        with EnvironUtils.make_temp_environ(NO_SUCH_ENV_VAR='test_value'):
+            assert os.environ['NO_SUCH_ENV_VAR'] == 'test_value'
+        assert 'NO_SUCH_ENV_VAR' not in os.environ
 
-        Args:
-            environ (:obj:`dict`): dictionary of desired environment variable values
+        When used to modify configuration variables, `ConfigManager().get_config` must be called after the
+        temporary environment variables are set by `make_temp_environ()`.
 
         From http://stackoverflow.com/questions/2059482/python-temporarily-modify-the-current-processs-environment
-        """
 
+        Args:
+            environ (:obj:`dict`): dictionary mapping environment variable names to desired temporary values
+        """
         old_environ = dict(os.environ)
         os.environ.update(environ)
         try:
@@ -39,29 +43,47 @@ class EnvironUtils(object):
             os.environ.update(old_environ)
 
 
-class MakeEnvironArgs(object):
+class ConfigEnvDict(object):
 
     CONFIG = 'CONFIG'
     DOT = '__DOT__'
     def __init__(self):
         self.env = {}
 
-    def add_to_env(self, path, value):
-        """ Add a value to an environment dict
+    def add_config_value(self, path, value):
+        """ Add a value to a configuration environment dictionary
 
         Args:
             path (:obj:`list` of :obj:`str`): configuration path components
-            value (:obj:`obj`): the value that the path should have
+            value (:obj:`obj`): the value the path should be given
 
         Returns:
-            :obj:`dict`: the updated environment
+            :obj:`dict`: the updated configuration environment dictionary
         """
-        name = [MakeEnvironArgs.CONFIG]
+        name = [ConfigEnvDict.CONFIG]
         for element in path:
-            name.append(MakeEnvironArgs.DOT)
+            name.append(ConfigEnvDict.DOT)
             name.append(element)
         self.env[''.join(name)] = value
+        return self.get_env_dict()
+
+    def get_env_dict(self):
+        """ Get the configuration environment dictionary
+
+        Returns:
+            :obj:`dict`: the configuration environment dictionary
+        """
         return self.env
 
-    def get_env(self):
-        return self.env
+    def prep_tmp_conf(self, path_value_pairs):
+        """ Create a config environment dictionary
+
+        Args:
+            path_value_pairs (:obj:`list`): iterator over path, value pairs
+
+        Returns:
+            :obj:`dict`: a config environment dictionary for the path, value pairs
+        """
+        for path, value in path_value_pairs:
+            self.add_config_value(path, value)
+        return self.get_env_dict()

@@ -72,7 +72,8 @@ class TestConfig(unittest.TestCase):
         with EnvironUtils.make_temp_environ(**env):
             config_settings = ConfigManager(debug_logs_default_paths).get_config()
 
-        self.assertEqual(config_settings['debug_logs']['loggers']['__test__'], expected['debug_logs']['loggers']['__test__'])
+        self.assertEqual(config_settings['debug_logs']['loggers']['__test__'],
+                         expected['debug_logs']['loggers']['__test__'])
         assert_value_equal(config_settings, expected)
 
     def test_get_from_args(self):

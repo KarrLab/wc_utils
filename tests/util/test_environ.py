@@ -7,6 +7,7 @@
 :License: MIT
 """
 
+from wc_utils.config.core import ConfigManager, ConfigPaths
 from wc_utils.util.environ import EnvironUtils, ConfigEnvDict
 import os
 import unittest
@@ -14,7 +15,7 @@ import unittest
 
 class TestEnvironUtils(unittest.TestCase):
 
-    def test_mktemp(self):
+    def test_make_temp_environ(self):
         path = os.getenv('PATH')
 
         self.assertNotEqual(path, 'test')
@@ -26,6 +27,26 @@ class TestEnvironUtils(unittest.TestCase):
         with EnvironUtils.make_temp_environ(NO_SUCH_ENV_VAR='test_value'):
             self.assertEqual(os.environ['NO_SUCH_ENV_VAR'], 'test_value')
         self.assertTrue('NO_SUCH_ENV_VAR' not in os.environ)
+
+    def test_temp_config_env(self):
+        paths = ConfigPaths(
+            default=os.path.join(os.path.dirname(__file__), 'fixtures', 'config.default.cfg'),
+            schema=os.path.join(os.path.dirname(__file__), 'fixtures', 'config.schema.cfg')
+        )
+        expected = {'test_wc_utils': {'sec_1': {'float': 1.3,
+                                                'integer': 3,
+                                                'name': 'arthur'}}}
+        config_settings = ConfigManager(paths).get_config()
+        self.assertEqual(config_settings, expected)
+        with EnvironUtils.temp_config_env([(['test_wc_utils', 'sec_1', 'name'], 'joe'),
+                                           (['test_wc_utils', 'sec_1', 'integer'], '8'),
+                                           (['test_wc_utils', 'sec_1', 'float'], '3.14')]):
+            config_settings = ConfigManager(paths).get_config()
+            self.assertEqual(config_settings['test_wc_utils']['sec_1']['name'], 'joe')
+            self.assertEqual(config_settings['test_wc_utils']['sec_1']['integer'], 8)
+            self.assertEqual(config_settings['test_wc_utils']['sec_1']['float'], 3.14)
+        config_settings = ConfigManager(paths).get_config()
+        self.assertEqual(config_settings, expected)
 
 
 class TestConfigEnvDict(unittest.TestCase):

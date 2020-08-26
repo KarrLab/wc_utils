@@ -42,6 +42,24 @@ class EnvironUtils(object):
             os.environ.clear()
             os.environ.update(old_environ)
 
+    @staticmethod
+    @contextlib.contextmanager
+    def temp_config_env(path_value_pairs):
+        """ Create a temporary environment of configuration values
+
+        Args:
+            path_value_pairs (:obj:`list`): iterator over path, value pairs; 'path' is the hierarchical
+                path to a config value, and 'value' is its value
+        """
+        tmp_conf_dict = ConfigEnvDict().prep_tmp_conf(path_value_pairs)
+        old_environ = dict(os.environ)
+        os.environ.update(tmp_conf_dict)
+        try:
+            yield
+        finally:
+            os.environ.clear()
+            os.environ.update(old_environ)
+
 
 class ConfigEnvDict(object):
 

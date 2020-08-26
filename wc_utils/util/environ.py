@@ -79,11 +79,17 @@ class ConfigEnvDict(object):
         """ Create a config environment dictionary
 
         Args:
-            path_value_pairs (:obj:`list`): iterator over path, value pairs
+            path_value_pairs (:obj:`list`): iterator over path, value pairs; 'path' is the hierarchical
+                path to a config value, and 'value' is its value
 
         Returns:
             :obj:`dict`: a config environment dictionary for the path, value pairs
+
+        Raises:
+            :obj:`ValueError`: if a value is not a string
         """
         for path, value in path_value_pairs:
+            if not isinstance(value, str):
+                raise ValueError(f"environment variable values are strings, but 'value' ({value}) is a(n) {type(value).__name__}")
             self.add_config_value(path, value)
         return self.get_env_dict()

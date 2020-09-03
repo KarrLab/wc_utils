@@ -60,13 +60,12 @@ class RepoMetadataCollectionType(Enum):
     SCHEMA_REPO = auto()
 
 
-# FIX FOR DE-SIM CHANGES
 # todo: automatically determine branch of repo & use it instead of 'master'
 def repo_suitability(repo, repo_type, data_file=None):
     """ Evaluate whether a repo is a suitable source for git metadata
 
-    Determine whether `repo` is in a state that's suitable for collecting metadata for
-    a data file. It cannot be ahead of the remote, because commits must have been pushed to
+    Determine whether `repo` is in a state that's suitable for collecting immutable metadata.
+    It cannot be ahead of the remote, because commits must have been pushed to
     the server so they can be later retrieved.
     If the `repo_type` is `RepoMetadataCollectionType.SCHEMA_REPO`, then there cannot be any differences
     between the index and the working tree because the schema should be synched with the origin.
@@ -90,7 +89,7 @@ def repo_suitability(repo, repo_type, data_file=None):
             if `repo_type` is not a `RepoMetadataCollectionType`
     """
     unsuitable_changes = []
-    commits_ahead = list(repo.iter_commits('origin/master..master'))
+    commits_ahead = list(repo.iter_commits('origin..HEAD'))
     if commits_ahead:
         unsuitable_changes.append('commits ahead of origin')
 

@@ -115,10 +115,15 @@ class TestGit(unittest.TestCase):
         self.assertIn("branch='master'", str(md))
         self.assertEqual(unsuitable_changes, None)
 
+        # test get_repo_metadata of a new repo
         md, unsuitable_changes = get_repo_metadata(path=self.tempdir,
             repo_type=RepoMetadataCollectionType.SCHEMA_REPO)
         self.assertIn('KarrLab/test_wc_utils_git.git', md.url)
-        self.assertEqual(md.branch, 'master')
+        # this is strange; https://github.com/KarrLab/test_wc_utils_git.git does not exist on github.com
+        # until recently, md.branch == 'master', but now it is 'main'
+        # using the CLI to make a git repo in an empty dir with 'git init' makes a repo named 'master' as expected
+        # where does the name 'main' come from?
+        self.assertEqual(md.branch, 'main')
 
 
 class TestRepositoryMetadata(unittest.TestCase):

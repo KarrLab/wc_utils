@@ -244,11 +244,11 @@ class ExcelWriter(Writer):
                 'pivot_tables': False,
 
                 'format_cells': False,
-                'format_columns': False,
-                'format_rows': False,
+                'format_columns': True,
+                'format_rows': True,
 
-                'sort': False,
-                'autofilter': False,
+                'sort': True,
+                'autofilter': True,
 
                 'select_locked_cells': True,
                 'select_unlocked_cells': True,

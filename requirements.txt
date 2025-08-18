@@ -8,7 +8,7 @@ mendeleev
 natsort
 numpy
 objsize
-openpyxl >= 2.6.1, <= 3.0.1
+openpyxl
 pint >= 0.10
 pronto >= 1
 pyexcel >= 0.5.9.1
